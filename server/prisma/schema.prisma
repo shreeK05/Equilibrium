@@ -1,0 +1,139 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id               String            @id @default(uuid())
+  email            String            @unique
+  passwordHash     String
+  timezone         String            @default("UTC")
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  
+  constraint       UserConstraint?
+  tasks            Task[]
+  commitments      FixedCommitment[]
+  scheduleVersions ScheduleVersion[]
+  disruptions      DisruptionEvent[]
+}
+
+model UserConstraint {
+  id                    String  @id @default(uuid())
+  userId                String  @unique
+  minSleepHours         Float   // >= 7.0 logic enforced in API
+  sleepStart            String  // e.g., "23:00"
+  sleepEnd              String  // e.g., "06:00"
+  bufferMinutes         Int     @default(30)
+  peakEnergyWindowsJson String  // JSON array string to maintain SQLite/PG compatibility
+  
+  user                  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model FixedCommitment {
+  id               String   @id @default(uuid())
+  userId           String
+  title            String
+  startTime        DateTime
+  endTime          DateTime
+  type             String   @default("CUSTOM") // CLASS, LAB, EXAM, PERSONAL, CUSTOM
+  recurrence       String?  // e.g., "WEEKLY", "DAILY" or standard cron/RRULE string
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Task {
+  id               String   @id @default(uuid())
+  userId           String
+  title            String
+  
+  // Duration Tracking (Supports partial scheduling/splitting)
+  estimateMinutes  Int      // Initial user estimate
+  completedMinutes Int      @default(0) // Time permanently marked done
+  
+  deadline         DateTime
+  academicWeight   Float    @default(0.5) // [0.0 - 1.0]
+  teamImpactWeight Float    @default(0.0) // [0.0 - 1.0]
+  cognitiveLoad    String   @default("MEDIUM") // LOW, MEDIUM, HIGH
+  
+  deferralCount    Int      @default(0) // Increments if unscheduled/partially scheduled
+  status           String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, ARCHIVED
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  blocks           ScheduleBlock[]
+  logs             DecisionLog[]
+}
+
+model ScheduleVersion {
+  id                String   @id @default(uuid())
+  userId            String
+  triggerType       String   // MANUAL, EOD, DISRUPTION, IMPORT
+  capacityMinutes   Int      // The exact capacity calculated for this run
+  algorithmVersion  String   @default("1.0.0")
+  previousVersionId String?
+  generatedAt       DateTime @default(now())
+
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  blocks           ScheduleBlock[]
+  decisionLogs     DecisionLog[]
+}
+
+model ScheduleBlock {
+  id               String   @id @default(uuid())
+  versionId        String
+  taskId           String?  // Nullable for non-task blocks (e.g. SLEEP, FIXED)
+  startTime        DateTime
+  endTime          DateTime
+  durationMinutes  Int      // Mathematical length of this chunk
+  blockType        String   // TASK, SLEEP, FIXED, BUFFER
+  isCompleted      Boolean  @default(false)
+  isLocked         Boolean  @default(false) // Flags chunks in the past that are immutable
+
+  version          ScheduleVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  task             Task?           @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([versionId, startTime])
+  @@index([taskId])
+}
+
+model DecisionLog {
+  id                     String   @id @default(uuid())
+  versionId              String
+  taskId                 String
+  decisionType           String   // FULLY_SCHEDULED, PARTIALLY_SCHEDULED, DEFERRED
+  priorityScore          Float
+  priorityComponentsJson String   // e.g. { "academic": 0.5, "urgency": 2.1, "debt": 0.0 }
+  reasonCode             String   // e.g. "FRAGMENTED_CAPACITY", "CAPACITY_EXCEEDED"
+  humanReadable          String   
+  
+  version                ScheduleVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  task                   Task            @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  @@index([versionId])
+  @@index([taskId])
+}
+
+model DisruptionEvent {
+  id               String   @id @default(uuid())
+  userId           String
+  taskId           String?
+  type             String   // OVERRUN, EARLY_COMPLETION, MISSED, NEW_FIXED_EVENT
+  plannedMinutes   Int
+  actualMinutes    Int
+  detectedAt       DateTime @default(now())
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+}
