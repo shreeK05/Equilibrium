@@ -1,5 +1,7 @@
 import '../../core/api/api_client.dart';
 import '../../models/schedule.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ScheduleRepository {
   final ApiClient _api;
@@ -10,10 +12,18 @@ class ScheduleRepository {
     try {
       final data = await _api.get('/schedules/current');
       if (data == null) return null;
-      return ScheduleVersion.fromJson(data);
+      final schedule = ScheduleVersion.fromJson(data as Map<String, dynamic>);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('cached_schedule', jsonEncode(schedule.toJson()));
+      return schedule;
     } catch (e) {
       if (e is ApiException && e.statusCode == 404) {
         return null; // Return null gracefully if no schedule is found
+      }
+      final prefs = await SharedPreferences.getInstance();
+      final cached = prefs.getString('cached_schedule');
+      if (cached != null) {
+        return ScheduleVersion.fromJson(jsonDecode(cached) as Map<String, dynamic>);
       }
       rethrow;
     }

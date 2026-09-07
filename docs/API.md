@@ -31,6 +31,9 @@ Body: `{ email, password }`
 Body: `{ email, password }`
 Response: `{ token, user: { id, email } }`
 
+`GET /api/v1/auth/me`
+Returns the authenticated user's profile.
+
 ### 3. Constraints
 `GET /api/v1/constraints`
 Returns user's sleep, buffer, and energy preferences.
@@ -44,6 +47,9 @@ Updates preferences.
 `GET /api/v1/tasks/:id` (Get task)
 `PATCH /api/v1/tasks/:id` (Update task state / completion)
 `DELETE /api/v1/tasks/:id` (Delete task)
+`POST /api/v1/tasks/:id/complete` (Record actual duration and complete a task)
+Body: `{ actualMinutes }`
+`GET /api/v1/tasks/debt-ledger` (List unresolved work ordered by debt and deadline)
 
 ### 5. Schedules & Explainability
 `POST /api/v1/schedules/generate`
@@ -63,3 +69,7 @@ Returns a specific version and its blocks.
 
 `GET /api/v1/schedules/:versionId/decisions`
 Returns parsed structured explanation data (DecisionLogs) from the mathematical engine outlining exactly why tasks were fully scheduled, partially scheduled, or deferred.
+
+### 6. Insights
+`GET /api/v1/insights`
+Returns safe daily capacity, scheduled minutes, remaining minutes, utilization, deferred count, and a workload risk level.

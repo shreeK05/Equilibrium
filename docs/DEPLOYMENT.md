@@ -5,35 +5,34 @@ This document outlines the deployment architecture and execution steps for bring
 ## 1. Deployment Architecture
 - **Client (Android APK)**: Flutter application compiled in release mode. Connects securely via HTTPS to the Backend API.
 - **Backend API**: Node.js Express server running on a managed Node environment (e.g., Render, Railway, Fly.io).
-- **Database**: Prisma via SQLite. Since Equilibrium handles per-user workload state locally without complex multi-region replication needs, SQLite mapped to a **Persistent Volume** on your hosting provider is perfectly suited for production.
+- **Database**: Prisma connected to the managed PostgreSQL database attached to the Render service.
 
 ```mermaid
 graph TD
     A[Physical Android Phone] -->|HTTPS| B(Node.js API - Railway/Render)
-    B -->|Prisma| C[(SQLite on Persistent Volume)]
+    B -->|Prisma| C[(Render PostgreSQL)]
 ```
 
 ## 2. Required Accounts & Services
-- **Hosting Provider**: An account on Railway (recommended for simplest persistent volume attachment) or Render.
+- **Hosting Provider**: Render Web Service connected to this GitHub repository.
 - **Version Control**: GitHub or GitLab repository to connect your backend codebase to the hosting provider.
 
 ## 3. Environment Variables
 You must define the following variables on your hosting provider:
 - `PORT`: Usually automatically assigned by the host (e.g. `8080`).
 - `NODE_ENV`: `production`
-- `DATABASE_URL`: The absolute path to your persistent volume mount (e.g., `"file:/data/prod.db"`).
+- `DATABASE_URL`: The **Internal Database URL** from the Render PostgreSQL service.
 - `JWT_SECRET`: A highly secure random string (e.g., generated via `openssl rand -hex 64`).
 - `ALLOWED_ORIGINS`: The domains allowed to communicate with your API. Leave as `*` if you only have a mobile app, but restrict to your domain if deploying a web app alongside it.
 
-## 4. Backend Deployment Steps (e.g. Railway)
-1. Commit the Equilibrium codebase to your GitHub repository.
-2. In Railway, click **New Project** > **Deploy from GitHub repo**.
-3. Select the `server` directory (or deploy the repository root if you specify the root directory in Railway's settings).
-4. **Build Command**: `npm install && npm run build`
-5. **Start Command**: `npm start`
-6. Add a **Volume**: Mount it to `/data` in your deployment settings.
-7. Set your environment variables (especially `DATABASE_URL="file:/data/prod.db"`).
-8. **Prisma Migrations**: Because it's a persistent disk, SSH into the live server via the Railway dashboard and run `npx prisma db push` (or `npx prisma migrate deploy`) to initialize the database schema on the production volume.
+## 4. Backend Deployment Steps on Render
+1. Connect `shreeK05/Equilibrium` to a Render Web Service.
+2. Set the service root directory to `server`.
+3. Set **Build Command** to `npm ci && npm run build`.
+4. Set **Start Command** to `npm start`.
+5. Set `DATABASE_URL` to the Render PostgreSQL **Internal Database URL**.
+6. Set `NODE_ENV=production`, a random `JWT_SECRET` of at least 32 characters, and explicit `ALLOWED_ORIGINS` values.
+7. `npm start` applies the Prisma schema before starting the server. For a migration-controlled production workflow, replace this with `prisma migrate deploy` after migrations are committed.
 
 ## 5. Flutter Production Configuration
 The Flutter client has been reconfigured to ingest its base URL dynamically at compile-time. No secrets are hardcoded in the Flutter source code.

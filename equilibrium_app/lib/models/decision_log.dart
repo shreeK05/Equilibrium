@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class DecisionLog {
   final String id;
   final String versionId;
@@ -26,10 +28,23 @@ class DecisionLog {
       taskId: json['taskId'] as String,
       decisionType: _parseDecisionType(json['decisionType'] as String?),
       priorityScore: (json['priorityScore'] as num?)?.toDouble() ?? 0.0,
-      priorityComponents: json['priorityComponents'] as Map<String, dynamic>? ?? {},
+      priorityComponents: _parseComponents(json),
       reasonCode: _parseReasonCode(json['reasonCode'] as String?),
       humanReadable: json['humanReadable'] as String? ?? 'Unknown',
     );
+  }
+
+  static Map<String, dynamic> _parseComponents(Map<String, dynamic> json) {
+    final value = json['priorityComponents'];
+    if (value is Map<String, dynamic>) return value;
+    final raw = json['priorityComponentsJson'];
+    if (raw is String) {
+      try {
+        final parsed = jsonDecode(raw);
+        if (parsed is Map) return Map<String, dynamic>.from(parsed);
+      } catch (_) {}
+    }
+    return {};
   }
 
   static DecisionType _parseDecisionType(String? value) {
@@ -48,6 +63,36 @@ class DecisionLog {
       case 'NO_AVAILABLE_SLOTS': return DecisionReason.noAvailableSlots;
       case 'CAPACITY_EXCEEDED': return DecisionReason.capacityExceeded;
       default: return DecisionReason.other;
+    }
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'versionId': versionId,
+    'taskId': taskId,
+    'decisionType': _decisionTypeName(decisionType),
+    'priorityScore': priorityScore,
+    'priorityComponents': priorityComponents,
+    'reasonCode': _reasonCodeName(reasonCode),
+    'humanReadable': humanReadable,
+  };
+
+  static String _decisionTypeName(DecisionType value) {
+    switch (value) {
+      case DecisionType.fullyScheduled: return 'FULLY_SCHEDULED';
+      case DecisionType.partiallyScheduled: return 'PARTIALLY_SCHEDULED';
+      case DecisionType.deferred: return 'DEFERRED';
+      case DecisionType.unknown: return 'UNKNOWN';
+    }
+  }
+
+  static String _reasonCodeName(DecisionReason value) {
+    switch (value) {
+      case DecisionReason.success: return 'SUCCESS';
+      case DecisionReason.fragmentedCapacity: return 'FRAGMENTED_CAPACITY';
+      case DecisionReason.noAvailableSlots: return 'NO_AVAILABLE_SLOTS';
+      case DecisionReason.capacityExceeded: return 'CAPACITY_EXCEEDED';
+      case DecisionReason.other: return 'OTHER';
     }
   }
 }

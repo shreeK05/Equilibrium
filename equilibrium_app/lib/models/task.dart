@@ -1,4 +1,13 @@
-enum TaskStatus { scheduled, partiallyScheduled, deferred, completed, overdue }
+enum TaskStatus {
+  pending,
+  inProgress,
+  scheduled,
+  partiallyScheduled,
+  deferred,
+  completed,
+  archived,
+  overdue,
+}
 enum CognitiveLoad { low, medium, high }
 
 class Task {
@@ -23,7 +32,7 @@ class Task {
     this.academicWeight = 0.0,
     this.teamImpactWeight = 0.0,
     this.cognitiveLoad = CognitiveLoad.medium,
-    this.status = TaskStatus.deferred,
+    this.status = TaskStatus.pending,
   });
 
   factory Task.fromJson(Map<String, dynamic> json) {
@@ -40,10 +49,30 @@ class Task {
         (e) => e.name.toUpperCase() == (json['cognitiveLoad'] as String?)?.toUpperCase(),
         orElse: () => CognitiveLoad.medium,
       ),
-      status: TaskStatus.values.firstWhere(
-        (e) => e.name.toUpperCase() == (json['status'] as String?)?.toUpperCase(),
-        orElse: () => TaskStatus.deferred,
-      ),
+      status: _parseStatus(json['status'] as String?),
     );
+  }
+
+  static TaskStatus _parseStatus(String? rawStatus) {
+    switch (rawStatus?.toUpperCase()) {
+      case 'PENDING':
+        return TaskStatus.pending;
+      case 'IN_PROGRESS':
+        return TaskStatus.inProgress;
+      case 'SCHEDULED':
+        return TaskStatus.scheduled;
+      case 'PARTIALLY_SCHEDULED':
+        return TaskStatus.partiallyScheduled;
+      case 'DEFERRED':
+        return TaskStatus.deferred;
+      case 'COMPLETED':
+        return TaskStatus.completed;
+      case 'ARCHIVED':
+        return TaskStatus.archived;
+      case 'OVERDUE':
+        return TaskStatus.overdue;
+      default:
+        return TaskStatus.pending;
+    }
   }
 }

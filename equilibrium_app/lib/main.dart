@@ -5,8 +5,6 @@ import 'widgets/layout/app_shell.dart';
 import 'core/state/schedule_provider.dart';
 import 'core/state/auth_provider.dart';
 import 'core/api/api_client.dart';
-import 'services/task_repository.dart';
-import 'services/schedule_repository.dart';
 import 'services/auth_repository.dart';
 import 'services/constraint_repository.dart';
 import 'services/decision_repository.dart';
@@ -14,7 +12,7 @@ import 'screens/auth/login_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 
 void main() {
-  const apiUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:3000/api/v1');
+  const apiUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'https://equilibrium-42g8.onrender.com/api/v1');
   final api = ApiClient(baseUrl: apiUrl);
   
   runApp(
@@ -29,10 +27,7 @@ void main() {
           return provider;
         }),
         ChangeNotifierProvider(
-          create: (_) => ScheduleProvider(
-            ScheduleRepository(api),
-            TaskRepository(api),
-          ),
+          create: (_) => ScheduleProvider(api),
         ),
       ],
       child: const EquilibriumApp(),

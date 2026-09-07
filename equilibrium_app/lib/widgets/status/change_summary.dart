@@ -73,8 +73,8 @@ class ChangeSummaryBanner extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: EqTokens.space16, vertical: EqTokens.space8),
       padding: const EdgeInsets.all(EqTokens.space16),
       decoration: BoxDecoration(
-        color: colors.primary.withOpacity(0.05),
-        border: Border.all(color: colors.primary.withOpacity(0.2)),
+        color: colors.primary.withValues(alpha: 0.05),
+        border: Border.all(color: colors.primary.withValues(alpha: 0.2)),
         borderRadius: EqTokens.border8,
       ),
       child: Column(

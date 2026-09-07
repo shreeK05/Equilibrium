@@ -1,22 +1,37 @@
 import 'package:flutter/foundation.dart';
 import '../../models/schedule.dart';
 import '../../models/task.dart';
+import '../../models/commitment.dart';
 import '../../services/schedule_repository.dart';
 import '../../services/task_repository.dart';
+import '../../services/commitment_repository.dart';
+import '../../services/constraint_repository.dart';
 import '../../core/api/api_client.dart';
 import '../../core/api/api_error_mapper.dart';
 
 class ScheduleProvider extends ChangeNotifier {
   final ScheduleRepository _scheduleRepo;
   final TaskRepository _taskRepo;
+  final CommitmentRepository _commitmentRepo;
+  final ConstraintRepository _constraintRepo;
+  final ApiClient _api;
 
   ScheduleVersion? currentSchedule;
+  ScheduleVersion? previousSchedule;
   List<Task> activeTasks = [];
+  List<FixedCommitment> commitments = [];
+  Map<String, dynamic>? constraints;
+  Map<String, dynamic>? insights;
   bool isLoading = false;
   String? errorMessage;
   String? errorCode;
 
-  ScheduleProvider(this._scheduleRepo, this._taskRepo);
+  ScheduleProvider(ApiClient api) 
+    : _api = api,
+      _scheduleRepo = ScheduleRepository(api),
+        _taskRepo = TaskRepository(api),
+        _commitmentRepo = CommitmentRepository(api),
+        _constraintRepo = ConstraintRepository(api);
 
   Future<void> fetchDashboardData() async {
     _setLoading(true);
@@ -24,10 +39,19 @@ class ScheduleProvider extends ChangeNotifier {
       final futures = await Future.wait([
         _scheduleRepo.getCurrentSchedule(),
         _taskRepo.getTasks(),
+        _commitmentRepo.getCommitments(),
+        _constraintRepo.getConstraints(),
       ]);
       
       currentSchedule = futures[0] as ScheduleVersion?;
       activeTasks = futures[1] as List<Task>;
+      commitments = futures[2] as List<FixedCommitment>;
+      constraints = futures[3] as Map<String, dynamic>;
+      try {
+        insights = await _api.get('/insights') as Map<String, dynamic>;
+      } catch (_) {
+        insights = null;
+      }
       errorMessage = null;
       errorCode = null;
     } on ApiException catch (e) {
@@ -36,6 +60,40 @@ class ScheduleProvider extends ChangeNotifier {
     } catch (e) {
       errorCode = 'INTERNAL_ERROR';
       errorMessage = ApiErrorMapper.getUserFacingMessage('INTERNAL_ERROR');
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<bool> createCommitment(Map<String, dynamic> payload) async {
+    _setLoading(true);
+    try {
+      await _commitmentRepo.createCommitment(payload);
+      await generateSchedule(); // Regenerate immediately to respect the new hard constraint!
+      return true;
+    } on ApiException catch (e) {
+      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code);
+      return false;
+    } catch (e) {
+      errorMessage = ApiErrorMapper.getUserFacingMessage('INTERNAL_ERROR');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<bool> deleteCommitment(String id) async {
+    _setLoading(true);
+    try {
+      await _commitmentRepo.deleteCommitment(id);
+      await generateSchedule(); // Regenerate immediately to reclaim the capacity
+      return true;
+    } on ApiException catch (e) {
+      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code);
+      return false;
+    } catch (e) {
+      errorMessage = ApiErrorMapper.getUserFacingMessage('INTERNAL_ERROR');
+      return false;
     } finally {
       _setLoading(false);
     }
@@ -75,6 +133,23 @@ class ScheduleProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> completeTask(String id, int actualMinutes) async {
+    _setLoading(true);
+    try {
+      await _taskRepo.completeTask(id, actualMinutes);
+      await fetchDashboardData();
+      return true;
+    } on ApiException catch (e) {
+      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code);
+      return false;
+    } catch (e) {
+      errorMessage = ApiErrorMapper.getUserFacingMessage('INTERNAL_ERROR');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   Future<bool> deleteTask(String id) async {
     _setLoading(true);
     try {
@@ -92,9 +167,7 @@ class ScheduleProvider extends ChangeNotifier {
     }
   }
 
-  ScheduleVersion? previousSchedule;
-
-  Future<bool> generateSchedule() async {
+    Future<bool> generateSchedule() async {
     _setLoading(true);
     try {
       await _scheduleRepo.generateSchedule();

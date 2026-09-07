@@ -8,4 +8,9 @@ class ConstraintRepository {
   Future<void> updateConstraints(Map<String, dynamic> constraints) async {
     await _api.patch('/constraints', body: constraints);
   }
+
+  Future<Map<String, dynamic>> getConstraints() async {
+    final res = await _api.get('/constraints');
+    return res as Map<String, dynamic>;
+  }
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/theme.dart';
-import '../../core/theme/tokens.dart';
 
 class TimelineGridBackground extends StatelessWidget {
   final double pixelsPerMinute;
@@ -55,7 +54,7 @@ class _TimelineGridPainter extends CustomPainter {
       ..strokeWidth = 1;
       
     final thickLinePaint = Paint()
-      ..color = lineColor.withOpacity(0.8)
+      ..color = lineColor.withValues(alpha: 0.8)
       ..strokeWidth = 1.5;
 
     const timeColumnWidth = 50.0;

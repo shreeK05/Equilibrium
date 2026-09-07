@@ -29,26 +29,38 @@ class ScheduleBlock {
       startTime: DateTime.parse(json['startTime'] as String),
       endTime: DateTime.parse(json['endTime'] as String),
       durationMinutes: json['durationMinutes'] as int,
-      isLocked: json['isLocked'] as bool,
-      type: json['type'] as String? ?? 'TASK',
+      isLocked: json['isLocked'] as bool? ?? false,
+      // Backend uses 'blockType' field
+      type: (json['blockType'] as String?) ?? (json['type'] as String?) ?? 'TASK',
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'versionId': versionId,
+    'taskId': taskId,
+    'startTime': startTime.toIso8601String(),
+    'endTime': endTime.toIso8601String(),
+    'durationMinutes': durationMinutes,
+    'isLocked': isLocked,
+    'blockType': type,
+  };
 }
 
 class ScheduleVersion {
   final String id;
-  final DateTime horizonStart;
-  final DateTime horizonEnd;
   final String triggerType; // 'MANUAL' or 'DISRUPTION'
   final String? previousVersionId;
+  final DateTime generatedAt;
+  final int capacityMinutes;
   final List<ScheduleBlock> blocks;
   final List<DecisionLog> decisionLogs;
 
   ScheduleVersion({
     required this.id,
-    required this.horizonStart,
-    required this.horizonEnd,
     required this.triggerType,
+    required this.generatedAt,
+    required this.capacityMinutes,
     required this.blocks,
     this.previousVersionId,
     this.decisionLogs = const [],
@@ -57,10 +69,10 @@ class ScheduleVersion {
   factory ScheduleVersion.fromJson(Map<String, dynamic> json) {
     return ScheduleVersion(
       id: json['id'] as String,
-      horizonStart: DateTime.parse(json['horizonStart'] as String),
-      horizonEnd: DateTime.parse(json['horizonEnd'] as String),
-      triggerType: json['triggerType'] as String,
+      triggerType: json['triggerType'] as String? ?? 'MANUAL',
       previousVersionId: json['previousVersionId'] as String?,
+      generatedAt: DateTime.tryParse(json['generatedAt'] as String? ?? '') ?? DateTime.now(),
+      capacityMinutes: json['capacityMinutes'] as int? ?? 0,
       blocks: (json['blocks'] as List<dynamic>?)
               ?.map((e) => ScheduleBlock.fromJson(e as Map<String, dynamic>))
               .toList() ??
@@ -71,4 +83,14 @@ class ScheduleVersion {
           [],
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'triggerType': triggerType,
+    'previousVersionId': previousVersionId,
+    'generatedAt': generatedAt.toIso8601String(),
+    'capacityMinutes': capacityMinutes,
+    'blocks': blocks.map((block) => block.toJson()).toList(),
+    'decisionLogs': decisionLogs.map((log) => log.toJson()).toList(),
+  };
 }

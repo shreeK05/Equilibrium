@@ -197,7 +197,7 @@ class _ExplanationSheetState extends State<ExplanationSheet> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: EqTokens.space12, vertical: EqTokens.space4),
             decoration: BoxDecoration(
-              color: badgeColor.withOpacity(0.1),
+              color: badgeColor.withValues(alpha: 0.1),
               borderRadius: EqTokens.border4,
             ),
             child: Text(

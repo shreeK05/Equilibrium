@@ -22,7 +22,6 @@ class EqTheme {
       colorScheme: ColorScheme.fromSeed(
         seedColor: colors.primary,
         brightness: brightness,
-        background: colors.background,
         surface: colors.surface,
       ),
       textTheme: EqTypography.getTextTheme(brightness).apply(

@@ -154,8 +154,8 @@ void main() {
     final now = DateTime.now();
     final schedule = ScheduleVersion(
       id: 'v1',
-      horizonStart: now,
-      horizonEnd: now.add(const Duration(days: 7)),
+      generatedAt: now,
+      capacityMinutes: 480,
       triggerType: 'MANUAL',
       blocks: [
         ScheduleBlock(
@@ -194,7 +194,12 @@ void main() {
     ];
 
     await tester.pumpWidget(createTestWidget(
-      equilibrium_app_timeline.ScheduleTimeline(schedule: schedule, tasks: tasks)
+      equilibrium_app_timeline.ScheduleTimeline(
+        schedule: schedule, 
+        tasks: tasks,
+        commitments: [],
+        constraints: null,
+      )
     ));
 
     expect(find.text('Sleep Shield', skipOffstage: false), findsOneWidget);
@@ -207,8 +212,8 @@ void main() {
     final now = DateTime.now();
     final prev = ScheduleVersion(
       id: 'v1',
-      horizonStart: now,
-      horizonEnd: now.add(const Duration(days: 7)),
+      generatedAt: now,
+      capacityMinutes: 480,
       triggerType: 'MANUAL',
       blocks: [
         ScheduleBlock(id: 'b1', versionId: 'v1', taskId: 't1', startTime: now, endTime: now.add(const Duration(hours: 1)), durationMinutes: 60, isLocked: false, type: 'TASK'),
@@ -219,8 +224,8 @@ void main() {
     final curr = ScheduleVersion(
       id: 'v2',
       previousVersionId: 'v1',
-      horizonStart: now,
-      horizonEnd: now.add(const Duration(days: 7)),
+      generatedAt: now,
+      capacityMinutes: 480,
       triggerType: 'DISRUPTION',
       blocks: [
         ScheduleBlock(id: 'b2', versionId: 'v2', taskId: 't1', startTime: now.add(const Duration(hours: 1)), endTime: now.add(const Duration(hours: 2)), durationMinutes: 60, isLocked: false, type: 'TASK'),

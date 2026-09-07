@@ -27,10 +27,13 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
 
   void _saveProgress() async {
     final provider = context.read<ScheduleProvider>();
-    final success = await provider.updateTask(widget.task.id, {
-      if (_newTitle != null && _newTitle!.trim().isNotEmpty) 'title': _newTitle!.trim(),
-      'completedMinutes': _progressValue.toInt(),
-    });
+    final actualMinutes = _progressValue.toInt();
+    final success = actualMinutes >= widget.task.estimateMinutes
+        ? await provider.completeTask(widget.task.id, actualMinutes)
+        : await provider.updateTask(widget.task.id, {
+            if (_newTitle != null && _newTitle!.trim().isNotEmpty) 'title': _newTitle!.trim(),
+            'completedMinutes': actualMinutes,
+          });
 
     if (success && mounted) {
       Navigator.pop(context);
@@ -131,7 +134,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
               label: Text('Why was this scheduled?', style: text.labelLarge?.copyWith(color: colors.primary)),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.all(EqTokens.space16),
-                side: BorderSide(color: colors.primary.withOpacity(0.5)),
+                side: BorderSide(color: colors.primary.withValues(alpha: 0.5)),
                 shape: RoundedRectangleBorder(borderRadius: EqTokens.border8),
               ),
               onPressed: () {
@@ -197,7 +200,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
     return Container(
       padding: const EdgeInsets.all(EqTokens.space16),
       decoration: BoxDecoration(
-        color: colors.primary.withOpacity(0.05),
+        color: colors.primary.withValues(alpha: 0.05),
         borderRadius: EqTokens.border8,
       ),
       child: Column(

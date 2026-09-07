@@ -68,7 +68,7 @@ class _CurrentTimeIndicatorState extends State<CurrentTimeIndicator> {
           Expanded(
             child: Container(
               height: 2,
-              color: context.eqColors.primary.withOpacity(0.5),
+              color: context.eqColors.primary.withValues(alpha: 0.5),
             ),
           ),
         ],

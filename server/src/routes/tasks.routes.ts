@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { taskRepo } from '../repositories/task.repo';
 import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validate';
-import { taskSchema } from '../validation/schemas';
+import { taskCompletionSchema, taskSchema, taskUpdateSchema } from '../validation/schemas';
 
 export const tasksRouter = Router();
 tasksRouter.use(authenticate);
@@ -21,6 +21,21 @@ tasksRouter.post('/', validate(taskSchema), async (req: any, res, next) => {
   } catch (err) { next(err); }
 });
 
+tasksRouter.get('/debt-ledger', async (req: any, res, next) => {
+  try {
+    res.json(await taskRepo.debtLedger(req.userId));
+  } catch (err) { next(err); }
+});
+
+tasksRouter.post('/:id/complete', validate(taskCompletionSchema), async (req: any, res, next) => {
+  try {
+    res.json(await taskRepo.complete(req.params.id, req.userId, req.body.actualMinutes));
+  } catch (err: any) {
+    if (err.message.includes('not found')) return res.status(404).json({ error: { message: err.message } });
+    next(err);
+  }
+});
+
 tasksRouter.get('/:id', async (req: any, res, next) => {
   try {
     const task = await taskRepo.findById(req.params.id, req.userId);
@@ -29,7 +44,7 @@ tasksRouter.get('/:id', async (req: any, res, next) => {
   } catch (err) { next(err); }
 });
 
-tasksRouter.patch('/:id', async (req: any, res, next) => {
+tasksRouter.patch('/:id', validate(taskUpdateSchema), async (req: any, res, next) => {
   try {
     const task = await taskRepo.safeUpdate(req.params.id, req.userId, req.body);
     res.json(task);

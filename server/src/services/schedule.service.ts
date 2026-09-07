@@ -10,11 +10,19 @@ export class ScheduleService {
     const constraintsData = await constraintRepo.findByUserId(userId);
     if (!constraintsData) throw new Error('Constraints not found');
 
+    let peakEnergyWindows: ConstraintInput['peakEnergyWindows'];
+    try {
+      peakEnergyWindows = JSON.parse(constraintsData.peakEnergyWindowsJson);
+      if (!Array.isArray(peakEnergyWindows)) throw new Error('must be an array');
+    } catch {
+      throw new Error('Stored peak energy windows are invalid; update constraints before generating a schedule');
+    }
+
     const constraints: ConstraintInput = {
       sleepStart: constraintsData.sleepStart,
       sleepEnd: constraintsData.sleepEnd,
       minSleepHours: constraintsData.minSleepHours,
-      peakEnergyWindows: JSON.parse(constraintsData.peakEnergyWindowsJson)
+      peakEnergyWindows
     };
 
     const tasksData = await taskRepo.findActiveTasks(userId);
@@ -84,11 +92,19 @@ export class ScheduleService {
     const constraintsData = await constraintRepo.findByUserId(userId);
     if (!constraintsData) throw new Error('Constraints not found');
 
+    let peakEnergyWindows: ConstraintInput['peakEnergyWindows'];
+    try {
+      peakEnergyWindows = JSON.parse(constraintsData.peakEnergyWindowsJson);
+      if (!Array.isArray(peakEnergyWindows)) throw new Error('must be an array');
+    } catch {
+      throw new Error('Stored peak energy windows are invalid; update constraints before rescheduling');
+    }
+
     const constraints: ConstraintInput = {
       sleepStart: constraintsData.sleepStart,
       sleepEnd: constraintsData.sleepEnd,
       minSleepHours: constraintsData.minSleepHours,
-      peakEnergyWindows: JSON.parse(constraintsData.peakEnergyWindowsJson)
+      peakEnergyWindows
     };
 
     const tasksData = await taskRepo.findActiveTasks(userId);

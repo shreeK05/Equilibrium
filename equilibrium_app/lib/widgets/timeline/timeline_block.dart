@@ -29,19 +29,19 @@ class TimelineBlock extends StatelessWidget {
     
     switch (type) {
       case BlockType.task:
-        bgColor = isCompleted ? colors.statusCompleted.withOpacity(0.1) : colors.primary.withOpacity(0.05);
+        bgColor = isCompleted ? colors.statusCompleted.withValues(alpha: 0.1) : colors.primary.withValues(alpha: 0.05);
         fgColor = isCompleted ? colors.statusCompleted : colors.primary;
-        borderColor = isCompleted ? colors.statusCompleted.withOpacity(0.3) : colors.primary.withOpacity(0.2);
+        borderColor = isCompleted ? colors.statusCompleted.withValues(alpha: 0.3) : colors.primary.withValues(alpha: 0.2);
         break;
       case BlockType.fixed:
-        bgColor = colors.warning.withOpacity(0.1);
+        bgColor = colors.warning.withValues(alpha: 0.1);
         fgColor = colors.warning;
-        borderColor = colors.warning.withOpacity(0.3);
+        borderColor = colors.warning.withValues(alpha: 0.3);
         break;
       case BlockType.breakTime:
-        bgColor = colors.energyMedium.withOpacity(0.1);
+        bgColor = colors.energyMedium.withValues(alpha: 0.1);
         fgColor = colors.energyMedium;
-        borderColor = colors.energyMedium.withOpacity(0.3);
+        borderColor = colors.energyMedium.withValues(alpha: 0.3);
         break;
       case BlockType.free:
         bgColor = Colors.transparent;
@@ -83,7 +83,7 @@ class TimelineBlock extends StatelessWidget {
                 ),
                 Text(
                   timeRange,
-                  style: text.bodySmall?.copyWith(color: fgColor.withOpacity(0.8)),
+                  style: text.bodySmall?.copyWith(color: fgColor.withValues(alpha: 0.8)),
                 ),
               ],
             ),

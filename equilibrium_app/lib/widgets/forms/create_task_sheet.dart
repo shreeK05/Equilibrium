@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:intl/intl.dart';
 import '../../core/theme/theme.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/state/schedule_provider.dart';
@@ -16,11 +18,16 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
   int _estimateMinutes = 60;
   DateTime _deadline = DateTime.now().add(const Duration(days: 1));
   String _cognitiveLoad = 'MEDIUM';
+  String? _errorText;
 
-  final List<int> _durationOptions = [30, 60, 90, 120, 180, 240];
+  final List<int> _durationOptions = [30, 60, 90, 120, 180];
 
   void _submit() async {
-    if (_titleCtrl.text.isEmpty) return;
+    if (_titleCtrl.text.trim().isEmpty) {
+      setState(() => _errorText = "Please enter a task title");
+      return;
+    }
+    setState(() => _errorText = null);
 
     final provider = context.read<ScheduleProvider>();
     final success = await provider.createTask({
@@ -34,6 +41,50 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
 
     if (success && mounted) {
       Navigator.pop(context);
+    } else if (mounted) {
+      setState(() => _errorText = provider.errorMessage ?? "Failed to create task");
+    }
+  }
+
+  Future<void> _pickDeadline() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _deadline,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: ColorScheme.dark(
+            primary: context.eqColors.primary,
+            onPrimary: context.eqColors.surface,
+            surface: context.eqColors.surfaceElevated,
+            onSurface: context.eqColors.textPrimary,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+
+    if (date != null && mounted) {
+      final time = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(_deadline),
+        builder: (context, child) => Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.dark(
+              primary: context.eqColors.primary,
+              surface: context.eqColors.surfaceElevated,
+            ),
+          ),
+          child: child!,
+        ),
+      );
+
+      if (time != null) {
+        setState(() {
+          _deadline = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+        });
+      }
     }
   }
 
@@ -58,21 +109,43 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Add Responsibility', style: text.headlineLarge?.copyWith(color: colors.textPrimary)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Add Responsibility', style: text.headlineLarge?.copyWith(color: colors.textPrimary)),
+                IconButton(
+                  icon: Icon(Icons.close, color: colors.textSecondary),
+                  onPressed: () => Navigator.pop(context),
+                )
+              ],
+            ),
             const SizedBox(height: EqTokens.space24),
             
             TextField(
               controller: _titleCtrl,
+              autofocus: true,
+              style: TextStyle(color: colors.textPrimary),
               decoration: InputDecoration(
                 labelText: 'What do you need to do?',
+                labelStyle: TextStyle(color: colors.textSecondary),
                 filled: true,
                 fillColor: colors.surface,
+                errorText: _errorText,
                 border: OutlineInputBorder(borderRadius: EqTokens.border8, borderSide: BorderSide.none),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: EqTokens.border8,
+                  borderSide: BorderSide(color: colors.primary, width: 2),
+                ),
               ),
-            ),
+              onChanged: (_) {
+                if (_errorText != null) setState(() => _errorText = null);
+              },
+            ).animate().fade().slideY(begin: 0.2, duration: 300.ms),
+            
             const SizedBox(height: EqTokens.space24),
             
-            Text('Estimated Effort', style: text.labelSmall?.copyWith(color: colors.textSecondary)),
+            Text('Estimated Effort', style: text.labelSmall?.copyWith(color: colors.textSecondary))
+                .animate().fade(delay: 100.ms),
             const SizedBox(height: EqTokens.space8),
             Wrap(
               spacing: EqTokens.space8,
@@ -86,39 +159,101 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
                     if (val) setState(() => _estimateMinutes = mins);
                   },
                   selectedColor: colors.primary,
+                  backgroundColor: colors.surfaceElevated,
                   labelStyle: TextStyle(color: isSelected ? colors.surface : colors.textPrimary),
                 );
               }).toList(),
-            ),
+            ).animate().fade(delay: 150.ms),
             
             const SizedBox(height: EqTokens.space24),
             
-            Text('Cognitive Load', style: text.labelSmall?.copyWith(color: colors.textSecondary)),
-            const SizedBox(height: EqTokens.space8),
-            SegmentedButton<String>(
-              segments: const [
-                ButtonSegment(value: 'LOW', label: Text('Low')),
-                ButtonSegment(value: 'MEDIUM', label: Text('Medium')),
-                ButtonSegment(value: 'HIGH', label: Text('High')),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Deadline', style: text.labelSmall?.copyWith(color: colors.textSecondary)),
+                      const SizedBox(height: EqTokens.space8),
+                      InkWell(
+                        onTap: _pickDeadline,
+                        borderRadius: EqTokens.border8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: EqTokens.space16, vertical: EqTokens.space12),
+                          decoration: BoxDecoration(
+                            color: colors.surfaceElevated,
+                            borderRadius: EqTokens.border8,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.calendar_today, size: 16, color: colors.primary),
+                              const SizedBox(width: EqTokens.space8),
+                              Text(
+                                DateFormat('MMM d, h:mm a').format(_deadline),
+                                style: text.bodyMedium?.copyWith(color: colors.textPrimary),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ).animate().fade(delay: 200.ms),
+                ),
+                const SizedBox(width: EqTokens.space16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Cognitive Load', style: text.labelSmall?.copyWith(color: colors.textSecondary)),
+                      const SizedBox(height: EqTokens.space8),
+                      Container(
+                        height: 48, // Match the height of the date picker
+                        decoration: BoxDecoration(
+                          color: colors.surfaceElevated,
+                          borderRadius: EqTokens.border8,
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _cognitiveLoad,
+                            isExpanded: true,
+                            dropdownColor: colors.surfaceElevated,
+                            icon: Icon(Icons.arrow_drop_down, color: colors.textSecondary),
+                            padding: const EdgeInsets.symmetric(horizontal: EqTokens.space16),
+                            style: text.bodyMedium?.copyWith(color: colors.textPrimary),
+                            items: const [
+                              DropdownMenuItem(value: 'LOW', child: Text('Low')),
+                              DropdownMenuItem(value: 'MEDIUM', child: Text('Medium')),
+                              DropdownMenuItem(value: 'HIGH', child: Text('High')),
+                            ],
+                            onChanged: (val) {
+                              if (val != null) setState(() => _cognitiveLoad = val);
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ).animate().fade(delay: 250.ms),
+                ),
               ],
-              selected: {_cognitiveLoad},
-              onSelectionChanged: (set) => setState(() => _cognitiveLoad = set.first),
             ),
 
             const SizedBox(height: EqTokens.space32),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _submit,
+                onPressed: context.watch<ScheduleProvider>().isLoading ? null : _submit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: colors.primary,
                   foregroundColor: colors.surface,
                   padding: const EdgeInsets.all(EqTokens.space16),
                   shape: RoundedRectangleBorder(borderRadius: EqTokens.border8),
+                  elevation: 0,
                 ),
-                child: Text('Add to Workload', style: text.labelLarge?.copyWith(color: colors.surface)),
+                child: context.watch<ScheduleProvider>().isLoading 
+                    ? SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: colors.surface, strokeWidth: 2))
+                    : Text('Add to Workload', style: text.labelLarge?.copyWith(color: colors.surface)),
               ),
-            )
+            ).animate().fade(delay: 300.ms).slideY(begin: 0.2),
           ],
         ),
       ),

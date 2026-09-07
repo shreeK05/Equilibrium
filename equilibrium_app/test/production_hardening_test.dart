@@ -5,13 +5,8 @@ import 'package:equilibrium_app/core/api/api_error_mapper.dart';
 import 'package:equilibrium_app/core/state/auth_provider.dart';
 import 'package:equilibrium_app/core/state/schedule_provider.dart';
 import 'package:equilibrium_app/services/auth_repository.dart';
-import 'package:equilibrium_app/services/schedule_repository.dart';
-import 'package:equilibrium_app/services/task_repository.dart';
 import 'package:equilibrium_app/models/schedule.dart';
-import 'package:equilibrium_app/models/decision_log.dart';
 import 'package:equilibrium_app/models/task.dart';
-import 'package:equilibrium_app/widgets/status/error_state.dart';
-import 'package:equilibrium_app/widgets/status/change_summary.dart';
 import 'package:equilibrium_app/widgets/forms/explanation_sheet.dart';
 import 'package:equilibrium_app/services/decision_repository.dart';
 import 'package:provider/provider.dart';
@@ -41,12 +36,12 @@ void main() {
 
   test('ScheduleProvider previous schedule handling', () {
     final client = ApiClient(baseUrl: 'http://localhost');
-    final provider = ScheduleProvider(ScheduleRepository(client), TaskRepository(client));
+    final provider = ScheduleProvider(client);
     
     final s1 = ScheduleVersion(
       id: 'v1',
-      horizonStart: DateTime.now(),
-      horizonEnd: DateTime.now(),
+      generatedAt: DateTime.now(),
+      capacityMinutes: 480,
       triggerType: 'MANUAL',
       blocks: [],
       decisionLogs: []

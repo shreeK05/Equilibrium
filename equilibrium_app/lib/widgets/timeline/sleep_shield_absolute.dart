@@ -39,10 +39,10 @@ class AbsoluteSleepShield extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(EqTokens.space12),
           decoration: BoxDecoration(
-            color: context.eqColors.surfaceElevated.withOpacity(0.5),
+            color: context.eqColors.surfaceElevated.withValues(alpha: 0.5),
             borderRadius: EqTokens.border8,
             border: Border.all(
-              color: context.eqColors.textSecondary.withOpacity(0.2),
+              color: context.eqColors.textSecondary.withValues(alpha: 0.2),
               width: 1,
             ),
           ),
@@ -70,7 +70,7 @@ class AbsoluteSleepShield extends StatelessWidget {
                       Text(
                         '$startStr → $endStr',
                         style: context.eqText.labelSmall?.copyWith(
-                          color: context.eqColors.textSecondary.withOpacity(0.8),
+                          color: context.eqColors.textSecondary.withValues(alpha: 0.8),
                         ),
                       ),
                   ],

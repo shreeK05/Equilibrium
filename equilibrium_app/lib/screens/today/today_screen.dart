@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/theme/theme.dart';
 import '../../core/theme/tokens.dart';
 import '../../widgets/cards/task_card.dart';
@@ -11,6 +12,8 @@ import '../../widgets/status/error_state.dart';
 import '../../widgets/status/empty_state.dart';
 import '../../widgets/forms/task_detail_sheet.dart';
 import '../../core/state/schedule_provider.dart';
+import '../../models/task.dart';
+import '../../models/schedule.dart';
 
 class TodayScreen extends StatefulWidget {
   const TodayScreen({super.key});
@@ -47,7 +50,7 @@ class _TodayScreenState extends State<TodayScreen> {
                 title: 'Could not load today',
                 message: provider.errorMessage!,
                 onRetry: provider.fetchDashboardData,
-              );
+              ).animate().fade().scale(begin: const Offset(0.95, 0.95));
             }
 
             final schedule = provider.currentSchedule;
@@ -60,7 +63,7 @@ class _TodayScreenState extends State<TodayScreen> {
                 icon: Icons.done_all,
                 actionLabel: tasks.isNotEmpty ? 'Generate Schedule' : null,
                 onAction: tasks.isNotEmpty ? provider.generateSchedule : null,
-              );
+              ).animate().fade().scale(begin: const Offset(0.95, 0.95));
             }
 
             // Extract real metrics
@@ -77,13 +80,10 @@ class _TodayScreenState extends State<TodayScreen> {
             }
             if (availableMinutes == 0) availableMinutes = plannedMinutes; // fallback
 
-            final sleepBlock = schedule.blocks.firstWhere(
-              (b) => b.type == 'SLEEP',
-              orElse: () => schedule.blocks.first,
-            );
-            final sleepStart = '${sleepBlock.startTime.hour.toString().padLeft(2, '0')}:${sleepBlock.startTime.minute.toString().padLeft(2, '0')}';
-            final sleepEnd = '${sleepBlock.endTime.hour.toString().padLeft(2, '0')}:${sleepBlock.endTime.minute.toString().padLeft(2, '0')}';
-            final sleepDuration = '${sleepBlock.durationMinutes ~/ 60}h ${sleepBlock.durationMinutes % 60}m';
+            final sleepStart = provider.constraints?['sleepStart'] as String? ?? '23:00';
+            final sleepEnd = provider.constraints?['sleepEnd'] as String? ?? '06:00';
+            final minHours = provider.constraints?['minSleepHours'] as int? ?? 7;
+            final sleepDuration = '${minHours}h 00m';
 
             return RefreshIndicator(
               onRefresh: provider.fetchDashboardData,
@@ -100,55 +100,77 @@ class _TodayScreenState extends State<TodayScreen> {
                         color: colors.textSecondary,
                         letterSpacing: 1.2,
                       ),
-                    ),
+                    ).animate().fade().slideY(begin: -0.2),
                     const SizedBox(height: EqTokens.space8),
                     Text(
                       provider.errorMessage != null ? 'Running offline.' : 'Your workload is balanced.',
                       style: text.headlineLarge?.copyWith(
                         color: colors.textPrimary,
                       ),
-                    ),
+                    ).animate().fade(delay: 100.ms).slideY(begin: -0.2),
                     const SizedBox(height: EqTokens.space32),
                     
-                    _buildSectionTitle(context, 'Today'),
+                    _buildSectionTitle(context, 'Today').animate().fade(delay: 150.ms),
                     const SizedBox(height: EqTokens.space16),
                     WorkloadMeter(
                       plannedMinutes: plannedMinutes,
                       availableMinutes: availableMinutes,
-                    ),
+                    ).animate().fade(delay: 200.ms).scale(begin: const Offset(0.95, 0.95)),
                     
                     const SizedBox(height: EqTokens.space32),
-                    if (tasks.isNotEmpty) ...[
-                      _buildSectionTitle(context, 'Next'),
-                      const SizedBox(height: EqTokens.space16),
-                      GestureDetector(
-                        onTap: () {
-                          showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
-                            backgroundColor: Colors.transparent,
-                            builder: (context) => TaskDetailSheet(task: tasks.first),
+                    
+                    Builder(builder: (context) {
+                      final now = DateTime.now();
+                      final nextTaskBlock = schedule.blocks.cast<ScheduleBlock?>().firstWhere(
+                        (b) => b != null && b.type == 'TASK' && b.endTime.isAfter(now),
+                        orElse: () => null,
+                      );
+                      
+                      if (nextTaskBlock != null && nextTaskBlock.taskId != null) {
+                        final task = tasks.cast<Task?>().firstWhere(
+                          (t) => t != null && t.id == nextTaskBlock.taskId,
+                          orElse: () => null,
+                        );
+                        
+                        if (task != null) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildSectionTitle(context, 'Up Next').animate().fade(delay: 250.ms),
+                              const SizedBox(height: EqTokens.space16),
+                              GestureDetector(
+                                onTap: () {
+                                  showModalBottomSheet(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    backgroundColor: Colors.transparent,
+                                    builder: (context) => TaskDetailSheet(task: task),
+                                  );
+                                },
+                                child: TaskCard(
+                                  title: task.title,
+                                  subject: 'TASK',
+                                  durationStr: '${nextTaskBlock.durationMinutes}m',
+                                  deadlineStr: '${nextTaskBlock.startTime.hour.toString().padLeft(2, '0')}:${nextTaskBlock.startTime.minute.toString().padLeft(2, '0')}',
+                                  status: EqStatus.scheduled,
+                                ),
+                              ).animate().fade(delay: 300.ms).slideX(begin: 0.1),
+                              const SizedBox(height: EqTokens.space32),
+                            ],
                           );
-                        },
-                        child: TaskCard(
-                          title: tasks.first.title,
-                          subject: 'ACADEMIC', // Fallback or extracted
-                          durationStr: '${tasks.first.estimateMinutes}m',
-                          deadlineStr: 'Deadline', // Formatting omitted for brevity
-                          status: EqStatus.scheduled,
-                        ),
-                      ),
-                      const SizedBox(height: EqTokens.space32),
-                    ],
-
-                    _buildSectionTitle(context, 'Sleep Shield'),
+                        }
+                      }
+                      return const SizedBox.shrink();
+                    }),
+                    
+                    _buildSectionTitle(context, 'Sleep Shield').animate().fade(delay: 350.ms),
                     const SizedBox(height: EqTokens.space16),
                     
                     SleepShield(
                       startTime: sleepStart,
                       endTime: sleepEnd,
                       durationStr: sleepDuration,
-                    ),
+                    ).animate().fade(delay: 400.ms).slideY(begin: 0.1),
                   ],
                 ),
               ),

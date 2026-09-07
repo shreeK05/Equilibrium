@@ -14,6 +14,24 @@ export const taskSchema = z.object({
   cognitiveLoad: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional()
 });
 
+export const taskUpdateSchema = z.object({
+  title: z.string().min(1).max(255).optional(),
+  estimateMinutes: z.number().int().positive().max(10000).optional(),
+  completedMinutes: z.number().int().min(0).max(10000).optional(),
+  deadline: z.string().datetime().optional(),
+  academicWeight: z.number().min(0).max(1).optional(),
+  teamImpactWeight: z.number().min(0).max(1).optional(),
+  cognitiveLoad: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional(),
+  status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'ARCHIVED']).optional()
+}).strict().refine(
+  data => Object.keys(data).length > 0,
+  { message: 'At least one task field is required' }
+);
+
+export const taskCompletionSchema = z.object({
+  actualMinutes: z.number().int().positive().max(10000)
+});
+
 export const fixedCommitmentSchema = z.object({
   title: z.string().min(1).max(255),
   startTime: z.string().datetime(),

@@ -27,25 +27,25 @@ class StatusBadge extends StatelessWidget {
 
     switch (status) {
       case EqStatus.scheduled:
-        bgColor = colors.primary.withOpacity(0.1);
+        bgColor = colors.primary.withValues(alpha: 0.1);
         fgColor = colors.primary;
         label = 'SCHEDULED';
         icon = Icons.check_circle_outline;
         break;
       case EqStatus.partiallyScheduled:
-        bgColor = colors.workload.withOpacity(0.1);
+        bgColor = colors.workload.withValues(alpha: 0.1);
         fgColor = colors.workload;
         label = 'PARTIALLY SCHEDULED';
         icon = Icons.timelapse;
         break;
       case EqStatus.deferred:
-        bgColor = colors.statusDeferred.withOpacity(0.1);
+        bgColor = colors.statusDeferred.withValues(alpha: 0.1);
         fgColor = colors.statusDeferred;
         label = 'DEFERRED';
         icon = Icons.next_plan_outlined;
         break;
       case EqStatus.completed:
-        bgColor = colors.statusCompleted.withOpacity(0.1);
+        bgColor = colors.statusCompleted.withValues(alpha: 0.1);
         fgColor = colors.statusCompleted;
         label = 'COMPLETED';
         icon = Icons.done_all;
@@ -67,10 +67,10 @@ class StatusBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (icon != null) ...[
-            Icon(icon, size: 12, color: fgColor),
-            const SizedBox(width: EqTokens.space4),
-          ],
+          ...[
+          Icon(icon, size: 12, color: fgColor),
+          const SizedBox(width: EqTokens.space4),
+        ],
           Text(
             label,
             style: text.labelSmall?.copyWith(color: fgColor, fontWeight: FontWeight.w700),

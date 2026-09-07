@@ -24,4 +24,11 @@ class TaskRepository {
   Future<void> deleteTask(String id) async {
     await _api.delete('/tasks/$id');
   }
+
+  Future<Task> completeTask(String id, int actualMinutes) async {
+    final data = await _api.post('/tasks/$id/complete', body: {
+      'actualMinutes': actualMinutes,
+    });
+    return Task.fromJson(data as Map<String, dynamic>);
+  }
 }

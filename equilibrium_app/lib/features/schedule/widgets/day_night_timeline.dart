@@ -31,7 +31,7 @@ class DayNightTimelinePainter extends CustomPainter {
     void drawGlowBand(double top, double bottom) {
       final bandRect = Rect.fromLTWH(0, top, size.width, bottom - top);
       final bandPaint = Paint()
-        ..color = AppColors.restLavender.withOpacity(0.28)
+        ..color = AppColors.restLavender.withValues(alpha: 0.28)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12); // Soft glow
       canvas.drawRect(bandRect, bandPaint);
     }

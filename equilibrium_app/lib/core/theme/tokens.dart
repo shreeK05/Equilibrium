@@ -21,11 +21,13 @@ class EqTokens {
   static const Radius circularRadius8 = Radius.circular(radius8);
   static const Radius circularRadius12 = Radius.circular(radius12);
   static const Radius circularRadius16 = Radius.circular(radius16);
+  static const Radius circularRadius24 = Radius.circular(radius24);
 
   static const BorderRadius border4 = BorderRadius.all(circularRadius4);
   static const BorderRadius border8 = BorderRadius.all(circularRadius8);
   static const BorderRadius border12 = BorderRadius.all(circularRadius12);
   static const BorderRadius border16 = BorderRadius.all(circularRadius16);
+  static const BorderRadius border24 = BorderRadius.all(circularRadius24);
 
   // Animations
   static const Duration durationFast = Duration(milliseconds: 150);

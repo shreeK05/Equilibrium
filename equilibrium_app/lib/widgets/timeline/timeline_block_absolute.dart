@@ -84,17 +84,17 @@ class AbsoluteTimelineBlock extends StatelessWidget {
     Color borderColor;
     
     if (type == BlockType.task) {
-      bgColor = block.isLocked ? colors.statusCompleted.withOpacity(0.1) : colors.primary.withOpacity(0.05);
+      bgColor = block.isLocked ? colors.statusCompleted.withValues(alpha: 0.1) : colors.primary.withValues(alpha: 0.05);
       fgColor = block.isLocked ? colors.statusCompleted : colors.primary;
-      borderColor = block.isLocked ? colors.statusCompleted.withOpacity(0.3) : colors.primary.withOpacity(0.2);
+      borderColor = block.isLocked ? colors.statusCompleted.withValues(alpha: 0.3) : colors.primary.withValues(alpha: 0.2);
     } else if (type == BlockType.fixed) {
-      bgColor = colors.warning.withOpacity(0.1);
+      bgColor = colors.warning.withValues(alpha: 0.1);
       fgColor = colors.warning;
-      borderColor = colors.warning.withOpacity(0.3);
+      borderColor = colors.warning.withValues(alpha: 0.3);
     } else if (type == BlockType.breakTime) {
-      bgColor = colors.energyMedium.withOpacity(0.1);
+      bgColor = colors.energyMedium.withValues(alpha: 0.1);
       fgColor = colors.energyMedium;
-      borderColor = colors.energyMedium.withOpacity(0.3);
+      borderColor = colors.energyMedium.withValues(alpha: 0.3);
     } else {
       bgColor = Colors.transparent;
       fgColor = colors.textSecondary;
@@ -158,24 +158,24 @@ class AbsoluteTimelineBlock extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   timeRange,
-                  style: text.bodySmall?.copyWith(color: fgColor.withOpacity(0.8)),
+                  style: text.bodySmall?.copyWith(color: fgColor.withValues(alpha: 0.8)),
                 ),
                 if (task != null && displayDurationMinutes >= 45) ...[
                   const Spacer(),
                   Row(
                     children: [
-                      Icon(Icons.psychology, size: 14, color: fgColor.withOpacity(0.7)),
+                      Icon(Icons.psychology, size: 14, color: fgColor.withValues(alpha: 0.7)),
                       const SizedBox(width: 4),
                       Text(
                         task!.cognitiveLoad.name.toUpperCase(),
-                        style: text.labelSmall?.copyWith(color: fgColor.withOpacity(0.7)),
+                        style: text.labelSmall?.copyWith(color: fgColor.withValues(alpha: 0.7)),
                       ),
                       const SizedBox(width: 8),
-                      Icon(Icons.hourglass_bottom, size: 14, color: fgColor.withOpacity(0.7)),
+                      Icon(Icons.hourglass_bottom, size: 14, color: fgColor.withValues(alpha: 0.7)),
                       const SizedBox(width: 4),
                       Text(
                         '${block.durationMinutes}m chunk',
-                        style: text.labelSmall?.copyWith(color: fgColor.withOpacity(0.7)),
+                        style: text.labelSmall?.copyWith(color: fgColor.withValues(alpha: 0.7)),
                       ),
                     ],
                   ),

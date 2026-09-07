@@ -7,7 +7,7 @@ class ApiClient {
   final String baseUrl;
   VoidCallback? onUnauthorized;
   
-  ApiClient({this.baseUrl = 'http://10.0.2.2:3000/api/v1', this.onUnauthorized});
+  ApiClient({this.baseUrl = 'https://equilibrium-42g8.onrender.com/api/v1', this.onUnauthorized});
 
   Future<Map<String, String>> _getHeaders() async {
     final prefs = await SharedPreferences.getInstance();
@@ -23,7 +23,7 @@ class ApiClient {
       final response = await http.get(
         Uri.parse('$baseUrl$endpoint'),
         headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 60));
       return _processResponse(response);
     } catch (e) {
       _handleNetworkError(e);
@@ -36,7 +36,7 @@ class ApiClient {
         Uri.parse('$baseUrl$endpoint'),
         headers: await _getHeaders(),
         body: body != null ? jsonEncode(body) : null,
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 60));
       return _processResponse(response);
     } catch (e) {
       _handleNetworkError(e);
@@ -49,7 +49,7 @@ class ApiClient {
         Uri.parse('$baseUrl$endpoint'),
         headers: await _getHeaders(),
         body: body != null ? jsonEncode(body) : null,
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 60));
       return _processResponse(response);
     } catch (e) {
       _handleNetworkError(e);
@@ -61,7 +61,7 @@ class ApiClient {
       final response = await http.delete(
         Uri.parse('$baseUrl$endpoint'),
         headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 60));
       return _processResponse(response);
     } catch (e) {
       _handleNetworkError(e);

@@ -6,6 +6,7 @@ import { tasksRouter } from './routes/tasks.routes';
 import { schedulesRouter } from './routes/schedules.routes';
 import { constraintsRouter } from './routes/constraints.routes';
 import commitmentsRouter from './routes/commitments.routes';
+import { insightsRouter } from './routes/insights.routes';
 import { errorHandler } from './middleware/error';
 import { requestCorrelation, requestLogger } from './middleware/logger';
 
@@ -19,6 +20,9 @@ app.use(helmet());
 const allowedOriginsString = process.env.ALLOWED_ORIGINS;
 let corsOrigin: string | string[] = ['http://localhost:3000', 'http://localhost:8080'];
 if (allowedOriginsString) {
+  if (allowedOriginsString === '*' && process.env.NODE_ENV === 'production') {
+    throw new Error('ALLOWED_ORIGINS must list explicit origins in production');
+  }
   corsOrigin = allowedOriginsString === '*' ? '*' : allowedOriginsString.split(',');
 }
 
@@ -34,5 +38,6 @@ app.use('/api/v1/tasks', tasksRouter);
 app.use('/api/v1/schedules', schedulesRouter);
 app.use('/api/v1/constraints', constraintsRouter);
 app.use('/api/v1/commitments', commitmentsRouter);
+app.use('/api/v1/insights', insightsRouter);
 
 app.use(errorHandler);
