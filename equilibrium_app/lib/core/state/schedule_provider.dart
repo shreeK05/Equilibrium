@@ -8,6 +8,7 @@ import '../../services/commitment_repository.dart';
 import '../../services/constraint_repository.dart';
 import '../../core/api/api_client.dart';
 import '../../core/api/api_error_mapper.dart';
+import '../../services/notification_service.dart';
 
 class ScheduleProvider extends ChangeNotifier {
   final ScheduleRepository _scheduleRepo;
@@ -47,6 +48,7 @@ class ScheduleProvider extends ChangeNotifier {
       activeTasks = futures[1] as List<Task>;
       commitments = futures[2] as List<FixedCommitment>;
       constraints = futures[3] as Map<String, dynamic>;
+      await NotificationService.instance.scheduleTasks(currentSchedule, activeTasks);
       try {
         insights = await _api.get('/insights') as Map<String, dynamic>;
       } catch (_) {

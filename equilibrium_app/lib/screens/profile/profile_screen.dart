@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/theme/theme.dart';
@@ -64,6 +65,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _saveNotifications() async {
     final api = context.read<ApiClient>();
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setBool('upcoming_task_alerts', _upcomingAlerts);
     await api.patch('/notifications/preferences', body: {
       'upcomingTaskAlerts': _upcomingAlerts,
       'overloadAlerts': _overloadAlerts,
