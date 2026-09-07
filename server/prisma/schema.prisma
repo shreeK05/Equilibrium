@@ -21,6 +21,8 @@ model User {
   scheduleVersions ScheduleVersion[]
   disruptions      DisruptionEvent[]
   teamShares       TeamShare[]
+  importJobs        ImportJob[]
+  notificationPreference NotificationPreference?
 }
 
 model UserConstraint {
@@ -155,4 +157,46 @@ model TeamShare {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, expiresAt])
+}
+
+model ImportJob {
+  id         String            @id @default(uuid())
+  userId     String
+  type       String
+  status     String            @default("PENDING")
+  sourceName String?
+  rawText    String?
+  createdAt  DateTime          @default(now())
+
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  candidates ImportCandidate[]
+
+  @@index([userId, createdAt])
+}
+
+model ImportCandidate {
+  id              String    @id @default(uuid())
+  importJobId     String
+  title           String
+  deadline        DateTime?
+  estimateMinutes Int       @default(60)
+  confidence      Float     @default(0.5)
+  rawText         String
+  confirmed       Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+
+  importJob ImportJob @relation(fields: [importJobId], references: [id], onDelete: Cascade)
+
+  @@index([importJobId])
+}
+
+model NotificationPreference {
+  id                   String  @id @default(uuid())
+  userId               String  @unique
+  upcomingTaskAlerts   Boolean @default(true)
+  overloadAlerts       Boolean @default(true)
+  rescheduleAlerts     Boolean @default(true)
+  dailyBrief           Boolean @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

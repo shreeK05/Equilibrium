@@ -8,6 +8,8 @@ import { constraintsRouter } from './routes/constraints.routes';
 import commitmentsRouter from './routes/commitments.routes';
 import { insightsRouter } from './routes/insights.routes';
 import { teamRouter } from './routes/team.routes';
+import { importsRouter } from './routes/imports.routes';
+import { notificationsRouter } from './routes/notifications.routes';
 import { errorHandler } from './middleware/error';
 import { requestCorrelation, requestLogger } from './middleware/logger';
 
@@ -41,5 +43,7 @@ app.use('/api/v1/constraints', constraintsRouter);
 app.use('/api/v1/commitments', commitmentsRouter);
 app.use('/api/v1/insights', insightsRouter);
 app.use('/api/v1/team', teamRouter);
+app.use('/api/v1/imports', importsRouter);
+app.use('/api/v1/notifications', notificationsRouter);
 
 app.use(errorHandler);

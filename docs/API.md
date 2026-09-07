@@ -88,3 +88,15 @@ Returns the latest schedule for a valid, unexpired share token without account c
 
 `DELETE /api/v1/team/shares/:id`
 Revokes an owned share token.
+
+`POST /api/v1/imports/syllabus`
+Accepts extracted syllabus text and creates reviewable candidates without creating tasks.
+
+`POST /api/v1/imports/syllabus/:jobId/confirm`
+Accepts edited candidates and creates tasks only for candidates explicitly marked `confirmed`.
+
+`GET /api/v1/notifications/preferences`
+Returns the authenticated user's alert preferences.
+
+`PATCH /api/v1/notifications/preferences`
+Updates upcoming-task, overload, reschedule, and daily-brief preferences.

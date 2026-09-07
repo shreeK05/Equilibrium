@@ -42,6 +42,22 @@ class ApiClient {
       _handleNetworkError(e);
     }
   }
+
+  Future<dynamic> postText(String endpoint, String body) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl$endpoint'),
+        headers: {
+          ...await _getHeaders(),
+          'Content-Type': 'text/plain',
+        },
+        body: body,
+      ).timeout(const Duration(seconds: 60));
+      return _processResponse(response);
+    } catch (e) {
+      _handleNetworkError(e);
+    }
+  }
   
   Future<dynamic> patch(String endpoint, {Map<String, dynamic>? body}) async {
     try {

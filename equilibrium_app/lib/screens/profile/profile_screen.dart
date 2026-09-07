@@ -21,6 +21,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _sleepEndCtrl = TextEditingController();
   final _minSleepCtrl = TextEditingController();
   bool _isLoading = true;
+  bool _upcomingAlerts = true;
+  bool _overloadAlerts = true;
+  bool _rescheduleAlerts = true;
+  bool _dailyBrief = true;
 
   @override
   void initState() {
@@ -30,13 +34,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _loadConstraints() async {
     try {
-      final repo = ConstraintRepository(context.read<ApiClient>());
+      final api = context.read<ApiClient>();
+      final repo = ConstraintRepository(api);
       final data = await repo.getConstraints();
+      final notifications = await api.get('/notifications/preferences');
       if (mounted) {
         setState(() {
           _sleepStartCtrl.text = data['sleepStart']?.toString() ?? '23:00';
           _sleepEndCtrl.text = data['sleepEnd']?.toString() ?? '06:00';
           _minSleepCtrl.text = data['minSleepHours']?.toString() ?? '7';
+          _upcomingAlerts = notifications['upcomingTaskAlerts'] == true;
+          _overloadAlerts = notifications['overloadAlerts'] == true;
+          _rescheduleAlerts = notifications['rescheduleAlerts'] == true;
+          _dailyBrief = notifications['dailyBrief'] == true;
           _isLoading = false;
         });
       }
@@ -49,6 +59,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _saveNotifications() async {
+    final api = context.read<ApiClient>();
+    await api.patch('/notifications/preferences', body: {
+      'upcomingTaskAlerts': _upcomingAlerts,
+      'overloadAlerts': _overloadAlerts,
+      'rescheduleAlerts': _rescheduleAlerts,
+      'dailyBrief': _dailyBrief,
+    });
+  }
+
+  Future<void> _importSyllabus() async {
+    final controller = TextEditingController();
+    final text = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Import syllabus text'),
+        content: TextField(
+          controller: controller,
+          maxLines: 8,
+          decoration: const InputDecoration(hintText: 'One task per line, for example:\nResearch report - 2026-10-20 180m'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(context, controller.text), child: const Text('Find tasks')),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (text == null || text.trim().isEmpty || !mounted) return;
+    try {
+      final api = context.read<ApiClient>();
+      final scheduleProvider = context.read<ScheduleProvider>();
+      final job = await api.postText('/imports/syllabus', text);
+      if (!mounted) return;
+      final candidates = (job['candidates'] as List).cast<Map<String, dynamic>>();
+      final selected = await showDialog<List<Map<String, dynamic>>>(
+        context: context,
+        builder: (context) => _CandidateDialog(candidates: candidates),
+      );
+      if (selected != null && selected.isNotEmpty && mounted) {
+        await api.post('/imports/syllabus/${job['id']}/confirm', body: {'candidates': selected});
+        await scheduleProvider.fetchDashboardData();
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Confirmed tasks added to your workload.')));
+      }
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Syllabus import could not be completed.')));
     }
   }
 
@@ -163,6 +222,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ).animate().fade(delay: 400.ms).slideY(begin: 0.1),
 
             const SizedBox(height: EqTokens.space24),
+            Text('NOTIFICATIONS', style: text.labelSmall?.copyWith(color: colors.textSecondary)),
+            const SizedBox(height: EqTokens.space8),
+            _notificationSwitch('Upcoming task alerts', _upcomingAlerts, (value) { setState(() => _upcomingAlerts = value); _saveNotifications(); }),
+            _notificationSwitch('Overload warnings', _overloadAlerts, (value) { setState(() => _overloadAlerts = value); _saveNotifications(); }),
+            _notificationSwitch('Reschedule updates', _rescheduleAlerts, (value) { setState(() => _rescheduleAlerts = value); _saveNotifications(); }),
+            _notificationSwitch('Daily readiness brief', _dailyBrief, (value) { setState(() => _dailyBrief = value); _saveNotifications(); }),
+            const SizedBox(height: EqTokens.space16),
+            SizedBox(width: double.infinity, child: OutlinedButton.icon(onPressed: _importSyllabus, icon: const Icon(Icons.picture_as_pdf_outlined), label: const Text('Import syllabus text'))),
+
+            const SizedBox(height: EqTokens.space24),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
@@ -192,6 +261,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _notificationSwitch(String label, bool value, ValueChanged<bool> onChanged) {
+    final colors = context.eqColors;
+    return SwitchListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(label, style: TextStyle(color: colors.textPrimary)),
+      value: value,
+      onChanged: onChanged,
+    );
+  }
+
   Widget _buildTextField(String label, TextEditingController controller, {TextInputType? keyboardType}) {
     final colors = context.eqColors;
     return TextField(
@@ -205,6 +284,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
         fillColor: colors.background,
         border: OutlineInputBorder(borderRadius: EqTokens.border8, borderSide: BorderSide.none),
       ),
+    );
+  }
+}
+
+class _CandidateDialog extends StatefulWidget {
+  final List<Map<String, dynamic>> candidates;
+  const _CandidateDialog({required this.candidates});
+
+  @override
+  State<_CandidateDialog> createState() => _CandidateDialogState();
+}
+
+class _CandidateDialogState extends State<_CandidateDialog> {
+  late final Set<String> _selected = widget.candidates.map((candidate) => candidate['id'] as String).toSet();
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Review imported tasks'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: ListView(shrinkWrap: true, children: widget.candidates.map((candidate) => CheckboxListTile(
+          value: _selected.contains(candidate['id']),
+          title: Text(candidate['title'].toString()),
+          subtitle: Text('Estimated ${candidate['estimateMinutes']} minutes'),
+          onChanged: (value) => setState(() => value == true ? _selected.add(candidate['id']) : _selected.remove(candidate['id'])),
+        )).toList()),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        FilledButton(onPressed: () => Navigator.pop(context, widget.candidates.map((candidate) => {...candidate, 'confirmed': _selected.contains(candidate['id'])}).toList()), child: const Text('Confirm selected')),
+      ],
     );
   }
 }
