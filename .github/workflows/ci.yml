@@ -39,8 +39,11 @@ jobs:
           cache: npm
           cache-dependency-path: server/package-lock.json
       - run: npm ci
+      - run: node scripts/use-pg-schema.js
+      - run: npx prisma generate
       - run: npx prisma db push --skip-generate
       - run: npm test -- --runInBand
+      - run: npx jest --config jest.config.js --runInBand
       - run: npm run build
 
   flutter:
