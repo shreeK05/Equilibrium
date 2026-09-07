@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { taskRepo } from '../repositories/task.repo';
 import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validate';
-import { taskCompletionSchema, taskSchema, taskUpdateSchema } from '../validation/schemas';
+import { taskCompletionSchema, taskSchema, taskSplitSchema, taskUpdateSchema } from '../validation/schemas';
 
 export const tasksRouter = Router();
 tasksRouter.use(authenticate);
@@ -32,6 +32,16 @@ tasksRouter.post('/:id/complete', validate(taskCompletionSchema), async (req: an
     res.json(await taskRepo.complete(req.params.id, req.userId, req.body.actualMinutes));
   } catch (err: any) {
     if (err.message.includes('not found')) return res.status(404).json({ error: { message: err.message } });
+    next(err);
+  }
+});
+
+tasksRouter.post('/:id/split', validate(taskSplitSchema), async (req: any, res, next) => {
+  try {
+    res.status(201).json(await taskRepo.split(req.params.id, req.userId, req.body.parts));
+  } catch (err: any) {
+    if (err.message.includes('not found')) return res.status(404).json({ error: { message: err.message } });
+    if (err.message.includes('enough')) return res.status(400).json({ error: { code: 'INVALID_SPLIT', message: err.message } });
     next(err);
   }
 });

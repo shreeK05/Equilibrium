@@ -64,6 +64,22 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
     }
   }
 
+  Future<void> _splitTask() async {
+    final parts = await showDialog<int>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('Split into focus blocks'),
+        children: [2, 3, 4, 5, 6].map((value) => SimpleDialogOption(
+          onPressed: () => Navigator.pop(context, value),
+          child: Text('$value parts'),
+        )).toList(),
+      ),
+    );
+    if (parts == null || !mounted) return;
+    final success = await context.read<ScheduleProvider>().splitTask(widget.task.id, parts);
+    if (success && mounted) Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.eqColors;
@@ -126,6 +142,16 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
           ),
           
           const SizedBox(height: EqTokens.space32),
+
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: widget.task.remainingMinutes >= 2 ? _splitTask : null,
+              icon: const Icon(Icons.call_split),
+              label: const Text('Split into focus blocks'),
+            ),
+          ),
+          const SizedBox(height: EqTokens.space16),
 
           SizedBox(
             width: double.infinity,

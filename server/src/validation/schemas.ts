@@ -34,6 +34,10 @@ export const taskCompletionSchema = z.object({
 
 export const scheduleSimulationSchema = taskSchema;
 
+export const taskSplitSchema = z.object({
+  parts: z.number().int().min(2).max(12)
+});
+
 export const fixedCommitmentSchema = z.object({
   title: z.string().min(1).max(255),
   startTime: z.string().datetime(),

@@ -76,6 +76,36 @@ export class TaskRepository {
       }
     });
   }
+
+  async split(id: string, userId: string, parts: number) {
+    return prisma.$transaction(async (tx) => {
+      const task = await tx.task.findFirst({ where: { id, userId } });
+      if (!task) throw new Error('Task not found or unauthorized');
+      const remaining = Math.max(0, task.estimateMinutes - task.completedMinutes);
+      if (remaining < parts) throw new Error('Task does not have enough remaining minutes to split');
+
+      const baseMinutes = Math.floor(remaining / parts);
+      const extraMinutes = remaining % parts;
+      const children = [];
+      for (let index = 0; index < parts; index += 1) {
+        children.push(await tx.task.create({
+          data: {
+            userId,
+            parentTaskId: task.id,
+            title: `${task.title} (Part ${index + 1}/${parts})`,
+            estimateMinutes: baseMinutes + (index < extraMinutes ? 1 : 0),
+            deadline: task.deadline,
+            academicWeight: task.academicWeight,
+            teamImpactWeight: task.teamImpactWeight,
+            cognitiveLoad: task.cognitiveLoad,
+            status: 'PENDING'
+          }
+        }));
+      }
+      await tx.task.update({ where: { id }, data: { status: 'ARCHIVED' } });
+      return children;
+    });
+  }
 }
 
 export const taskRepo = new TaskRepository();

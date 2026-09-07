@@ -49,6 +49,8 @@ Updates preferences.
 `DELETE /api/v1/tasks/:id` (Delete task)
 `POST /api/v1/tasks/:id/complete` (Record actual duration and complete a task)
 Body: `{ actualMinutes }`
+`POST /api/v1/tasks/:id/split` (Archive a parent task and create bounded child tasks)
+Body: `{ parts }` where `parts` is between 2 and 12.
 `GET /api/v1/tasks/debt-ledger` (List unresolved work ordered by debt and deadline)
 
 ### 5. Schedules & Explainability

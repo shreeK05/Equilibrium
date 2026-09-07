@@ -164,6 +164,23 @@ class ScheduleProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> splitTask(String id, int parts) async {
+    _setLoading(true);
+    try {
+      await _api.post('/tasks/$id/split', body: {'parts': parts});
+      await fetchDashboardData();
+      return true;
+    } on ApiException catch (e) {
+      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code);
+      return false;
+    } catch (_) {
+      errorMessage = ApiErrorMapper.getUserFacingMessage('INTERNAL_ERROR');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   Future<bool> deleteTask(String id) async {
     _setLoading(true);
     try {

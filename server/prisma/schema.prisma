@@ -74,6 +74,11 @@ model Task {
   user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   blocks           ScheduleBlock[]
   logs             DecisionLog[]
+  parentTaskId     String?
+  parentTask       Task?           @relation("TaskSplits", fields: [parentTaskId], references: [id], onDelete: SetNull)
+  childTasks       Task[]          @relation("TaskSplits")
+
+  @@index([parentTaskId])
 }
 
 model ScheduleVersion {
