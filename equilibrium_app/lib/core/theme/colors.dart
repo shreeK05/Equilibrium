@@ -66,9 +66,9 @@ class EqColors extends ThemeExtension<EqColors> {
     primary: Color(0xFFE2E8F0),
     background: Color(0xFF0B0F19), // Very dark slate/blue
     surface: Color(0xFF161E2E), // Card background
-    surfaceElevated: Color(0xFF1E293B),
+    surfaceElevated: Color(0xFF263449),
     textPrimary: Color(0xFFF8FAFC),
-    textSecondary: Color(0xFF94A3B8),
+    textSecondary: Color(0xFFCBD5E1),
     success: Color(0xFF10B981),
     warning: Color(0xFFF59E0B),
     danger: Color(0xFFEF4444),

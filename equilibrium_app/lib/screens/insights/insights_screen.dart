@@ -149,7 +149,7 @@ class InsightsScreen extends StatelessWidget {
           children: [
             Expanded(child: _buildStatCard(context, 'Pending Tasks', pending.toString())),
             const SizedBox(width: EqTokens.space16),
-            Expanded(child: _buildStatCard(context, 'Completed', completed.toString())),
+            Expanded(child: _buildStatCard(context, 'Done', completed.toString())),
             const SizedBox(width: EqTokens.space16),
             Expanded(child: _buildStatCard(context, 'Debt', deferred.toString())),
           ],

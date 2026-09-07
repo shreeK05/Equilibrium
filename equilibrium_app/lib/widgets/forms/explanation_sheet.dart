@@ -5,7 +5,6 @@ import '../../core/theme/tokens.dart';
 import '../../models/decision_log.dart';
 import '../../models/task.dart';
 import '../../services/decision_repository.dart';
-import '../../core/api/api_error_mapper.dart';
 import '../../core/api/api_client.dart';
 
 class ExplanationSheet extends StatefulWidget {
@@ -25,7 +24,7 @@ class ExplanationSheet extends StatefulWidget {
 class _ExplanationSheetState extends State<ExplanationSheet> {
   DecisionLog? _decision;
   bool _isLoading = true;
-  String? _error;
+  bool _showLocalExplanation = false;
 
   @override
   void initState() {
@@ -45,20 +44,21 @@ class _ExplanationSheetState extends State<ExplanationSheet> {
       if (mounted) {
         setState(() {
           _decision = matches.isNotEmpty ? matches.last : null;
+          _showLocalExplanation = matches.isEmpty;
           _isLoading = false;
         });
       }
-    } on ApiException catch (e) {
+    } on ApiException catch (_) {
       if (mounted) {
         setState(() {
-          _error = ApiErrorMapper.getUserFacingMessage(e.code);
+          _showLocalExplanation = true;
           _isLoading = false;
         });
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         setState(() {
-          _error = ApiErrorMapper.getUserFacingMessage('INTERNAL_ERROR');
+          _showLocalExplanation = true;
           _isLoading = false;
         });
       }
@@ -116,18 +116,8 @@ class _ExplanationSheetState extends State<ExplanationSheet> {
                 style: text.bodyMedium?.copyWith(color: colors.textSecondary),
               ),
             ),
-          ] else if (_error != null) ...[
-            Center(
-              child: Icon(Icons.error_outline, color: colors.danger, size: 48),
-            ),
-            const SizedBox(height: EqTokens.space16),
-            Center(
-              child: Text(
-                'Couldn\'t load the scheduling explanation.\n$_error',
-                style: text.bodyMedium?.copyWith(color: colors.textSecondary),
-                textAlign: TextAlign.center,
-              ),
-            ),
+          ] else if (_showLocalExplanation) ...[
+            _buildLocalExplanation(context),
           ] else if (_decision == null) ...[
             Center(
               child: Icon(Icons.help_outline, color: colors.textSecondary, size: 48),
@@ -142,6 +132,46 @@ class _ExplanationSheetState extends State<ExplanationSheet> {
             ),
           ] else
             _buildDecisionDetails(context, _decision!),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLocalExplanation(BuildContext context) {
+    final colors = context.eqColors;
+    final text = context.eqText;
+    final remaining = widget.task.remainingMinutes;
+    final completion = widget.task.completedMinutes;
+    return Container(
+      padding: const EdgeInsets.all(EqTokens.space16),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: EqTokens.border12,
+        border: Border.all(color: colors.surfaceElevated),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Icon(Icons.info_outline, color: colors.primary),
+            const SizedBox(width: EqTokens.space8),
+            Text('Here is the simple version', style: text.titleMedium?.copyWith(color: colors.textPrimary)),
+          ]),
+          const SizedBox(height: EqTokens.space8),
+          Text(
+            'Couldn\'t load the scheduling explanation. Showing a simple explanation instead.',
+            style: text.bodySmall?.copyWith(color: colors.textSecondary),
+          ),
+          const SizedBox(height: EqTokens.space12),
+          Text(
+            'This task needs $remaining minutes more. It has a ${widget.task.cognitiveLoad.name.toUpperCase()} focus load and an academic priority of ${(widget.task.academicWeight * 100).round()}%. The planner places it only in safe time before the deadline and never inside your Sleep Shield.',
+            style: text.bodyLarge?.copyWith(color: colors.textPrimary, height: 1.35),
+          ),
+          const SizedBox(height: EqTokens.space12),
+          Text(
+            '$completion minutes completed so far. Detailed server reasoning will appear after the schedule decision is available.',
+            style: text.bodyMedium?.copyWith(color: colors.textSecondary),
+          ),
         ],
       ),
     );

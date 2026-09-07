@@ -8,6 +8,7 @@ import '../../widgets/cards/task_card.dart';
 import '../../widgets/forms/task_detail_sheet.dart';
 import '../../widgets/status/empty_state.dart';
 import '../../widgets/status/status_badge.dart';
+import '../../models/task.dart';
 
 class TasksScreen extends StatefulWidget {
   const TasksScreen({super.key});
@@ -80,17 +81,27 @@ class _TasksScreenState extends State<TasksScreen> with SingleTickerProviderStat
             child: Consumer<ScheduleProvider>(
               builder: (context, provider, child) {
                 final tasks = provider.activeTasks;
-                
-                final pending = tasks.where((t) => t.status.name == 'deferred').toList();
-                final scheduled = tasks.where((t) => t.status.name == 'scheduled').toList();
+
+                final scheduledIds = provider.currentSchedule?.blocks
+                    .where((block) => block.type == 'TASK' && block.taskId != null)
+                    .map((block) => block.taskId!)
+                    .toSet() ?? <String>{};
+                final pending = tasks.where((t) {
+                  if (t.status == TaskStatus.completed || t.status == TaskStatus.archived) return false;
+                  return !scheduledIds.contains(t.id);
+                }).toList();
+                final scheduled = tasks.where((t) =>
+                    t.status != TaskStatus.completed &&
+                    t.status != TaskStatus.archived &&
+                    scheduledIds.contains(t.id)).toList();
                 final completed = tasks.where((t) => t.status.name == 'completed').toList();
 
                 return TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildTaskList(pending, 'No pending tasks', 'You are all caught up.'),
-                    _buildTaskList(scheduled, 'No scheduled tasks', 'Generate a schedule to place tasks.'),
-                    _buildTaskList(completed, 'No completed tasks', 'Tasks you complete will appear here.'),
+                    _buildTaskList(pending, 'No pending tasks', 'New tasks you create will appear here.'),
+                    _buildTaskList(scheduled, 'No scheduled tasks', 'Tap Generate Schedule on the Schedule screen.'),
+                    _buildTaskList(completed, 'No completed tasks', 'Completed work will appear here.'),
                   ],
                 );
               },
