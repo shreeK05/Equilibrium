@@ -90,7 +90,7 @@ Returns the latest schedule for a valid, unexpired share token without account c
 Revokes an owned share token.
 
 `POST /api/v1/imports/syllabus`
-Accepts extracted syllabus text and creates reviewable candidates without creating tasks.
+Accepts `text/plain` or `application/pdf`, extracts syllabus text, and creates reviewable candidates without creating tasks.
 
 `POST /api/v1/imports/syllabus/:jobId/confirm`
 Accepts edited candidates and creates tasks only for candidates explicitly marked `confirmed`.
@@ -100,3 +100,6 @@ Returns the authenticated user's alert preferences.
 
 `PATCH /api/v1/notifications/preferences`
 Updates upcoming-task, overload, reschedule, and daily-brief preferences.
+
+`POST /api/v1/imports/calendar/ics`
+Accepts an ICS calendar export and imports only event title/start/end as fixed commitments.
