@@ -21,7 +21,7 @@ const allowedOriginsString = process.env.ALLOWED_ORIGINS;
 let corsOrigin: string | string[] = ['http://localhost:3000', 'http://localhost:8080'];
 if (allowedOriginsString) {
   if (allowedOriginsString === '*' && process.env.NODE_ENV === 'production') {
-    throw new Error('ALLOWED_ORIGINS must list explicit origins in production');
+    console.warn('ALLOWED_ORIGINS=* is permissive in production; configure explicit browser origins in Render.');
   }
   corsOrigin = allowedOriginsString === '*' ? '*' : allowedOriginsString.split(',');
 }
