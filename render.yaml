@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: equilibrium-api
+    env: node
+    rootDir: server
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: equilibrium-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        value: '*'
+
+databases:
+  - name: equilibrium-db
+    databaseName: equilibrium
+    user: equilibrium
+    plan: free

@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { scheduleService } from '../services/schedule.service';
 import { scheduleRepo } from '../repositories/schedule.repo';
 import { authenticate } from '../middleware/auth';
+import { validate } from '../middleware/validate';
+import { scheduleSimulationSchema } from '../validation/schemas';
 
 export const schedulesRouter = Router();
 schedulesRouter.use(authenticate);
@@ -10,6 +12,12 @@ schedulesRouter.post('/generate', async (req: any, res, next) => {
   try {
     const version = await scheduleService.generateSchedule(req.userId);
     res.status(201).json(version);
+  } catch (err) { next(err); }
+});
+
+schedulesRouter.post('/simulate', validate(scheduleSimulationSchema), async (req: any, res, next) => {
+  try {
+    res.json(await scheduleService.simulateSchedule(req.userId, req.body));
   } catch (err) { next(err); }
 });
 

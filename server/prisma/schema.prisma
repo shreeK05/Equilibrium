@@ -20,6 +20,7 @@ model User {
   commitments      FixedCommitment[]
   scheduleVersions ScheduleVersion[]
   disruptions      DisruptionEvent[]
+  teamShares       TeamShare[]
 }
 
 model UserConstraint {
@@ -136,4 +137,17 @@ model DisruptionEvent {
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@index([userId])
+}
+
+model TeamShare {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
 }

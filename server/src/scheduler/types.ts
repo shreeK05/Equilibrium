@@ -14,6 +14,7 @@ export interface ConstraintInput {
   sleepStart: string; // "23:00"
   sleepEnd: string;   // "06:00"
   minSleepHours: number; // >= 7.0
+  bufferMinutes: number;
   peakEnergyWindows: Array<{ start: string, end: string }>;
 }
 

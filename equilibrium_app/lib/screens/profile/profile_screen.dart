@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/theme/theme.dart';
@@ -72,6 +73,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _createShareLink() async {
+    try {
+      final response = await context.read<ApiClient>().post('/team/shares', body: {'expiresInHours': 24});
+      final token = response['token'] as String;
+      final link = 'https://equilibrium-42g8.onrender.com/team/$token';
+      await Clipboard.setData(ClipboardData(text: link));
+      if (!mounted) return;
+      showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Read-only link copied'),
+          content: SelectableText(link),
+          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Done'))],
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not create a share link.')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.eqColors;
@@ -139,6 +161,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ).animate().fade(delay: 400.ms).slideY(begin: 0.1),
+
+            const SizedBox(height: EqTokens.space24),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _createShareLink,
+                icon: const Icon(Icons.share_outlined),
+                label: const Text('Share read-only schedule'),
+              ),
+            ),
 
             const SizedBox(height: EqTokens.space48),
             

@@ -9,6 +9,7 @@ export function validateSchedule(
 ): boolean {
   const taskMap = new Map(tasks.map(t => [t.id, t]));
   const durationMap = new Map<string, number>();
+  const bufferMinutes = constraints.bufferMinutes ?? 0;
 
   for (const block of blocks) {
     if (block.type !== 'TASK') continue;
@@ -42,7 +43,9 @@ export function validateSchedule(
 
     // Check Fixed Overlap
     for (const f of fixed) {
-      if (intervalsIntersect(block.start, block.end, f.start, f.end)) return false;
+        const bufferBefore = new Date(f.start.getTime() - bufferMinutes * 60000);
+        const bufferAfter = new Date(f.end.getTime() + bufferMinutes * 60000);
+        if (intervalsIntersect(block.start, block.end, bufferBefore, bufferAfter)) return false;
     }
   }
 

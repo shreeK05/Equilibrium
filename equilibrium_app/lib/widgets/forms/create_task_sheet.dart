@@ -19,6 +19,8 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
   DateTime _deadline = DateTime.now().add(const Duration(days: 1));
   String _cognitiveLoad = 'MEDIUM';
   String? _errorText;
+  Map<String, dynamic>? _preview;
+  bool _isPreviewing = false;
 
   final List<int> _durationOptions = [30, 60, 90, 120, 180];
 
@@ -43,6 +45,31 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
       Navigator.pop(context);
     } else if (mounted) {
       setState(() => _errorText = provider.errorMessage ?? "Failed to create task");
+    }
+  }
+
+  Future<void> _previewImpact() async {
+    if (_titleCtrl.text.trim().isEmpty) {
+      setState(() => _errorText = 'Enter a task title to preview its impact.');
+      return;
+    }
+    setState(() {
+      _errorText = null;
+      _isPreviewing = true;
+    });
+    final preview = await context.read<ScheduleProvider>().simulateTask({
+      'title': _titleCtrl.text.trim(),
+      'estimateMinutes': _estimateMinutes,
+      'deadline': _deadline.toUtc().toIso8601String(),
+      'cognitiveLoad': _cognitiveLoad,
+      'academicWeight': 0.5,
+      'teamImpactWeight': 0.0,
+    });
+    if (mounted) {
+      setState(() {
+        _preview = preview;
+        _isPreviewing = false;
+      });
     }
   }
 
@@ -238,6 +265,19 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
             ),
 
             const SizedBox(height: EqTokens.space32),
+            if (_preview != null) _buildPreview(context),
+            if (_preview != null) const SizedBox(height: EqTokens.space16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _isPreviewing ? null : _previewImpact,
+                icon: _isPreviewing
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.visibility_outlined),
+                label: const Text('Preview impact before adding'),
+              ),
+            ),
+            const SizedBox(height: EqTokens.space12),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -256,6 +296,37 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
             ).animate().fade(delay: 300.ms).slideY(begin: 0.2),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPreview(BuildContext context) {
+    final colors = context.eqColors;
+    final text = context.eqText;
+    final fits = _preview!['fits'] == true;
+    final scheduled = (_preview!['scheduledMinutes'] as num?)?.toInt() ?? 0;
+    final deferredTasks = (_preview!['deferredTaskCount'] as num?)?.toInt() ?? 0;
+    return Container(
+      padding: const EdgeInsets.all(EqTokens.space16),
+      decoration: BoxDecoration(
+        color: (fits ? colors.success : colors.warning).withValues(alpha: 0.12),
+        borderRadius: EqTokens.border12,
+        border: Border.all(color: (fits ? colors.success : colors.warning).withValues(alpha: 0.45)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(fits ? Icons.check_circle_outline : Icons.warning_amber_outlined, color: fits ? colors.success : colors.warning),
+          const SizedBox(width: EqTokens.space12),
+          Expanded(
+            child: Text(
+              fits
+                  ? 'This task fits safely. About $scheduled minutes can be placed before the deadline.'
+                  : 'This task may be deferred or split. $deferredTasks task(s) would remain under pressure, and sleep stays protected.',
+              style: text.bodyMedium?.copyWith(color: colors.textPrimary, height: 1.3),
+            ),
+          ),
+        ],
       ),
     );
   }

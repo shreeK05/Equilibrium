@@ -57,9 +57,12 @@ export function applyConstraints(
   });
 
   // Apply Fixed Commitments
+  const bufferMinutes = constraints.bufferMinutes ?? 0;
   fixed.forEach(f => {
+    const bufferBefore = new Date(f.start.getTime() - bufferMinutes * 60000);
+    const bufferAfter = new Date(f.end.getTime() + bufferMinutes * 60000);
     slots.forEach(slot => {
-      if (intervalsIntersect(slot.start, slot.end, f.start, f.end)) {
+      if (intervalsIntersect(slot.start, slot.end, bufferBefore, bufferAfter)) {
         slot.available = false;
       }
     });

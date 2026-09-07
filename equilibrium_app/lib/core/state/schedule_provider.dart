@@ -116,6 +116,20 @@ class ScheduleProvider extends ChangeNotifier {
     }
   }
 
+  Future<Map<String, dynamic>?> simulateTask(Map<String, dynamic> payload) async {
+    try {
+      return await _api.post('/schedules/simulate', body: payload) as Map<String, dynamic>;
+    } on ApiException catch (e) {
+      errorCode = e.code;
+      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code);
+      return null;
+    } catch (_) {
+      errorCode = 'INTERNAL_ERROR';
+      errorMessage = ApiErrorMapper.getUserFacingMessage('INTERNAL_ERROR');
+      return null;
+    }
+  }
+
   Future<bool> updateTask(String id, Map<String, dynamic> updates) async {
     _setLoading(true);
     try {

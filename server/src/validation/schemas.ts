@@ -32,6 +32,8 @@ export const taskCompletionSchema = z.object({
   actualMinutes: z.number().int().positive().max(10000)
 });
 
+export const scheduleSimulationSchema = taskSchema;
+
 export const fixedCommitmentSchema = z.object({
   title: z.string().min(1).max(255),
   startTime: z.string().datetime(),

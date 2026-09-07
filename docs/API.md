@@ -73,3 +73,16 @@ Returns parsed structured explanation data (DecisionLogs) from the mathematical 
 ### 6. Insights
 `GET /api/v1/insights`
 Returns safe daily capacity, scheduled minutes, remaining minutes, utilization, deferred count, and a workload risk level.
+
+### 7. Simulation and sharing
+`POST /api/v1/schedules/simulate`
+Runs the scheduler against a proposed task without saving it. Returns fit status, scheduled/deferred minutes, affected-task count, and proposed blocks.
+
+`POST /api/v1/team/shares`
+Creates a hashed, expiring read-only share token. The raw token is returned once to the authenticated owner.
+
+`GET /api/v1/team/shares/:token`
+Returns the latest schedule for a valid, unexpired share token without account credentials or private decision logs.
+
+`DELETE /api/v1/team/shares/:id`
+Revokes an owned share token.
