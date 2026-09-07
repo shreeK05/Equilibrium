@@ -7,7 +7,9 @@
     "dev": "tsx watch src/server.ts",
     "build": "npx prisma generate && tsc",
     "start": "npx prisma db push && node dist/server.js",
-    "test": "jest",
+    "test": "jest --config jest.scheduler.config.js",
+    "test:scheduler": "jest --config jest.scheduler.config.js",
+    "test:api": "jest --config jest.config.js",
     "postinstall": "prisma generate"
   },
   "keywords": [],

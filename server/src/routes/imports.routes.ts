@@ -121,7 +121,7 @@ importsRouter.post('/calendar/ics', express.text({ type: ['text/calendar', 'text
     const events = parseIcsEvents(typeof req.body === 'string' ? req.body : '');
     if (events.length === 0) return res.status(400).json({ error: { code: 'EMPTY_CALENDAR', message: 'No valid calendar events were found' } });
     const commitments = await prisma.$transaction(events.map(event => prisma.fixedCommitment.create({
-      data: { userId: req.userId, title: event.title, startTime: event.startTime, endTime: event.endTime, type: 'IMPORTED' }
+      data: { userId: req.userId, title: event.title, startTime: event.startTime, endTime: event.endTime, type: 'CUSTOM' }
     })));
     res.status(201).json({ importedCount: commitments.length, commitments });
   } catch (err) { next(err); }
