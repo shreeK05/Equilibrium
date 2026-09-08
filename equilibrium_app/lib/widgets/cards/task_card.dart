@@ -5,17 +5,21 @@ import '../status/status_badge.dart';
 
 class TaskCard extends StatelessWidget {
   final String title;
-  final String subject;
+  final String? subject;
+  final String? category;
   final String durationStr;
   final String deadlineStr;
+  final bool isFlexible;
   final EqStatus status;
 
   const TaskCard({
     super.key,
     required this.title,
-    required this.subject,
+    this.subject,
+    this.category,
     required this.durationStr,
     required this.deadlineStr,
+    this.isFlexible = false,
     required this.status,
   });
 
@@ -49,14 +53,22 @@ class TaskCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      subject.toUpperCase(),
-                      style: text.labelSmall?.copyWith(
-                        color: colors.textSecondary,
-                        letterSpacing: 0.5,
+                    if (subject != null || category != null) ...[
+                      Row(
+                        children: [
+                          if (subject != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(color: colors.primary.withValues(alpha: 0.1), borderRadius: EqTokens.border4),
+                              child: Text(subject!.toUpperCase(), style: text.labelSmall?.copyWith(color: colors.primary, fontSize: 10)),
+                            ),
+                          if (subject != null && category != null) const SizedBox(width: 6),
+                          if (category != null)
+                            Text(category!.toUpperCase(), style: text.labelSmall?.copyWith(color: colors.textSecondary, letterSpacing: 0.5, fontSize: 10)),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: EqTokens.space4),
+                      const SizedBox(height: EqTokens.space4),
+                    ],
                     Text(
                       title,
                       style: text.titleLarge?.copyWith(
@@ -80,11 +92,12 @@ class TaskCard extends StatelessWidget {
                 style: text.bodyMedium?.copyWith(color: colors.textSecondary),
               ),
               const SizedBox(width: EqTokens.space16),
-              Icon(Icons.event_outlined, size: 16, color: colors.textSecondary),
+              Icon(isFlexible ? Icons.event_available_outlined : Icons.event_outlined, 
+                   size: 16, color: isFlexible ? colors.primary : colors.textSecondary),
               const SizedBox(width: EqTokens.space4),
               Text(
                 deadlineStr,
-                style: text.bodyMedium?.copyWith(color: colors.textSecondary),
+                style: text.bodyMedium?.copyWith(color: isFlexible ? colors.primary : colors.textSecondary),
               ),
             ],
           )

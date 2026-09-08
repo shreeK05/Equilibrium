@@ -1,4 +1,4 @@
-enum CommitmentType { class_, lab, exam, personal, custom }
+enum CommitmentType { class_, lab, exam, personal, custom, routine }
 
 class FixedCommitment {
   final String id;
@@ -7,6 +7,10 @@ class FixedCommitment {
   final DateTime endTime;
   final CommitmentType type;
   final bool isActive;
+  final String? recurrence;
+  final String? daysOfWeek;
+  final String flexibility;
+  final String? color;
 
   FixedCommitment({
     required this.id,
@@ -15,6 +19,10 @@ class FixedCommitment {
     required this.endTime,
     this.type = CommitmentType.custom,
     this.isActive = true,
+    this.recurrence,
+    this.daysOfWeek,
+    this.flexibility = 'FIXED',
+    this.color,
   });
 
   factory FixedCommitment.fromJson(Map<String, dynamic> json) {
@@ -31,6 +39,10 @@ class FixedCommitment {
         orElse: () => CommitmentType.custom,
       ),
       isActive: json['isActive'] as bool? ?? true,
+      recurrence: json['recurrence'] as String?,
+      daysOfWeek: json['daysOfWeek'] as String?,
+      flexibility: json['flexibility'] as String? ?? 'FIXED',
+      color: json['color'] as String?,
     );
   }
 
@@ -41,6 +53,10 @@ class FixedCommitment {
       'endTime': endTime.toUtc().toIso8601String(),
       'type': type == CommitmentType.class_ ? 'CLASS' : type.name.toUpperCase(),
       'isActive': isActive,
+      if (recurrence != null) 'recurrence': recurrence,
+      if (daysOfWeek != null) 'daysOfWeek': daysOfWeek,
+      'flexibility': flexibility,
+      if (color != null) 'color': color,
     };
   }
 }

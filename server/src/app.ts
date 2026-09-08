@@ -11,6 +11,11 @@ import { insightsRouter } from './routes/insights.routes';
 import { teamRouter } from './routes/team.routes';
 import { importsRouter } from './routes/imports.routes';
 import { notificationsRouter } from './routes/notifications.routes';
+import { profileRouter } from './routes/profile.routes';
+import { focusSessionsRouter } from './routes/focus-sessions.routes';
+import { subjectsRouter } from './routes/subjects.routes';
+import { examsRouter } from './routes/exams.routes';
+import { dashboardRouter } from './routes/dashboard.routes';
 import { errorHandler } from './middleware/error';
 import { requestCorrelation, requestLogger } from './middleware/logger';
 
@@ -46,5 +51,10 @@ app.use('/api/v1/insights', insightsRouter);
 app.use('/api/v1/team', teamRouter);
 app.use('/api/v1/imports', importsRouter);
 app.use('/api/v1/notifications', notificationsRouter);
+app.use('/api/v1/profile', profileRouter);
+app.use('/api/v1/focus-sessions', focusSessionsRouter);
+app.use('/api/v1/subjects', subjectsRouter);
+app.use('/api/v1/exams', examsRouter);
+app.use('/api/v1/dashboard', dashboardRouter);
 
 app.use(errorHandler);

@@ -7,8 +7,12 @@ export const registerSchema = z.object({
 
 export const taskSchema = z.object({
   title: z.string().min(1).max(255),
-  estimateMinutes: z.number().int().positive().max(10000), // reasonable sanity limit
+  estimateMinutes: z.number().int().positive().max(10000),
   deadline: z.string().datetime(),
+  description: z.string().max(2000).optional().nullable(),
+  category: z.string().max(100).optional().nullable(),
+  subjectId: z.string().uuid().optional().nullable(),
+  deadlineType: z.enum(['HARD', 'FLEXIBLE']).optional(),
   academicWeight: z.number().min(0).max(1).optional(),
   teamImpactWeight: z.number().min(0).max(1).optional(),
   cognitiveLoad: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional()
@@ -19,6 +23,10 @@ export const taskUpdateSchema = z.object({
   estimateMinutes: z.number().int().positive().max(10000).optional(),
   completedMinutes: z.number().int().min(0).max(10000).optional(),
   deadline: z.string().datetime().optional(),
+  description: z.string().max(2000).optional().nullable(),
+  category: z.string().max(100).optional().nullable(),
+  subjectId: z.string().uuid().optional().nullable(),
+  deadlineType: z.enum(['HARD', 'FLEXIBLE']).optional(),
   academicWeight: z.number().min(0).max(1).optional(),
   teamImpactWeight: z.number().min(0).max(1).optional(),
   cognitiveLoad: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional(),
@@ -42,8 +50,11 @@ export const fixedCommitmentSchema = z.object({
   title: z.string().min(1).max(255),
   startTime: z.string().datetime(),
   endTime: z.string().datetime(),
-  type: z.enum(['CLASS', 'LAB', 'EXAM', 'PERSONAL', 'CUSTOM']).optional(),
+  type: z.enum(['CLASS', 'LAB', 'EXAM', 'PERSONAL', 'CUSTOM', 'ROUTINE']).optional(),
   recurrence: z.string().max(255).optional().nullable(),
+  daysOfWeek: z.string().optional().nullable(), // JSON array e.g. "[1,3,5]"
+  flexibility: z.enum(['FIXED', 'FLEXIBLE', 'SOFT']).optional(),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional().nullable(),
   isActive: z.boolean().optional()
 }).superRefine((data, ctx) => {
   const start = new Date(data.startTime).getTime();

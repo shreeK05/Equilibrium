@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../../core/theme/theme.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/state/schedule_provider.dart';
@@ -18,6 +19,9 @@ class TaskDetailSheet extends StatefulWidget {
 class _TaskDetailSheetState extends State<TaskDetailSheet> {
   late double _progressValue;
   String? _newTitle;
+  String? _newDesc;
+  String? _newCategory;
+  bool _isEditing = false;
 
   @override
   void initState() {
@@ -28,12 +32,17 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
   void _saveProgress() async {
     final provider = context.read<ScheduleProvider>();
     final actualMinutes = _progressValue.toInt();
+    
+    final updates = <String, dynamic>{
+      'completedMinutes': actualMinutes,
+    };
+    if (_newTitle != null && _newTitle!.trim().isNotEmpty) updates['title'] = _newTitle!.trim();
+    if (_newDesc != null) updates['description'] = _newDesc!.trim();
+    if (_newCategory != null) updates['category'] = _newCategory!.trim();
+
     final success = actualMinutes >= widget.task.estimateMinutes
         ? await provider.completeTask(widget.task.id, actualMinutes)
-        : await provider.updateTask(widget.task.id, {
-            if (_newTitle != null && _newTitle!.trim().isNotEmpty) 'title': _newTitle!.trim(),
-            'completedMinutes': actualMinutes,
-          });
+        : await provider.updateTask(widget.task.id, updates);
 
     if (success && mounted) {
       Navigator.pop(context);
@@ -96,120 +105,177 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
         color: colors.background,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(EqTokens.radius24)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: TextEditingController(text: widget.task.title),
-                  onChanged: (val) => _newTitle = val,
-                  style: text.headlineMedium?.copyWith(color: colors.textPrimary),
-                  decoration: const InputDecoration(border: InputBorder.none),
-                ),
-              ),
-              IconButton(
-                icon: Icon(Icons.delete_outline, color: colors.danger),
-                onPressed: _delete,
-              )
-            ],
-          ),
-          const SizedBox(height: EqTokens.space24),
-          
-          _buildInfoGrid(context),
-          const SizedBox(height: EqTokens.space24),
-          
-          Text('Record Progress', style: text.labelSmall?.copyWith(color: colors.textSecondary)),
-          const SizedBox(height: EqTokens.space16),
-          
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('${_progressValue.toInt()}m completed', style: text.bodyMedium?.copyWith(color: colors.success)),
-              Text('${widget.task.estimateMinutes - _progressValue.toInt()}m remaining', style: text.bodyMedium?.copyWith(color: colors.textSecondary)),
-            ],
-          ),
-          Slider(
-            value: _progressValue,
-            min: 0,
-            max: widget.task.estimateMinutes.toDouble(),
-            divisions: widget.task.estimateMinutes > 0 ? widget.task.estimateMinutes : 1,
-            activeColor: colors.success,
-            onChanged: (val) => setState(() => _progressValue = val),
-          ),
-          
-          const SizedBox(height: EqTokens.space32),
-
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: widget.task.remainingMinutes >= 2 ? _splitTask : null,
-              icon: const Icon(Icons.call_split),
-              label: const Text('Split into focus blocks'),
-            ),
-          ),
-          const SizedBox(height: EqTokens.space16),
-
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              icon: Icon(Icons.psychology, color: colors.primary),
-              label: Text('Why was this scheduled?', style: text.labelLarge?.copyWith(color: colors.primary)),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.all(EqTokens.space16),
-                side: BorderSide(color: colors.primary.withValues(alpha: 0.5)),
-                shape: RoundedRectangleBorder(borderRadius: EqTokens.border8),
-              ),
-              onPressed: () {
-                final provider = context.read<ScheduleProvider>();
-                final versionId = provider.currentSchedule?.id;
-                
-                if (versionId == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('No schedule available to explain.')),
-                  );
-                  return;
-                }
-
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  builder: (context) => ExplanationSheet(
-                    task: widget.task,
-                    versionId: versionId,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: TextEditingController(text: widget.task.title),
+                    onChanged: (val) {
+                      _newTitle = val;
+                      setState(() => _isEditing = true);
+                    },
+                    style: text.headlineMedium?.copyWith(color: colors.textPrimary),
+                    decoration: const InputDecoration(border: InputBorder.none, hintText: 'Task Title'),
                   ),
-                );
-              },
+                ),
+                IconButton(
+                  icon: Icon(Icons.delete_outline, color: colors.danger),
+                  onPressed: _delete,
+                )
+              ],
             ),
-          ),
-          
-          const SizedBox(height: EqTokens.space16),
 
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _saveProgress,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colors.primary,
-                foregroundColor: colors.surface,
-                padding: const EdgeInsets.all(EqTokens.space16),
-                shape: RoundedRectangleBorder(borderRadius: EqTokens.border8),
+            TextField(
+              controller: TextEditingController(text: widget.task.description),
+              onChanged: (val) {
+                _newDesc = val;
+                setState(() => _isEditing = true);
+              },
+              maxLines: null,
+              style: text.bodyMedium?.copyWith(color: colors.textSecondary),
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                hintText: 'Add a description...',
+                hintStyle: TextStyle(color: colors.textSecondary.withValues(alpha: 0.5)),
               ),
-              child: Text('Update Workload', style: text.labelLarge?.copyWith(color: colors.surface)),
             ),
-          )
-        ],
+            const SizedBox(height: EqTokens.space12),
+
+            Row(
+              children: [
+                if (widget.task.subjectName != null) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: colors.primary.withValues(alpha: 0.1),
+                      borderRadius: EqTokens.border8,
+                    ),
+                    child: Text(widget.task.subjectName!,
+                      style: text.labelSmall?.copyWith(color: colors.primary)),
+                  ),
+                  const SizedBox(width: EqTokens.space8),
+                ],
+                Expanded(
+                  child: TextField(
+                    controller: TextEditingController(text: widget.task.category),
+                    onChanged: (val) {
+                      _newCategory = val;
+                      setState(() => _isEditing = true);
+                    },
+                    style: text.bodySmall?.copyWith(color: colors.textPrimary),
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      hintText: 'Category (e.g. Reading)',
+                      isDense: true,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: EqTokens.space24),
+            
+            _buildInfoGrid(context),
+            const SizedBox(height: EqTokens.space24),
+            
+            Text('Record Progress', style: text.labelSmall?.copyWith(color: colors.textSecondary)),
+            const SizedBox(height: EqTokens.space16),
+            
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('${_progressValue.toInt()}m completed', style: text.bodyMedium?.copyWith(color: colors.success)),
+                Text('${widget.task.estimateMinutes - _progressValue.toInt()}m remaining', style: text.bodyMedium?.copyWith(color: colors.textSecondary)),
+              ],
+            ),
+            Slider(
+              value: _progressValue,
+              min: 0,
+              max: widget.task.estimateMinutes.toDouble(),
+              divisions: widget.task.estimateMinutes > 0 ? widget.task.estimateMinutes : 1,
+              activeColor: colors.success,
+              onChanged: (val) => setState(() {
+                _progressValue = val;
+                _isEditing = true;
+              }),
+            ),
+            
+            const SizedBox(height: EqTokens.space32),
+
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: widget.task.remainingMinutes >= 2 ? _splitTask : null,
+                icon: const Icon(Icons.call_split),
+                label: const Text('Split into focus blocks'),
+              ),
+            ),
+            const SizedBox(height: EqTokens.space16),
+
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: Icon(Icons.psychology, color: colors.primary),
+                label: Text('Why was this scheduled?', style: text.labelLarge?.copyWith(color: colors.primary)),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.all(EqTokens.space16),
+                  side: BorderSide(color: colors.primary.withValues(alpha: 0.5)),
+                  shape: RoundedRectangleBorder(borderRadius: EqTokens.border8),
+                ),
+                onPressed: () {
+                  final provider = context.read<ScheduleProvider>();
+                  final versionId = provider.currentSchedule?.id;
+                  
+                  if (versionId == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('No schedule available to explain.')),
+                    );
+                    return;
+                  }
+
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (context) => ExplanationSheet(
+                      task: widget.task,
+                      versionId: versionId,
+                    ),
+                  );
+                },
+              ),
+            ),
+            
+            const SizedBox(height: EqTokens.space16),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isEditing ? _saveProgress : () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: colors.primary,
+                  foregroundColor: colors.surface,
+                  padding: const EdgeInsets.all(EqTokens.space16),
+                  shape: RoundedRectangleBorder(borderRadius: EqTokens.border8),
+                ),
+                child: context.watch<ScheduleProvider>().isLoading
+                    ? SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: colors.surface, strokeWidth: 2))
+                    : Text(_isEditing ? 'Save Changes' : 'Close', style: text.labelLarge?.copyWith(color: colors.surface)),
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildInfoGrid(BuildContext context) {
     final colors = context.eqColors;
-    final text = context.eqText;
     final provider = context.watch<ScheduleProvider>();
     
     int scheduledMinutes = 0;
@@ -221,7 +287,8 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
       }
     }
 
-    final deadlineStr = "${widget.task.deadline.month}/${widget.task.deadline.day} ${widget.task.deadline.hour.toString().padLeft(2, '0')}:${widget.task.deadline.minute.toString().padLeft(2, '0')}";
+    final deadlineStr = DateFormat('MMM d, h:mm a').format(widget.task.deadline);
+    final isFlexible = widget.task.deadlineType.name.toUpperCase() == 'FLEXIBLE';
 
     return Container(
       padding: const EdgeInsets.all(EqTokens.space16),
@@ -235,7 +302,16 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _buildMetric(context, 'Scheduled', '${scheduledMinutes}m', Icons.schedule),
-              _buildMetric(context, 'Deadline', deadlineStr, Icons.event),
+              _buildMetric(context, 'Deadline', deadlineStr, Icons.event, 
+                  subtitle: isFlexible ? 'Flexible' : 'Hard deadline',
+                  subtitleColor: isFlexible ? colors.primary : colors.danger),
+            ],
+          ),
+          const SizedBox(height: EqTokens.space16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildMetric(context, 'Status', widget.task.status.name.toUpperCase(), Icons.info_outline),
               _buildMetric(context, 'Load', widget.task.cognitiveLoad.name.toUpperCase(), Icons.psychology_alt),
             ],
           ),
@@ -246,8 +322,8 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                 Icon(Icons.info_outline, size: 14, color: colors.textSecondary),
                 const SizedBox(width: EqTokens.space8),
                 Text(
-                  'Active Schedule Version: ${provider.currentSchedule!.id.substring(0, 8)}',
-                  style: text.bodySmall?.copyWith(color: colors.textSecondary),
+                  'Active Schedule: ${provider.currentSchedule!.id.substring(0, 8)}',
+                  style: context.eqText.bodySmall?.copyWith(color: colors.textSecondary),
                 )
               ],
             )
@@ -257,7 +333,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
     );
   }
 
-  Widget _buildMetric(BuildContext context, String label, String value, IconData icon) {
+  Widget _buildMetric(BuildContext context, String label, String value, IconData icon, {String? subtitle, Color? subtitleColor}) {
     final colors = context.eqColors;
     final text = context.eqText;
     
@@ -273,6 +349,10 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
         ),
         const SizedBox(height: 4),
         Text(value, style: text.labelLarge?.copyWith(color: colors.textPrimary)),
+        if (subtitle != null) ...[
+          const SizedBox(height: 2),
+          Text(subtitle, style: text.labelSmall?.copyWith(color: subtitleColor ?? colors.textSecondary, fontSize: 10)),
+        ],
       ],
     );
   }

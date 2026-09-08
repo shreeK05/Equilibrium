@@ -12,6 +12,13 @@ model User {
   email            String            @unique
   passwordHash     String
   timezone         String            @default("UTC")
+  // V2 Profile fields
+  name             String?
+  college          String?
+  degree           String?
+  branch           String?
+  semester         String?
+  themePreference  String            @default("system") // "light", "dark", "system"
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   
@@ -23,6 +30,9 @@ model User {
   teamShares       TeamShare[]
   importJobs        ImportJob[]
   notificationPreference NotificationPreference?
+  focusSessions    FocusSession[]
+  exams            Exam[]
+  subjects         Subject[]
 }
 
 model UserConstraint {
@@ -37,14 +47,33 @@ model UserConstraint {
   user                  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+model Subject {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String
+  color       String?  // hex color for UI display
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks       Task[]
+  exams       Exam[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
 model FixedCommitment {
   id               String   @id @default(uuid())
   userId           String
   title            String
   startTime        DateTime
   endTime          DateTime
-  type             String   @default("CUSTOM") // CLASS, LAB, EXAM, PERSONAL, CUSTOM
-  recurrence       String?  // e.g., "WEEKLY", "DAILY" or standard cron/RRULE string
+  type             String   @default("CUSTOM") // CLASS, LAB, EXAM, PERSONAL, CUSTOM, ROUTINE
+  recurrence       String?  // e.g., "WEEKLY", "DAILY" or standard RRULE string
+  daysOfWeek       String?  // JSON array of day numbers [0-6] for recurring routines
+  flexibility      String   @default("FIXED") // FIXED, FLEXIBLE, SOFT
+  color            String?  // hex color for timeline display
   isActive         Boolean  @default(true)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -57,13 +86,17 @@ model FixedCommitment {
 model Task {
   id               String   @id @default(uuid())
   userId           String
+  subjectId        String?
   title            String
+  description      String?  // V2: detailed description
+  category         String?  // Assignment, Revision, Lab, Project, Practice, Viva, etc.
   
   // Duration Tracking (Supports partial scheduling/splitting)
   estimateMinutes  Int      // Initial user estimate
   completedMinutes Int      @default(0) // Time permanently marked done
   
   deadline         DateTime
+  deadlineType     String   @default("HARD") // HARD, FLEXIBLE
   academicWeight   Float    @default(0.5) // [0.0 - 1.0]
   teamImpactWeight Float    @default(0.0) // [0.0 - 1.0]
   cognitiveLoad    String   @default("MEDIUM") // LOW, MEDIUM, HIGH
@@ -74,13 +107,74 @@ model Task {
   updatedAt        DateTime @updatedAt
 
   user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject          Subject?        @relation(fields: [subjectId], references: [id], onDelete: SetNull)
   blocks           ScheduleBlock[]
   logs             DecisionLog[]
+  focusSessions    FocusSession[]
   parentTaskId     String?
   parentTask       Task?           @relation("TaskSplits", fields: [parentTaskId], references: [id], onDelete: SetNull)
   childTasks       Task[]          @relation("TaskSplits")
 
   @@index([parentTaskId])
+  @@index([userId, status])
+  @@index([subjectId])
+}
+
+// V2: Focus Timer Sessions
+model FocusSession {
+  id             String    @id @default(uuid())
+  userId         String
+  taskId         String?
+  startedAt      DateTime  @default(now())
+  endedAt        DateTime?
+  elapsedSeconds Int       @default(0)
+  status         String    @default("RUNNING") // RUNNING, PAUSED, COMPLETED, DISCARDED
+  pausedAt       DateTime? // when last paused, for resumption calculation
+  totalPausedMs  Int       @default(0) // accumulated paused milliseconds
+  notes          String?
+  createdAt      DateTime  @default(now())
+
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task           Task?     @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([taskId])
+  @@index([userId, startedAt])
+}
+
+// V2: Exam Preparation Mode
+model Exam {
+  id          String      @id @default(uuid())
+  userId      String
+  subjectId   String?
+  title       String
+  examDate    DateTime
+  venue       String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject     Subject?    @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  topics      ExamTopic[]
+
+  @@index([userId, examDate])
+}
+
+model ExamTopic {
+  id              String   @id @default(uuid())
+  examId          String
+  title           String
+  estimateMinutes Int      @default(60)
+  confidence      Float    @default(0.5) // 0.0 - 1.0
+  topicType       String   @default("REVISION") // REVISION, PYQ, MOCK_TEST, LEARNING, WEAK_TOPIC
+  isCompleted     Boolean  @default(false)
+  linkedTaskId    String?  // the actual Task created when this topic is scheduled
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  exam            Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@index([examId])
 }
 
 model ScheduleVersion {

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../core/theme/theme.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/state/schedule_provider.dart';
+import '../../core/state/exam_provider.dart';
 
 class CreateTaskSheet extends StatefulWidget {
   const CreateTaskSheet({super.key});
@@ -15,14 +16,26 @@ class CreateTaskSheet extends StatefulWidget {
 
 class _CreateTaskSheetState extends State<CreateTaskSheet> {
   final _titleCtrl = TextEditingController();
+  final _descCtrl = TextEditingController();
+  final _categoryCtrl = TextEditingController();
   int _estimateMinutes = 60;
   DateTime _deadline = DateTime.now().add(const Duration(days: 1));
-  String _cognitiveLoad = 'MEDIUM';
+  final String _cognitiveLoad = 'MEDIUM';
+  String _deadlineType = 'HARD';
+  String? _subjectId;
   String? _errorText;
   Map<String, dynamic>? _preview;
   bool _isPreviewing = false;
 
   final List<int> _durationOptions = [30, 60, 90, 120, 180];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ExamProvider>().fetchAll(); // Fetch subjects
+    });
+  }
 
   void _submit() async {
     if (_titleCtrl.text.trim().isEmpty) {
@@ -34,8 +47,12 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
     final provider = context.read<ScheduleProvider>();
     final success = await provider.createTask({
       'title': _titleCtrl.text.trim(),
+      if (_descCtrl.text.trim().isNotEmpty) 'description': _descCtrl.text.trim(),
+      if (_categoryCtrl.text.trim().isNotEmpty) 'category': _categoryCtrl.text.trim(),
+      if (_subjectId != null) 'subjectId': _subjectId,
       'estimateMinutes': _estimateMinutes,
       'deadline': _deadline.toUtc().toIso8601String(),
+      'deadlineType': _deadlineType,
       'cognitiveLoad': _cognitiveLoad,
       'academicWeight': 0.5,
       'teamImpactWeight': 0.0,
@@ -79,35 +96,15 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
       initialDate: _deadline,
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: ColorScheme.dark(
-            primary: context.eqColors.primary,
-            onPrimary: context.eqColors.surface,
-            surface: context.eqColors.surfaceElevated,
-            onSurface: context.eqColors.textPrimary,
-          ),
-        ),
-        child: child!,
-      ),
     );
 
     if (date != null && mounted) {
       final time = await showTimePicker(
         context: context,
         initialTime: TimeOfDay.fromDateTime(_deadline),
-        builder: (context, child) => Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.dark(
-              primary: context.eqColors.primary,
-              surface: context.eqColors.surfaceElevated,
-            ),
-          ),
-          child: child!,
-        ),
       );
 
-      if (time != null) {
+      if (time != null && mounted) {
         setState(() {
           _deadline = DateTime(date.year, date.month, date.day, time.hour, time.minute);
         });
@@ -148,31 +145,82 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
             ),
             const SizedBox(height: EqTokens.space24),
             
+            // Title
             TextField(
               controller: _titleCtrl,
               autofocus: true,
               style: TextStyle(color: colors.textPrimary),
               decoration: InputDecoration(
                 labelText: 'What do you need to do?',
-                labelStyle: TextStyle(color: colors.textSecondary),
+                errorText: _errorText,
                 filled: true,
                 fillColor: colors.surface,
-                errorText: _errorText,
                 border: OutlineInputBorder(borderRadius: EqTokens.border8, borderSide: BorderSide.none),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: EqTokens.border8,
-                  borderSide: BorderSide(color: colors.primary, width: 2),
-                ),
               ),
               onChanged: (_) {
                 if (_errorText != null) setState(() => _errorText = null);
               },
             ).animate().fade().slideY(begin: 0.2, duration: 300.ms),
-            
+            const SizedBox(height: EqTokens.space12),
+
+            // Description
+            TextField(
+              controller: _descCtrl,
+              maxLines: 2,
+              style: TextStyle(color: colors.textPrimary, fontSize: 13),
+              decoration: InputDecoration(
+                labelText: 'Description (optional)',
+                filled: true,
+                fillColor: colors.surface,
+                border: OutlineInputBorder(borderRadius: EqTokens.border8, borderSide: BorderSide.none),
+              ),
+            ).animate().fade().slideY(begin: 0.2, duration: 300.ms),
+            const SizedBox(height: EqTokens.space16),
+
+            // Subject & Category row
+            Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Consumer<ExamProvider>(
+                    builder: (context, provider, _) {
+                      return DropdownButtonFormField<String>(
+                        initialValue: _subjectId,
+                        decoration: InputDecoration(
+                          labelText: 'Subject',
+                          filled: true,
+                          fillColor: colors.surface,
+                          border: OutlineInputBorder(borderRadius: EqTokens.border8, borderSide: BorderSide.none),
+                        ),
+                        items: [
+                          const DropdownMenuItem(value: null, child: Text('General')),
+                          ...provider.subjects.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name))),
+                        ],
+                        onChanged: (val) => setState(() => _subjectId = val),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: EqTokens.space12),
+                Expanded(
+                  flex: 2,
+                  child: TextField(
+                    controller: _categoryCtrl,
+                    style: TextStyle(color: colors.textPrimary, fontSize: 13),
+                    decoration: InputDecoration(
+                      labelText: 'Category',
+                      hintText: 'e.g. Assignment',
+                      filled: true,
+                      fillColor: colors.surface,
+                      border: OutlineInputBorder(borderRadius: EqTokens.border8, borderSide: BorderSide.none),
+                    ),
+                  ),
+                ),
+              ],
+            ).animate().fade().slideY(begin: 0.2, duration: 300.ms),
             const SizedBox(height: EqTokens.space24),
             
-            Text('Estimated Effort', style: text.labelSmall?.copyWith(color: colors.textSecondary))
-                .animate().fade(delay: 100.ms),
+            Text('Estimated Effort', style: text.labelSmall?.copyWith(color: colors.textSecondary)),
             const SizedBox(height: EqTokens.space8),
             Wrap(
               spacing: EqTokens.space8,
@@ -206,7 +254,8 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
                         onTap: _pickDeadline,
                         borderRadius: EqTokens.border8,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: EqTokens.space16, vertical: EqTokens.space12),
+                          height: 48,
+                          padding: const EdgeInsets.symmetric(horizontal: EqTokens.space16),
                           decoration: BoxDecoration(
                             color: colors.surfaceElevated,
                             borderRadius: EqTokens.border8,
@@ -215,54 +264,52 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
                             children: [
                               Icon(Icons.calendar_today, size: 16, color: colors.primary),
                               const SizedBox(width: EqTokens.space8),
-                              Text(
-                                DateFormat('MMM d, h:mm a').format(_deadline),
-                                style: text.bodyMedium?.copyWith(color: colors.textPrimary),
+                              Expanded(
+                                child: Text(
+                                  DateFormat('MMM d, h:mm a').format(_deadline),
+                                  style: text.bodyMedium?.copyWith(color: colors.textPrimary),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                             ],
                           ),
                         ),
                       ),
                     ],
-                  ).animate().fade(delay: 200.ms),
+                  ),
                 ),
                 const SizedBox(width: EqTokens.space16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Cognitive Load', style: text.labelSmall?.copyWith(color: colors.textSecondary)),
+                      Text('Flexibility', style: text.labelSmall?.copyWith(color: colors.textSecondary)),
                       const SizedBox(height: EqTokens.space8),
                       Container(
-                        height: 48, // Match the height of the date picker
-                        decoration: BoxDecoration(
-                          color: colors.surfaceElevated,
-                          borderRadius: EqTokens.border8,
-                        ),
+                        height: 48,
+                        decoration: BoxDecoration(color: colors.surfaceElevated, borderRadius: EqTokens.border8),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
-                            value: _cognitiveLoad,
+                            value: _deadlineType,
                             isExpanded: true,
                             dropdownColor: colors.surfaceElevated,
-                            icon: Icon(Icons.arrow_drop_down, color: colors.textSecondary),
                             padding: const EdgeInsets.symmetric(horizontal: EqTokens.space16),
                             style: text.bodyMedium?.copyWith(color: colors.textPrimary),
                             items: const [
-                              DropdownMenuItem(value: 'LOW', child: Text('Low')),
-                              DropdownMenuItem(value: 'MEDIUM', child: Text('Medium')),
-                              DropdownMenuItem(value: 'HIGH', child: Text('High')),
+                              DropdownMenuItem(value: 'HARD', child: Text('Hard')),
+                              DropdownMenuItem(value: 'FLEXIBLE', child: Text('Flexible')),
                             ],
                             onChanged: (val) {
-                              if (val != null) setState(() => _cognitiveLoad = val);
+                              if (val != null) setState(() => _deadlineType = val);
                             },
                           ),
                         ),
                       ),
                     ],
-                  ).animate().fade(delay: 250.ms),
+                  ),
                 ),
               ],
-            ),
+            ).animate().fade(delay: 200.ms),
 
             const SizedBox(height: EqTokens.space32),
             if (_preview != null) _buildPreview(context),

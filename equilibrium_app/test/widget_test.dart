@@ -183,13 +183,13 @@ void main() {
     final tasks = [
       Task(
         id: 't1',
+        userId: 'user1',
         title: 'Physics HW',
         estimateMinutes: 60,
         completedMinutes: 0,
-        remainingMinutes: 60,
         deadline: now.add(const Duration(days: 2)),
         cognitiveLoad: CognitiveLoad.high,
-        status: TaskStatus.scheduled,
+        status: TaskStatus.pending,
       ),
     ];
 

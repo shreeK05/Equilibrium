@@ -1,0 +1,137 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../core/api/api_client.dart';
+import '../../core/theme/theme.dart';
+import '../../core/theme/tokens.dart';
+import '../../models/commitment.dart';
+import '../../widgets/forms/routine_builder_sheet.dart';
+
+class RoutinesScreen extends StatefulWidget {
+  const RoutinesScreen({super.key});
+
+  @override
+  State<RoutinesScreen> createState() => _RoutinesScreenState();
+}
+
+class _RoutinesScreenState extends State<RoutinesScreen> {
+  bool _isLoading = true;
+  List<FixedCommitment> _routines = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchRoutines();
+  }
+
+  Future<void> _fetchRoutines() async {
+    setState(() => _isLoading = true);
+    try {
+      final data = await context.read<ApiClient>().get('/commitments');
+      final allCommitments = (data as List).map((e) => FixedCommitment.fromJson(e)).toList();
+      _routines = allCommitments.where((c) => c.type == CommitmentType.custom && c.recurrence != null).toList();
+      // Wait, in schema.prisma type is ROUTINE. So CommitmentType needs to support routine.
+    } catch (e) {
+      // Error handling
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _deleteRoutine(String id) async {
+    try {
+      await context.read<ApiClient>().delete('/commitments/$id');
+      _fetchRoutines();
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to delete routine')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.eqColors;
+    final text = context.eqText;
+
+    return Scaffold(
+      backgroundColor: colors.background,
+      appBar: AppBar(
+        title: const Text('Recurring Routines'),
+        backgroundColor: colors.background,
+        elevation: 0,
+      ),
+      body: _isLoading 
+        ? const Center(child: CircularProgressIndicator()) 
+        : _routines.isEmpty 
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.repeat, size: 64, color: colors.textSecondary.withValues(alpha: 0.5)),
+                  const SizedBox(height: EqTokens.space16),
+                  Text('No routines yet', style: text.titleMedium?.copyWith(color: colors.textSecondary)),
+                  const SizedBox(height: EqTokens.space8),
+                  Text('Create a recurring routine to block time automatically.', style: text.bodyMedium?.copyWith(color: colors.textSecondary)),
+                ],
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(EqTokens.space24),
+              itemCount: _routines.length,
+              itemBuilder: (context, index) {
+                final routine = _routines[index];
+                return Card(
+                  margin: const EdgeInsets.only(bottom: EqTokens.space16),
+                  color: colors.surface,
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.all(EqTokens.space16),
+                    title: Text(routine.title, style: text.titleMedium?.copyWith(color: colors.textPrimary)),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: EqTokens.space8),
+                        Text('Days: ${routine.daysOfWeek ?? 'Not set'}', style: text.bodySmall?.copyWith(color: colors.textSecondary)),
+                        Text('Time: ${routine.startTime.hour.toString().padLeft(2, '0')}:${routine.startTime.minute.toString().padLeft(2, '0')} - ${routine.endTime.hour.toString().padLeft(2, '0')}:${routine.endTime.minute.toString().padLeft(2, '0')}', style: text.bodySmall?.copyWith(color: colors.textSecondary)),
+                      ],
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.edit_outlined, color: colors.primary),
+                          onPressed: () async {
+                            await showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (context) => RoutineBuilderSheet(routine: routine),
+                            );
+                            _fetchRoutines();
+                          },
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.delete_outline, color: colors.danger),
+                          onPressed: () => _deleteRoutine(routine.id),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          await showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (context) => const RoutineBuilderSheet(),
+          );
+          _fetchRoutines();
+        },
+        icon: const Icon(Icons.add),
+        label: const Text('Add Routine'),
+        backgroundColor: colors.primary,
+        foregroundColor: colors.surface,
+      ),
+    );
+  }
+}

@@ -155,9 +155,11 @@ class _TasksScreenState extends State<TasksScreen> with SingleTickerProviderStat
             },
             child: TaskCard(
               title: task.title,
-              subject: 'ACADEMIC',
+              subject: task.subjectName,
+              category: task.category,
               durationStr: '${task.estimateMinutes}m',
               deadlineStr: 'Due in ${task.deadline.difference(DateTime.now()).inDays} days',
+              isFlexible: task.deadlineType.name.toUpperCase() == 'FLEXIBLE',
               status: _mapStatus(task.status),
             ),
           ),

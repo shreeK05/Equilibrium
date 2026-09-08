@@ -58,9 +58,9 @@ void main() {
   testWidgets('ExplanationSheet empty state', (WidgetTester tester) async {
     final client = ApiClient(baseUrl: 'http://localhost');
     final task = Task(
-      id: 't1', title: 'T1', estimateMinutes: 60, completedMinutes: 0,
-      remainingMinutes: 60, deadline: DateTime.now(), cognitiveLoad: CognitiveLoad.medium,
-      status: TaskStatus.scheduled
+      id: 't1', userId: 'user1', title: 'T1', estimateMinutes: 60, completedMinutes: 0,
+      deadline: DateTime.now(), cognitiveLoad: CognitiveLoad.medium,
+      status: TaskStatus.pending
     );
 
     await tester.pumpWidget(

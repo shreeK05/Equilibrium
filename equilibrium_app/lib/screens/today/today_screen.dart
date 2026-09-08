@@ -149,10 +149,12 @@ class _TodayScreenState extends State<TodayScreen> {
                                 },
                                 child: TaskCard(
                                   title: task.title,
-                                  subject: 'TASK',
+                                  subject: task.subjectName,
+                                  category: task.category,
                                   durationStr: '${nextTaskBlock.durationMinutes}m',
-                                  deadlineStr: '${nextTaskBlock.startTime.hour.toString().padLeft(2, '0')}:${nextTaskBlock.startTime.minute.toString().padLeft(2, '0')}',
-                                  status: EqStatus.scheduled,
+                                  deadlineStr: 'Due in ${task.deadline.difference(DateTime.now()).inDays} days',
+                                  isFlexible: task.deadlineType.name.toUpperCase() == 'FLEXIBLE',
+                                  status: _mapStatus(task.status),
                                 ),
                               ).animate().fade(delay: 300.ms).slideX(begin: 0.1),
                               const SizedBox(height: EqTokens.space32),
@@ -189,5 +191,15 @@ class _TodayScreenState extends State<TodayScreen> {
         letterSpacing: 1.0,
       ),
     );
+  }
+
+  EqStatus _mapStatus(dynamic taskStatus) {
+    switch (taskStatus.name) {
+      case 'scheduled': return EqStatus.scheduled;
+      case 'partiallyCompleted': return EqStatus.partiallyScheduled;
+      case 'inProgress': return EqStatus.partiallyScheduled;
+      case 'completed': return EqStatus.completed;
+      default: return EqStatus.deferred;
+    }
   }
 }
