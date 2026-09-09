@@ -42,6 +42,19 @@ app.get('/api/v1/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+app.get('/api/v1', (req, res) => {
+  res.json({ 
+    app: 'Equilibrium API', 
+    version: 'v1', 
+    status: 'operational',
+    message: 'Welcome to the Equilibrium API' 
+  });
+});
+
+app.get('/', (req, res) => {
+  res.redirect('/api/v1');
+});
+
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/tasks', tasksRouter);
 app.use('/api/v1/schedules', schedulesRouter);

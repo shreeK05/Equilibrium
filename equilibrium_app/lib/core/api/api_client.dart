@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class ApiClient {
   final String baseUrl;
   VoidCallback? onUnauthorized;
+  final ValueNotifier<bool> isOffline = ValueNotifier(false);
   
   ApiClient({this.baseUrl = 'https://equilibrium-42g8.onrender.com/api/v1', this.onUnauthorized});
 
@@ -86,10 +87,12 @@ class ApiClient {
 
   void _handleNetworkError(dynamic e) {
     if (e is ApiException) throw e;
+    isOffline.value = true;
     throw ApiException(0, 'NETWORK_ERROR', 'A network error occurred: $e');
   }
 
   dynamic _processResponse(http.Response response) {
+    isOffline.value = false;
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (response.body.isEmpty) return null;
       return jsonDecode(response.body);

@@ -65,11 +65,25 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.repeat, size: 64, color: colors.textSecondary.withValues(alpha: 0.5)),
-                  const SizedBox(height: EqTokens.space16),
-                  Text('No routines yet', style: text.titleMedium?.copyWith(color: colors.textSecondary)),
+                  Container(
+                    padding: const EdgeInsets.all(EqTokens.space24),
+                    decoration: BoxDecoration(
+                      color: colors.primary.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.repeat, size: 48, color: colors.primary),
+                  ),
+                  const SizedBox(height: EqTokens.space24),
+                  Text('No routines yet', style: text.headlineSmall?.copyWith(color: colors.textPrimary)),
                   const SizedBox(height: EqTokens.space8),
-                  Text('Create a recurring routine to block time automatically.', style: text.bodyMedium?.copyWith(color: colors.textSecondary)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: EqTokens.space32),
+                    child: Text(
+                      'Create a recurring routine to block time automatically for habits, classes, or chores.',
+                      textAlign: TextAlign.center,
+                      style: text.bodyMedium?.copyWith(color: colors.textSecondary),
+                    ),
+                  ),
                 ],
               ),
             )
@@ -78,41 +92,89 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
               itemCount: _routines.length,
               itemBuilder: (context, index) {
                 final routine = _routines[index];
-                return Card(
+                return Container(
                   margin: const EdgeInsets.only(bottom: EqTokens.space16),
-                  color: colors.surface,
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.all(EqTokens.space16),
-                    title: Text(routine.title, style: text.titleMedium?.copyWith(color: colors.textPrimary)),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: EqTokens.space8),
-                        Text('Days: ${routine.daysOfWeek ?? 'Not set'}', style: text.bodySmall?.copyWith(color: colors.textSecondary)),
-                        Text('Time: ${routine.startTime.hour.toString().padLeft(2, '0')}:${routine.startTime.minute.toString().padLeft(2, '0')} - ${routine.endTime.hour.toString().padLeft(2, '0')}:${routine.endTime.minute.toString().padLeft(2, '0')}', style: text.bodySmall?.copyWith(color: colors.textSecondary)),
-                      ],
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: Icon(Icons.edit_outlined, color: colors.primary),
-                          onPressed: () async {
-                            await showModalBottomSheet(
-                              context: context,
-                              isScrollControlled: true,
-                              backgroundColor: Colors.transparent,
-                              builder: (context) => RoutineBuilderSheet(routine: routine),
-                            );
-                            _fetchRoutines();
-                          },
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.delete_outline, color: colors.danger),
-                          onPressed: () => _deleteRoutine(routine.id),
-                        ),
-                      ],
-                    ),
+                  padding: const EdgeInsets.all(EqTokens.space20),
+                  decoration: BoxDecoration(
+                    color: colors.surface,
+                    borderRadius: EqTokens.border16,
+                    border: Border.all(color: colors.surfaceElevated),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      )
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              routine.title,
+                              style: text.titleLarge?.copyWith(color: colors.textPrimary),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.edit_outlined, color: colors.primary, size: 20),
+                                onPressed: () async {
+                                  await showModalBottomSheet(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    backgroundColor: Colors.transparent,
+                                    builder: (context) => RoutineBuilderSheet(routine: routine),
+                                  );
+                                  _fetchRoutines();
+                                },
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.delete_outline, color: colors.danger, size: 20),
+                                onPressed: () => _deleteRoutine(routine.id),
+                              ),
+                            ],
+                          )
+                        ],
+                      ),
+                      const SizedBox(height: EqTokens.space16),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: colors.primary.withValues(alpha: 0.1),
+                              borderRadius: EqTokens.border8,
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.schedule, size: 14, color: colors.primary),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${routine.startTime.hour.toString().padLeft(2, '0')}:${routine.startTime.minute.toString().padLeft(2, '0')} - ${routine.endTime.hour.toString().padLeft(2, '0')}:${routine.endTime.minute.toString().padLeft(2, '0')}',
+                                  style: text.labelSmall?.copyWith(color: colors.primary),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: EqTokens.space12),
+                          Expanded(
+                            child: Text(
+                              routine.daysOfWeek ?? 'Not set',
+                              style: text.bodySmall?.copyWith(color: colors.textSecondary),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      )
+                    ],
                   ),
                 );
               },

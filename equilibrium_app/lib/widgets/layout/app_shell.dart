@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/theme.dart';
+import '../../core/theme/tokens.dart';
 import '../../screens/today/today_screen.dart';
 import '../../screens/schedule/schedule_screen.dart';
 import '../../screens/tasks/tasks_screen.dart';
@@ -12,6 +13,7 @@ import '../forms/create_task_sheet.dart';
 import '../forms/create_commitment_sheet.dart';
 import '../../core/state/schedule_provider.dart';
 import '../../core/state/timer_provider.dart';
+import '../../core/api/api_client.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../screens/commitments/commitments_screen.dart';
@@ -122,9 +124,42 @@ class _AppShellState extends State<AppShell> {
           ),
         ],
       ),
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 250),
-        child: _screens[_currentIndex],
+      body: Stack(
+        children: [
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            child: _screens[_currentIndex],
+          ),
+          Positioned(
+            bottom: EqTokens.space16,
+            left: EqTokens.space24,
+            child: ValueListenableBuilder<bool>(
+              valueListenable: context.read<ApiClient>().isOffline,
+              builder: (context, isOffline, child) {
+                if (!isOffline) return const SizedBox.shrink();
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: colors.surfaceElevated,
+                    borderRadius: EqTokens.border12,
+                    border: Border.all(color: colors.textSecondary.withValues(alpha: 0.2)),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 4)),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.cloud_off, size: 14, color: colors.textSecondary),
+                      const SizedBox(width: EqTokens.space8),
+                      Text('Working offline', style: TextStyle(fontSize: 12, color: colors.textSecondary, fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                ).animate().fade().slideY(begin: 0.5);
+              },
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(

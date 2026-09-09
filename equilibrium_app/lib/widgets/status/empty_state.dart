@@ -29,7 +29,14 @@ class EmptyStateWidget extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 64, color: colors.surfaceElevated),
+            Container(
+              padding: const EdgeInsets.all(EqTokens.space24),
+              decoration: BoxDecoration(
+                color: colors.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 48, color: colors.primary),
+            ),
             const SizedBox(height: EqTokens.space24),
             Text(
               title,
@@ -44,13 +51,12 @@ class EmptyStateWidget extends StatelessWidget {
             ),
             if (actionLabel != null && onAction != null) ...[
               const SizedBox(height: EqTokens.space32),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
+              FilledButton(
+                style: FilledButton.styleFrom(
                   backgroundColor: colors.primary,
                   foregroundColor: colors.surface,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: EqTokens.border8),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: EqTokens.border12),
                 ),
                 onPressed: onAction,
                 child: Text(actionLabel!, style: text.labelLarge?.copyWith(color: colors.surface)),

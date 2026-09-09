@@ -11,6 +11,9 @@ class TaskCard extends StatelessWidget {
   final String deadlineStr;
   final bool isFlexible;
   final EqStatus status;
+  final VoidCallback? onComplete;
+  final VoidCallback? onStartTimer;
+  final bool isCompleted;
 
   const TaskCard({
     super.key,
@@ -21,6 +24,9 @@ class TaskCard extends StatelessWidget {
     required this.deadlineStr,
     this.isFlexible = false,
     required this.status,
+    this.onComplete,
+    this.onStartTimer,
+    this.isCompleted = false,
   });
 
   @override
@@ -31,76 +37,131 @@ class TaskCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(EqTokens.space16),
       decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: EqTokens.border12,
-        border: Border.all(color: colors.surfaceElevated),
-        boxShadow: [
+        color: isCompleted ? colors.surfaceElevated : colors.surface,
+        borderRadius: EqTokens.border24,
+        border: Border.all(
+          color: isCompleted ? Colors.transparent : colors.surfaceElevated.withValues(alpha: 0.5),
+        ),
+        boxShadow: isCompleted ? [] : [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 10,
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 12,
             offset: const Offset(0, 4),
           )
         ],
       ),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
+          // Animated Checkbox
+          GestureDetector(
+            onTap: onComplete,
+            child: Container(
+              width: 24,
+              height: 24,
+              margin: const EdgeInsets.only(top: 2, right: EqTokens.space12),
+              decoration: BoxDecoration(
+                color: isCompleted ? colors.success : Colors.transparent,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isCompleted ? colors.success : colors.textSecondary.withValues(alpha: 0.5),
+                  width: 2,
+                ),
+              ),
+              child: isCompleted
+                  ? Icon(Icons.check, size: 16, color: colors.surface)
+                  : null,
+            ),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (subject != null || category != null) ...[
-                      Row(
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (subject != null)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(color: colors.primary.withValues(alpha: 0.1), borderRadius: EqTokens.border4),
-                              child: Text(subject!.toUpperCase(), style: text.labelSmall?.copyWith(color: colors.primary, fontSize: 10)),
+                          if (subject != null || category != null) ...[
+                            Row(
+                              children: [
+                                if (subject != null)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: colors.primary.withValues(alpha: 0.1),
+                                      borderRadius: EqTokens.border8,
+                                    ),
+                                    child: Text(
+                                      subject!.toUpperCase(),
+                                      style: text.labelSmall?.copyWith(
+                                        color: colors.primary,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                if (subject != null && category != null) const SizedBox(width: 8),
+                                if (category != null)
+                                  Text(
+                                    category!.toUpperCase(),
+                                    style: text.labelSmall?.copyWith(
+                                      color: colors.textSecondary,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                              ],
                             ),
-                          if (subject != null && category != null) const SizedBox(width: 6),
-                          if (category != null)
-                            Text(category!.toUpperCase(), style: text.labelSmall?.copyWith(color: colors.textSecondary, letterSpacing: 0.5, fontSize: 10)),
+                            const SizedBox(height: EqTokens.space8),
+                          ],
+                          Text(
+                            title,
+                            style: text.titleLarge?.copyWith(
+                              color: isCompleted ? colors.textSecondary : colors.textPrimary,
+                              decoration: isCompleted ? TextDecoration.lineThrough : null,
+                            ),
+                          ),
                         ],
                       ),
-                      const SizedBox(height: EqTokens.space4),
-                    ],
+                    ),
+                    if (!isCompleted && onStartTimer != null)
+                      IconButton(
+                        icon: Icon(Icons.play_circle_fill, color: colors.primary, size: 32),
+                        onPressed: onStartTimer,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: EqTokens.space16),
+                Row(
+                  children: [
+                    Icon(Icons.schedule, size: 16, color: colors.textSecondary),
+                    const SizedBox(width: EqTokens.space4),
                     Text(
-                      title,
-                      style: text.titleLarge?.copyWith(
-                        color: colors.textPrimary,
-                        height: 1.2,
+                      durationStr,
+                      style: text.bodyMedium?.copyWith(color: colors.textSecondary),
+                    ),
+                    const SizedBox(width: EqTokens.space16),
+                    Icon(
+                      isFlexible ? Icons.event_available : Icons.event,
+                      size: 16,
+                      color: isFlexible ? colors.primary : colors.textSecondary,
+                    ),
+                    const SizedBox(width: EqTokens.space4),
+                    Text(
+                      deadlineStr,
+                      style: text.bodyMedium?.copyWith(
+                        color: isFlexible ? colors.primary : colors.textSecondary,
                       ),
                     ),
                   ],
-                ),
-              ),
-              StatusBadge(status: status),
-            ],
+                )
+              ],
+            ),
           ),
-          const SizedBox(height: EqTokens.space16),
-          Row(
-            children: [
-              Icon(Icons.timer_outlined, size: 16, color: colors.textSecondary),
-              const SizedBox(width: EqTokens.space4),
-              Text(
-                durationStr,
-                style: text.bodyMedium?.copyWith(color: colors.textSecondary),
-              ),
-              const SizedBox(width: EqTokens.space16),
-              Icon(isFlexible ? Icons.event_available_outlined : Icons.event_outlined, 
-                   size: 16, color: isFlexible ? colors.primary : colors.textSecondary),
-              const SizedBox(width: EqTokens.space4),
-              Text(
-                deadlineStr,
-                style: text.bodyMedium?.copyWith(color: isFlexible ? colors.primary : colors.textSecondary),
-              ),
-            ],
-          )
         ],
       ),
     );

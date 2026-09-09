@@ -1,84 +1,75 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/theme/theme.dart';
 import '../../core/theme/tokens.dart';
 
-class EquilibriumLoadingState extends StatefulWidget {
-  final List<String> steps;
-  
-  const EquilibriumLoadingState({
+class Skeleton extends StatelessWidget {
+  final double width;
+  final double height;
+  final double borderRadius;
+
+  const Skeleton({
     super.key,
-    this.steps = const [
-      "Checking constraints...",
-      "Optimizing your workload...",
-      "Placing your tasks...",
-      "Finalizing your schedule...",
-    ],
+    required this.width,
+    required this.height,
+    this.borderRadius = EqTokens.radius8,
   });
-
-  @override
-  State<EquilibriumLoadingState> createState() => _EquilibriumLoadingStateState();
-}
-
-class _EquilibriumLoadingStateState extends State<EquilibriumLoadingState> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  int _currentStep = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat();
-    _cycleSteps();
-  }
-  
-  Future<void> _cycleSteps() async {
-    while (mounted) {
-      await Future.delayed(const Duration(milliseconds: 1500));
-      if (!mounted) break;
-      setState(() {
-        _currentStep = (_currentStep + 1) % widget.steps.length;
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.eqColors;
-    final text = context.eqText;
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: colors.surfaceElevated,
+        borderRadius: BorderRadius.circular(borderRadius),
+      ),
+    ).animate(onPlay: (controller) => controller.repeat())
+     .shimmer(duration: const Duration(milliseconds: 1500), color: colors.surface.withValues(alpha: 0.5));
+  }
+}
 
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          AnimatedBuilder(
-            animation: _controller,
-            builder: (context, child) {
-              return Transform.rotate(
-                angle: _controller.value * 2 * 3.1415927,
-                child: Icon(Icons.sync, color: colors.primary, size: 48),
-              );
-            },
-          ),
-          const SizedBox(height: EqTokens.space24),
-          Text(
-            'Balancing your workload...',
-            style: text.titleLarge?.copyWith(color: colors.textPrimary),
-          ),
-          const SizedBox(height: EqTokens.space8),
-          AnimatedSwitcher(
-            duration: EqTokens.durationNormal,
-            child: Text(
-              widget.steps[_currentStep],
-              key: ValueKey<int>(_currentStep),
-              style: text.bodyMedium?.copyWith(color: colors.textSecondary),
+class EquilibriumLoadingState extends StatelessWidget {
+  final bool showTasks;
+  
+  const EquilibriumLoadingState({
+    super.key,
+    this.showTasks = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(EqTokens.space24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header skeleton
+            const Skeleton(width: 120, height: 16),
+            const SizedBox(height: EqTokens.space8),
+            const Skeleton(width: 200, height: 32),
+            const SizedBox(height: EqTokens.space32),
+            
+            // Progress ring skeleton
+            Center(
+              child: const Skeleton(width: 180, height: 180, borderRadius: 90),
             ),
-          )
-        ],
+            const SizedBox(height: EqTokens.space48),
+            
+            // Section title skeleton
+            const Skeleton(width: 100, height: 20),
+            const SizedBox(height: EqTokens.space16),
+            
+            // Cards skeleton
+            if (showTasks) ...[
+              const Skeleton(width: double.infinity, height: 100, borderRadius: EqTokens.radius24),
+              const SizedBox(height: EqTokens.space16),
+              const Skeleton(width: double.infinity, height: 100, borderRadius: EqTokens.radius24),
+            ]
+          ],
+        ),
       ),
     );
   }

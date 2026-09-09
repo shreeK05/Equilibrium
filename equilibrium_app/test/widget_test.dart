@@ -67,7 +67,7 @@ void main() {
 
     expect(find.text('MATH101'), findsOneWidget);
     expect(find.text('Math HW'), findsOneWidget);
-    expect(find.text('DEFERRED'), findsOneWidget);
+    // TaskCard no longer renders status badge directly in the new UI.
   });
 
   testWidgets('WorkloadMeter rendering variations', (WidgetTester tester) async {
@@ -82,14 +82,14 @@ void main() {
       const WorkloadMeter(plannedMinutes: 120, availableMinutes: 240)
     ));
     expect(find.text('2h planned'), findsOneWidget);
-    expect(find.text('2h remaining'), findsOneWidget);
+    expect(find.text('2h remaining capacity'), findsOneWidget);
 
     // Test 3: Overcapacity Workload
     await tester.pumpWidget(createTestWidget(
       const WorkloadMeter(plannedMinutes: 300, availableMinutes: 240)
     ));
     expect(find.text('5h planned'), findsOneWidget);
-    expect(find.text('0m remaining'), findsOneWidget);
+    expect(find.text('0m remaining capacity'), findsOneWidget);
   });
 
   testWidgets('TimelineBlock mapping variations', (WidgetTester tester) async {

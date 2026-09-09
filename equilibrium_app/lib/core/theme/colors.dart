@@ -42,8 +42,8 @@ class EqColors extends ThemeExtension<EqColors> {
   });
 
   static const light = EqColors(
-    primary: Color(0xFF1E293B), // Deep Slate
-    background: Color(0xFFF8FAFC), // Off-white
+    primary: Color(0xFF6366F1), // Premium Indigo
+    background: Color(0xFFF8FAFC), // Off-white Slate
     surface: Color(0xFFFFFFFF),
     surfaceElevated: Color(0xFFF1F5F9),
     textPrimary: Color(0xFF0F172A),
@@ -51,7 +51,7 @@ class EqColors extends ThemeExtension<EqColors> {
     success: Color(0xFF10B981), // Emerald
     warning: Color(0xFFF59E0B), // Amber
     danger: Color(0xFFEF4444),  // Red
-    sleepShield: Color(0xFF6366F1), // Indigo
+    sleepShield: Color(0xFF4F46E5), // Deep Indigo
     sleepShieldMuted: Color(0xFFEEF2FF),
     workload: Color(0xFF3B82F6), // Blue
     energyPeak: Color(0xFF8B5CF6), // Violet
@@ -63,16 +63,16 @@ class EqColors extends ThemeExtension<EqColors> {
   );
 
   static const dark = EqColors(
-    primary: Color(0xFFE2E8F0),
-    background: Color(0xFF0B0F19), // Very dark slate/blue
-    surface: Color(0xFF161E2E), // Card background
-    surfaceElevated: Color(0xFF263449),
+    primary: Color(0xFF818CF8), // Soft Indigo for dark
+    background: Color(0xFF0F172A), // Slate 900
+    surface: Color(0xFF1E293B), // Slate 800
+    surfaceElevated: Color(0xFF334155), // Slate 700
     textPrimary: Color(0xFFF8FAFC),
-    textSecondary: Color(0xFFCBD5E1),
-    success: Color(0xFF10B981),
-    warning: Color(0xFFF59E0B),
-    danger: Color(0xFFEF4444),
-    sleepShield: Color(0xFF818CF8), // Lighter Indigo for dark mode
+    textSecondary: Color(0xFF94A3B8),
+    success: Color(0xFF10B981), // Emerald
+    warning: Color(0xFFFBBF24), // Amber
+    danger: Color(0xFFEF4444), // Red
+    sleepShield: Color(0xFF6366F1), // Indigo
     sleepShieldMuted: Color(0xFF1E1B4B),
     workload: Color(0xFF60A5FA),
     energyPeak: Color(0xFFA78BFA),

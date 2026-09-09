@@ -36,27 +36,63 @@ class WorkloadMeter extends StatelessWidget {
       indicatorColor = colors.success; // Zero workload
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0, end: ratio),
+      duration: const Duration(milliseconds: 1200),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text('$plannedStr planned', style: text.bodyMedium?.copyWith(color: colors.textPrimary)),
-            Text('$remainingStr remaining', style: text.bodyMedium?.copyWith(color: colors.textSecondary)),
+            SizedBox(
+              width: 80,
+              height: 80,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  CircularProgressIndicator(
+                    value: 1.0,
+                    strokeWidth: 8,
+                    color: colors.surfaceElevated,
+                  ),
+                  CircularProgressIndicator(
+                    value: value,
+                    strokeWidth: 8,
+                    strokeCap: StrokeCap.round,
+                    color: indicatorColor,
+                  ),
+                  Center(
+                    child: Text(
+                      '${(value * 100).toInt()}%',
+                      style: text.titleLarge?.copyWith(
+                        color: colors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: EqTokens.space24),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$plannedStr planned',
+                    style: text.titleMedium?.copyWith(color: colors.textPrimary),
+                  ),
+                  const SizedBox(height: EqTokens.space4),
+                  Text(
+                    '$remainingStr remaining capacity',
+                    style: text.bodyMedium?.copyWith(color: colors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
           ],
-        ),
-        const SizedBox(height: EqTokens.space12),
-        ClipRRect(
-          borderRadius: EqTokens.border4,
-          child: LinearProgressIndicator(
-            value: ratio,
-            minHeight: 8,
-            backgroundColor: colors.surfaceElevated,
-            valueColor: AlwaysStoppedAnimation<Color>(indicatorColor),
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 

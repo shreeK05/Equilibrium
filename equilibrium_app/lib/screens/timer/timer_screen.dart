@@ -175,18 +175,20 @@ class _TimerScreenState extends State<TimerScreen> with WidgetsBindingObserver {
 
                 // --- Timer Display ---
                 Container(
-                  width: 240,
-                  height: 240,
+                  width: 320,
+                  height: 320,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: colors.surface,
                     border: Border.all(
                       color: isRunning ? colors.primary : isPaused ? colors.warning : colors.surfaceElevated,
-                      width: isRunning ? 3 : 2,
+                      width: isRunning ? 4 : 2,
                     ),
                     boxShadow: isRunning ? [
-                      BoxShadow(color: colors.primary.withValues(alpha: 0.15), blurRadius: 30, spreadRadius: 5)
-                    ] : null,
+                      BoxShadow(color: colors.primary.withValues(alpha: 0.2), blurRadius: 40, spreadRadius: 10)
+                    ] : [
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, 10))
+                    ],
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -200,14 +202,23 @@ class _TimerScreenState extends State<TimerScreen> with WidgetsBindingObserver {
                       else
                         Text('READY', style: textTheme.labelSmall?.copyWith(
                           color: colors.textSecondary, letterSpacing: 1.5)),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 12),
                       Text(
                         timer.displayTime,
                         style: textTheme.displayLarge?.copyWith(
+                          fontSize: 64,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -2.0,
                           color: colors.textPrimary.withValues(alpha: isRunning ? 1.0 : 0.6),
                           fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
+                      if (isRunning) ...[
+                        const SizedBox(height: EqTokens.space12),
+                        Icon(Icons.spa, color: colors.primary.withValues(alpha: 0.5), size: 24)
+                            .animate(onPlay: (c) => c.repeat(reverse: true))
+                            .scaleXY(begin: 0.9, end: 1.1, duration: const Duration(seconds: 2)),
+                      ]
                     ],
                   ),
                 ).animate(

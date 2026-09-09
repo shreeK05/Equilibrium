@@ -12,8 +12,11 @@ import '../../widgets/status/error_state.dart';
 import '../../widgets/status/empty_state.dart';
 import '../../widgets/forms/task_detail_sheet.dart';
 import '../../core/state/schedule_provider.dart';
+import '../../core/state/profile_provider.dart';
 import '../../models/task.dart';
 import '../../models/schedule.dart';
+import 'package:intl/intl.dart';
+import '../timer/timer_screen.dart';
 
 class TodayScreen extends StatefulWidget {
   const TodayScreen({super.key});
@@ -85,6 +88,19 @@ class _TodayScreenState extends State<TodayScreen> {
             final minHours = provider.constraints?['minSleepHours'] as int? ?? 7;
             final sleepDuration = '${minHours}h 00m';
 
+            final profile = context.watch<ProfileProvider>().profile;
+            final studentName = profile?.name ?? 'Student';
+            final now = DateTime.now();
+            final dateStr = DateFormat('EEEE, MMMM d').format(now);
+            
+            final hour = now.hour;
+            String greeting = 'GOOD EVENING';
+            if (hour < 12) {
+              greeting = 'GOOD MORNING';
+            } else if (hour < 17) {
+              greeting = 'GOOD AFTERNOON';
+            }
+
             return RefreshIndicator(
               onRefresh: provider.fetchDashboardData,
               color: colors.primary,
@@ -95,7 +111,7 @@ class _TodayScreenState extends State<TodayScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'GOOD MORNING',
+                      greeting,
                       style: text.labelSmall?.copyWith(
                         color: colors.textSecondary,
                         letterSpacing: 1.2,
@@ -103,11 +119,20 @@ class _TodayScreenState extends State<TodayScreen> {
                     ).animate().fade().slideY(begin: -0.2),
                     const SizedBox(height: EqTokens.space8),
                     Text(
-                      provider.errorMessage != null ? 'Running offline.' : 'Your workload is balanced.',
+                      studentName.toUpperCase(),
                       style: text.headlineLarge?.copyWith(
                         color: colors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.5,
                       ),
                     ).animate().fade(delay: 100.ms).slideY(begin: -0.2),
+                    const SizedBox(height: EqTokens.space4),
+                    Text(
+                      dateStr,
+                      style: text.bodyMedium?.copyWith(
+                        color: colors.textSecondary,
+                      ),
+                    ).animate().fade(delay: 150.ms),
                     const SizedBox(height: EqTokens.space32),
                     
                     _buildSectionTitle(context, 'Today').animate().fade(delay: 150.ms),
@@ -155,6 +180,15 @@ class _TodayScreenState extends State<TodayScreen> {
                                   deadlineStr: 'Due in ${task.deadline.difference(DateTime.now()).inDays} days',
                                   isFlexible: task.deadlineType.name.toUpperCase() == 'FLEXIBLE',
                                   status: _mapStatus(task.status),
+                                  isCompleted: task.status.name == 'completed',
+                                  onComplete: () async {
+                                    await context.read<ScheduleProvider>().completeTask(task.id, task.estimateMinutes);
+                                  },
+                                  onStartTimer: () {
+                                    Navigator.of(context).push(MaterialPageRoute(
+                                      builder: (_) => TimerScreen(initialTask: task),
+                                    ));
+                                  },
                                 ),
                               ).animate().fade(delay: 300.ms).slideX(begin: 0.1),
                               const SizedBox(height: EqTokens.space32),
@@ -173,6 +207,43 @@ class _TodayScreenState extends State<TodayScreen> {
                       endTime: sleepEnd,
                       durationStr: sleepDuration,
                     ).animate().fade(delay: 400.ms).slideY(begin: 0.1),
+                    
+                    const SizedBox(height: EqTokens.space32),
+                    _buildSectionTitle(context, "Today's Tasks").animate().fade(delay: 450.ms),
+                    const SizedBox(height: EqTokens.space16),
+                    ...tasks.map((task) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: EqTokens.space12),
+                        child: GestureDetector(
+                          onTap: () {
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (context) => TaskDetailSheet(task: task),
+                            );
+                          },
+                          child: TaskCard(
+                            title: task.title,
+                            subject: task.subjectName,
+                            category: task.category,
+                            durationStr: '${task.estimateMinutes}m',
+                            deadlineStr: 'Due in ${task.deadline.difference(DateTime.now()).inDays} days',
+                            isFlexible: task.deadlineType.name.toUpperCase() == 'FLEXIBLE',
+                            status: _mapStatus(task.status),
+                            isCompleted: task.status.name == 'completed',
+                            onComplete: () async {
+                              await context.read<ScheduleProvider>().completeTask(task.id, task.estimateMinutes);
+                            },
+                            onStartTimer: () {
+                              Navigator.of(context).push(MaterialPageRoute(
+                                builder: (_) => TimerScreen(initialTask: task),
+                              ));
+                            },
+                          ),
+                        ),
+                      ).animate().fade(delay: 500.ms).slideX(begin: 0.1);
+                    }),
                   ],
                 ),
               ),
