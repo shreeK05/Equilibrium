@@ -43,9 +43,11 @@ class EquilibriumLoadingState extends StatelessWidget {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(EqTokens.space24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        child: SingleChildScrollView(
+          physics: const NeverScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             // Header skeleton
             const Skeleton(width: 120, height: 16),
             const SizedBox(height: EqTokens.space8),
@@ -70,6 +72,7 @@ class EquilibriumLoadingState extends StatelessWidget {
             ]
           ],
         ),
+      ),
       ),
     );
   }
