@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/theme/theme.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/state/schedule_provider.dart';
+import '../../models/task.dart';
 
 class InsightsScreen extends StatelessWidget {
   const InsightsScreen({super.key});
