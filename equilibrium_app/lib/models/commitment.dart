@@ -33,7 +33,7 @@ class FixedCommitment {
       endTime: DateTime.parse(json['endTime'] as String).toLocal(),
       type: CommitmentType.values.firstWhere(
         (e) {
-          final enumName = e.name == 'class_' ? 'CLASS' : e.name.toUpperCase();
+          final enumName = e == CommitmentType.class_ ? 'CLASS' : e.toString().split('.').last.toUpperCase();
           return enumName == (json['type'] as String?)?.toUpperCase();
         },
         orElse: () => CommitmentType.custom,
@@ -51,7 +51,7 @@ class FixedCommitment {
       'title': title,
       'startTime': startTime.toUtc().toIso8601String(),
       'endTime': endTime.toUtc().toIso8601String(),
-      'type': type == CommitmentType.class_ ? 'CLASS' : type.name.toUpperCase(),
+      'type': type == CommitmentType.class_ ? 'CLASS' : type.toString().split('.').last.toUpperCase(),
       'isActive': isActive,
       if (recurrence != null) 'recurrence': recurrence,
       if (daysOfWeek != null) 'daysOfWeek': daysOfWeek,

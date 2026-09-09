@@ -49,7 +49,7 @@ class ScheduleTimeline extends StatelessWidget {
         constraints: const BoxConstraints(maxWidth: 800), // Desktop responsiveness: don't stretch infinitely
         child: ListView.builder(
           physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(vertical: EqTokens.space16),
+          padding: const EdgeInsets.only(top: EqTokens.space16, bottom: 100),
           itemCount: sortedDays.length,
           itemBuilder: (context, index) {
             final day = sortedDays[index];

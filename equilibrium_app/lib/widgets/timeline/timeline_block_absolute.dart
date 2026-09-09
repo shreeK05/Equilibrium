@@ -167,7 +167,7 @@ class AbsoluteTimelineBlock extends StatelessWidget {
                       Icon(Icons.psychology, size: 14, color: fgColor.withValues(alpha: 0.7)),
                       const SizedBox(width: 4),
                       Text(
-                        task!.cognitiveLoad.name.toUpperCase(),
+                        task!.cognitiveLoadLabel,
                         style: text.labelSmall?.copyWith(color: fgColor.withValues(alpha: 0.7)),
                       ),
                       const SizedBox(width: 8),

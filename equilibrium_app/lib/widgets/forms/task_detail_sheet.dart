@@ -288,7 +288,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
     }
 
     final deadlineStr = DateFormat('MMM d, h:mm a').format(widget.task.deadline);
-    final isFlexible = widget.task.deadlineType.name.toUpperCase() == 'FLEXIBLE';
+    final isFlexible = widget.task.deadlineType == DeadlineType.flexible;
 
     return Container(
       padding: const EdgeInsets.all(EqTokens.space16),
@@ -311,8 +311,8 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildMetric(context, 'Status', widget.task.status.name.toUpperCase(), Icons.info_outline),
-              _buildMetric(context, 'Load', widget.task.cognitiveLoad.name.toUpperCase(), Icons.psychology_alt),
+              _buildMetric(context, 'Status', widget.task.status.toString().split('.').last.toUpperCase(), Icons.info_outline),
+              _buildMetric(context, 'Load', widget.task.cognitiveLoadLabel, Icons.psychology_alt),
             ],
           ),
           if (provider.currentSchedule != null) ...[

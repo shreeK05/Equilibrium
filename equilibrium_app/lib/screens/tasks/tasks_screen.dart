@@ -94,7 +94,7 @@ class _TasksScreenState extends State<TasksScreen> with SingleTickerProviderStat
                     t.status != TaskStatus.completed &&
                     t.status != TaskStatus.archived &&
                     scheduledIds.contains(t.id)).toList();
-                final completed = tasks.where((t) => t.status.name == 'completed').toList();
+                final completed = tasks.where((t) => t.status == TaskStatus.completed).toList();
 
                 return TabBarView(
                   controller: _tabController,
@@ -159,7 +159,7 @@ class _TasksScreenState extends State<TasksScreen> with SingleTickerProviderStat
               category: task.category,
               durationStr: '${task.estimateMinutes}m',
               deadlineStr: 'Due in ${task.deadline.difference(DateTime.now()).inDays} days',
-              isFlexible: task.deadlineType.name.toUpperCase() == 'FLEXIBLE',
+              isFlexible: task.deadlineType == DeadlineType.flexible,
               status: _mapStatus(task.status),
             ),
           ),
@@ -168,13 +168,16 @@ class _TasksScreenState extends State<TasksScreen> with SingleTickerProviderStat
     );
   }
 
-  EqStatus _mapStatus(dynamic taskStatus) {
-    switch (taskStatus.name) {
-      case 'scheduled': return EqStatus.scheduled;
-      case 'partiallyScheduled': return EqStatus.partiallyScheduled;
-      case 'inProgress': return EqStatus.partiallyScheduled;
-      case 'completed': return EqStatus.completed;
-      default: return EqStatus.deferred;
+  EqStatus _mapStatus(TaskStatus status) {
+    switch (status) {
+      case TaskStatus.inProgress:
+        return EqStatus.partiallyScheduled;
+      case TaskStatus.partiallyCompleted:
+        return EqStatus.partiallyScheduled;
+      case TaskStatus.completed:
+        return EqStatus.completed;
+      default:
+        return EqStatus.deferred;
     }
   }
 }

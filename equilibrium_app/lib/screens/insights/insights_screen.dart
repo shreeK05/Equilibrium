@@ -141,8 +141,8 @@ class InsightsScreen extends StatelessWidget {
     return Consumer<ScheduleProvider>(
       builder: (context, provider, _) {
         final tasks = provider.activeTasks;
-        final pending = tasks.where((t) => t.status.name != 'completed' && t.status.name != 'archived').length;
-        final completed = tasks.where((t) => t.status.name == 'completed').length;
+        final pending = tasks.where((t) => t.status != TaskStatus.completed && t.status != TaskStatus.archived).length;
+        final completed = tasks.where((t) => t.status == TaskStatus.completed).length;
         final deferred = (provider.insights?['deferredCount'] as num?)?.toInt() ?? 0;
         
         return Row(

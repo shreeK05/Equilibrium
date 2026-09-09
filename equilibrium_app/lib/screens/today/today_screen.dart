@@ -178,9 +178,9 @@ class _TodayScreenState extends State<TodayScreen> {
                                   category: task.category,
                                   durationStr: '${nextTaskBlock.durationMinutes}m',
                                   deadlineStr: 'Due in ${task.deadline.difference(DateTime.now()).inDays} days',
-                                  isFlexible: task.deadlineType.name.toUpperCase() == 'FLEXIBLE',
+                                  isFlexible: task.deadlineType == DeadlineType.flexible,
                                   status: _mapStatus(task.status),
-                                  isCompleted: task.status.name == 'completed',
+                                  isCompleted: task.status == TaskStatus.completed,
                                   onComplete: () async {
                                     await context.read<ScheduleProvider>().completeTask(task.id, task.estimateMinutes);
                                   },
@@ -229,9 +229,9 @@ class _TodayScreenState extends State<TodayScreen> {
                             category: task.category,
                             durationStr: '${task.estimateMinutes}m',
                             deadlineStr: 'Due in ${task.deadline.difference(DateTime.now()).inDays} days',
-                            isFlexible: task.deadlineType.name.toUpperCase() == 'FLEXIBLE',
+                            isFlexible: task.deadlineType == DeadlineType.flexible,
                             status: _mapStatus(task.status),
-                            isCompleted: task.status.name == 'completed',
+                            isCompleted: task.status == TaskStatus.completed,
                             onComplete: () async {
                               await context.read<ScheduleProvider>().completeTask(task.id, task.estimateMinutes);
                             },
@@ -264,13 +264,16 @@ class _TodayScreenState extends State<TodayScreen> {
     );
   }
 
-  EqStatus _mapStatus(dynamic taskStatus) {
-    switch (taskStatus.name) {
-      case 'scheduled': return EqStatus.scheduled;
-      case 'partiallyCompleted': return EqStatus.partiallyScheduled;
-      case 'inProgress': return EqStatus.partiallyScheduled;
-      case 'completed': return EqStatus.completed;
-      default: return EqStatus.deferred;
+  EqStatus _mapStatus(TaskStatus status) {
+    switch (status) {
+      case TaskStatus.inProgress:
+        return EqStatus.partiallyScheduled;
+      case TaskStatus.partiallyCompleted:
+        return EqStatus.partiallyScheduled;
+      case TaskStatus.completed:
+        return EqStatus.completed;
+      default:
+        return EqStatus.deferred;
     }
   }
 }

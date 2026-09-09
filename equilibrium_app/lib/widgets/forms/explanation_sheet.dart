@@ -164,7 +164,7 @@ class _ExplanationSheetState extends State<ExplanationSheet> {
           ),
           const SizedBox(height: EqTokens.space12),
           Text(
-            'This task needs $remaining minutes more. It has a ${widget.task.cognitiveLoad.name.toUpperCase()} focus load and an academic priority of ${(widget.task.academicWeight * 100).round()}%. The planner places it only in safe time before the deadline and never inside your Sleep Shield.',
+            'This task needs $remaining minutes more. It has a ${widget.task.cognitiveLoadLabel} focus load and an academic priority of ${(widget.task.academicWeight * 100).round()}%. The planner places it only in safe time before the deadline and never inside your Sleep Shield.',
             style: text.bodyLarge?.copyWith(color: colors.textPrimary, height: 1.35),
           ),
           const SizedBox(height: EqTokens.space12),
