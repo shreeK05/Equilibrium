@@ -27,11 +27,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _branchCtrl = TextEditingController();
   final _semesterCtrl = TextEditingController();
 
-  // Sleep shield
-  final _sleepStartCtrl = TextEditingController();
-  final _sleepEndCtrl = TextEditingController();
-  final _minSleepCtrl = TextEditingController();
-
+  // Sleep shield — store as HH:mm strings
+  String _sleepStart = '23:00';
+  String _sleepEnd = '07:00';
+  double _minSleepHours = 7.0;
   bool _profileLoading = true;
   bool _sleepLoading = true;
   bool _savingProfile = false;
@@ -55,9 +54,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _degreeCtrl.dispose();
     _branchCtrl.dispose();
     _semesterCtrl.dispose();
-    _sleepStartCtrl.dispose();
-    _sleepEndCtrl.dispose();
-    _minSleepCtrl.dispose();
     super.dispose();
   }
 
@@ -85,9 +81,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final notifications = await api.get('/notifications/preferences');
       if (mounted) {
         setState(() {
-          _sleepStartCtrl.text = data['sleepStart']?.toString() ?? '23:00';
-          _sleepEndCtrl.text = data['sleepEnd']?.toString() ?? '06:00';
-          _minSleepCtrl.text = data['minSleepHours']?.toString() ?? '7';
+          _sleepStart = data['sleepStart']?.toString() ?? '23:00';
+          _sleepEnd = data['sleepEnd']?.toString() ?? '07:00';
+          _minSleepHours = double.tryParse(data['minSleepHours']?.toString() ?? '7') ?? 7.0;
           _upcomingAlerts = notifications['upcomingTaskAlerts'] == true;
           _overloadAlerts = notifications['overloadAlerts'] == true;
           _rescheduleAlerts = notifications['rescheduleAlerts'] == true;
@@ -98,9 +94,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _sleepStartCtrl.text = '23:00';
-          _sleepEndCtrl.text = '06:00';
-          _minSleepCtrl.text = '7';
+          _sleepStart = '23:00';
+          _sleepEnd = '07:00';
+          _minSleepHours = 7.0;
           _sleepLoading = false;
         });
       }
@@ -150,9 +146,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final repo = ConstraintRepository(context.read<ApiClient>());
       await repo.updateConstraints({
-        'sleepStart': _sleepStartCtrl.text,
-        'sleepEnd': _sleepEndCtrl.text,
-        'minSleepHours': double.tryParse(_minSleepCtrl.text) ?? 7.0,
+        'sleepStart': _sleepStart,
+        'sleepEnd': _sleepEnd,
+        'minSleepHours': _minSleepHours,
+        'bufferMinutes': 15,
+        'peakEnergyWindowsJson': '[{"start":"09:00","end":"12:00"},{"start":"15:00","end":"17:00"}]',
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -161,8 +159,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
         context.read<ScheduleProvider>().generateSchedule();
       }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not save: $e'), backgroundColor: context.eqColors.danger),
+        );
+      }
     } finally {
       if (mounted) setState(() => _sleepLoading = false);
+    }
+  }
+
+  TimeOfDay _parseTime(String hhmm) {
+    final parts = hhmm.split(':');
+    return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+  }
+
+  String _formatTime(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  String _displayTime(String hhmm) {
+    final parts = hhmm.split(':');
+    int h = int.parse(parts[0]);
+    final m = int.parse(parts[1]);
+    final suffix = h < 12 ? 'AM' : 'PM';
+    if (h == 0) h = 12;
+    if (h > 12) h -= 12;
+    return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')} $suffix';
+  }
+
+  Future<void> _pickProfileTime(String label, String current, ValueChanged<String> onPicked) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _parseTime(current),
+      helpText: 'Set $label',
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+        child: child!,
+      ),
+    );
+    if (picked != null && mounted) {
+      onPicked(_formatTime(picked));
     }
   }
 
@@ -339,29 +376,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Container(
                   padding: const EdgeInsets.all(EqTokens.space20),
                   decoration: BoxDecoration(color: colors.surface, borderRadius: EqTokens.border16),
-                  child: Column(
-                    children: [
-                      _buildTextField('Sleep Start (HH:MM)', _sleepStartCtrl, hint: '23:00'),
-                      _buildTextField('Sleep End (HH:MM)', _sleepEndCtrl, hint: '06:00'),
-                      _buildTextField('Min Sleep Hours', _minSleepCtrl, hint: '7', keyboardType: TextInputType.number),
-                      const SizedBox(height: EqTokens.space16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton(
-                          onPressed: _sleepLoading ? null : _saveConstraints,
-                          style: FilledButton.styleFrom(
-                            backgroundColor: colors.primary,
-                            foregroundColor: colors.surface,
-                            padding: const EdgeInsets.all(EqTokens.space14),
-                            shape: RoundedRectangleBorder(borderRadius: EqTokens.border8),
+                  child: _sleepLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(child: _buildProfileTimeButton(
+                                context,
+                                label: 'Sleep Time',
+                                value: _displayTime(_sleepStart),
+                                icon: Icons.bedtime_outlined,
+                                iconColor: colors.sleepShield,
+                                onTap: () => _pickProfileTime('Sleep Time', _sleepStart,
+                                    (v) => setState(() => _sleepStart = v)),
+                              )),
+                              const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 12),
+                                child: Text('→', style: TextStyle(fontSize: 20)),
+                              ),
+                              Expanded(child: _buildProfileTimeButton(
+                                context,
+                                label: 'Wake Up',
+                                value: _displayTime(_sleepEnd),
+                                icon: Icons.wb_sunny_outlined,
+                                iconColor: colors.success,
+                                onTap: () => _pickProfileTime('Wake Up', _sleepEnd,
+                                    (v) => setState(() => _sleepEnd = v)),
+                              )),
+                            ],
                           ),
-                          child: _sleepLoading
-                              ? SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: colors.surface, strokeWidth: 2))
-                              : const Text('Save Sleep Shield'),
-                        ),
+                          const SizedBox(height: EqTokens.space12),
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: colors.sleepShield.withValues(alpha: 0.08),
+                              borderRadius: EqTokens.border8,
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.info_outline, size: 13, color: colors.sleepShield),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    'Overnight schedules (e.g. 11:30 PM → 7:00 AM) are supported.',
+                                    style: text.labelSmall?.copyWith(color: colors.sleepShield),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: EqTokens.space16),
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton.icon(
+                              onPressed: _saveConstraints,
+                              icon: const Icon(Icons.save_outlined, size: 18),
+                              label: const Text('Save Sleep Shield'),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: colors.sleepShield,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.all(EqTokens.space14),
+                                shape: RoundedRectangleBorder(borderRadius: EqTokens.border8),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
                 ).animate().fade(delay: 400.ms).slideY(begin: 0.1),
 
                 const SizedBox(height: EqTokens.space24),
@@ -488,6 +569,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
             borderRadius: EqTokens.border8,
             borderSide: BorderSide(color: colors.primary, width: 1.5),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileTimeButton(BuildContext context, {
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color iconColor,
+    required VoidCallback onTap,
+  }) {
+    final colors = context.eqColors;
+    final text = context.eqText;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        decoration: BoxDecoration(
+          color: colors.background,
+          borderRadius: EqTokens.border8,
+          border: Border.all(color: iconColor.withValues(alpha: 0.35)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(icon, size: 18, color: iconColor),
+            const SizedBox(height: 4),
+            Text(label, style: text.labelSmall?.copyWith(color: colors.textSecondary, fontSize: 11)),
+            const SizedBox(height: 2),
+            Text(value, style: text.titleSmall?.copyWith(color: colors.textPrimary, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 2),
+            Text('Tap to edit', style: text.labelSmall?.copyWith(color: iconColor, fontSize: 10)),
+          ],
         ),
       ),
     );

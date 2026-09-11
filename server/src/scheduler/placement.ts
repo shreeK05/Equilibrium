@@ -4,6 +4,13 @@ import { TaskInput, ScheduleBlock, DecisionLog } from './types';
 export const MIN_CHUNK_SLOTS = 1; // 30 min
 export const MAX_CHUNK_SLOTS = 8; // 4 hours
 
+/**
+ * Returns the UTC day key "YYYY-MM-DD" for a given date, used to bucket per-day allocation.
+ */
+function dayKey(d: Date): string {
+  return d.toISOString().substring(0, 10);
+}
+
 export function placeTasks(
   slots: Slot[],
   tasks: TaskInput[], // Array of tasks that knapsack selected
@@ -27,6 +34,12 @@ export function placeTasks(
     // Energy matching preference for HIGH cognitive load
     const requiresEnergyMatch = task.cognitiveLoad === 'HIGH';
 
+    // Per-day allocated slot count for this task (enforces dailyTargetMinutes)
+    const dailyAllocatedSlots: Record<string, number> = {};
+    const maxDailySlotsForTask = task.dailyTargetMinutes
+      ? Math.ceil(task.dailyTargetMinutes / 30)
+      : Infinity;
+
     // We do multiple passes.
     // Pass 1: Try to fit in energy windows if required
     // Pass 2: Try to fit anywhere
@@ -40,26 +53,67 @@ export function placeTasks(
         if (remainingSlots <= 0) break;
 
         const slot = slots[i];
+        const key = dayKey(slot.start);
+
+        // Check per-day quota
+        const allocatedToday = dailyAllocatedSlots[key] ?? 0;
+        const dayQuotaReached = allocatedToday >= maxDailySlotsForTask;
+
         // Ensure the slot is valid for this task
-        const canUse = slot.available && (!energyRequired || slot.energyBonus) && slot.start >= now && slot.end <= task.deadline;
+        const canUse = slot.available
+          && (!energyRequired || slot.energyBonus)
+          && slot.start >= now
+          && slot.end <= task.deadline
+          && !dayQuotaReached;
 
         if (canUse) {
           currentChunk.push(slot);
           if (currentChunk.length === MAX_CHUNK_SLOTS || currentChunk.length === remainingSlots) {
-            // Commit chunk
-            commitChunk(currentChunk, task, blocks);
-            currentChunk.forEach(s => s.available = false);
-            placedSlots += currentChunk.length;
-            remainingSlots -= currentChunk.length;
-            currentChunk = [];
+            // Check if committing this chunk would violate daily quota
+            const chunkDayKey = dayKey(currentChunk[0].start);
+            const allocatedThisDay = dailyAllocatedSlots[chunkDayKey] ?? 0;
+            const wouldExceedDailyQuota = currentChunk.length > (maxDailySlotsForTask - allocatedThisDay);
+            
+            if (wouldExceedDailyQuota && maxDailySlotsForTask !== Infinity) {
+              // Trim the chunk to the remaining daily quota
+              const allowed = maxDailySlotsForTask - allocatedThisDay;
+              if (allowed > 0) {
+                const trimmedChunk = currentChunk.slice(0, allowed);
+                commitChunk(trimmedChunk, task, blocks);
+                trimmedChunk.forEach(s => s.available = false);
+                placedSlots += trimmedChunk.length;
+                remainingSlots -= trimmedChunk.length;
+                dailyAllocatedSlots[chunkDayKey] = maxDailySlotsForTask; // day is now full for this task
+              }
+              currentChunk = [];
+            } else {
+              // Commit full chunk
+              commitChunk(currentChunk, task, blocks);
+              currentChunk.forEach(s => s.available = false);
+              placedSlots += currentChunk.length;
+              remainingSlots -= currentChunk.length;
+              const ck = dayKey(currentChunk[0].start);
+              dailyAllocatedSlots[ck] = (dailyAllocatedSlots[ck] ?? 0) + currentChunk.length;
+              currentChunk = [];
+            }
           }
         } else {
-          // Break in availability
+          // Break in availability — commit any partial chunk we've built
           if (currentChunk.length >= MIN_CHUNK_SLOTS) {
-            commitChunk(currentChunk, task, blocks);
-            currentChunk.forEach(s => s.available = false);
-            placedSlots += currentChunk.length;
-            remainingSlots -= currentChunk.length;
+            const chunkDayKey = dayKey(currentChunk[0].start);
+            const allocatedThisDay = dailyAllocatedSlots[chunkDayKey] ?? 0;
+            const allowedInChunk = maxDailySlotsForTask !== Infinity
+              ? Math.min(currentChunk.length, maxDailySlotsForTask - allocatedThisDay)
+              : currentChunk.length;
+            
+            if (allowedInChunk > 0) {
+              const trimmedChunk = currentChunk.slice(0, allowedInChunk);
+              commitChunk(trimmedChunk, task, blocks);
+              trimmedChunk.forEach(s => s.available = false);
+              placedSlots += trimmedChunk.length;
+              remainingSlots -= trimmedChunk.length;
+              dailyAllocatedSlots[chunkDayKey] = (dailyAllocatedSlots[chunkDayKey] ?? 0) + trimmedChunk.length;
+            }
           }
           currentChunk = [];
         }
@@ -67,12 +121,27 @@ export function placeTasks(
       
       // End of slots cleanup
       if (currentChunk.length >= MIN_CHUNK_SLOTS) {
-        commitChunk(currentChunk, task, blocks);
-        currentChunk.forEach(s => s.available = false);
-        placedSlots += currentChunk.length;
-        remainingSlots -= currentChunk.length;
+        const chunkDayKey = dayKey(currentChunk[0].start);
+        const allocatedThisDay = dailyAllocatedSlots[chunkDayKey] ?? 0;
+        const allowedInChunk = maxDailySlotsForTask !== Infinity
+          ? Math.min(currentChunk.length, maxDailySlotsForTask - allocatedThisDay)
+          : currentChunk.length;
+        
+        if (allowedInChunk > 0) {
+          const trimmedChunk = currentChunk.slice(0, allowedInChunk);
+          commitChunk(trimmedChunk, task, blocks);
+          trimmedChunk.forEach(s => s.available = false);
+          placedSlots += trimmedChunk.length;
+          remainingSlots -= trimmedChunk.length;
+          dailyAllocatedSlots[chunkDayKey] = (dailyAllocatedSlots[chunkDayKey] ?? 0) + trimmedChunk.length;
+        }
       }
     }
+
+    // Determine reason code for logs
+    const isLimitedByDailyTarget = task.dailyTargetMinutes != null
+      && placedSlots < originalSlots
+      && remainingSlots > 0;
 
     // Generate decision log
     if (placedSlots === originalSlots) {
@@ -93,7 +162,7 @@ export function placeTasks(
         priorityComponents: priorities[task.id].components,
         scheduledMinutes: placedSlots * 30,
         deferredMinutes: remainingSlots * 30,
-        reasonCode: 'FRAGMENTED_CAPACITY'
+        reasonCode: isLimitedByDailyTarget ? 'DAILY_TARGET_PACING' : 'FRAGMENTED_CAPACITY'
       });
     } else {
       logs.push({

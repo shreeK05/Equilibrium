@@ -15,7 +15,8 @@ export const taskSchema = z.object({
   deadlineType: z.enum(['HARD', 'FLEXIBLE']).optional(),
   academicWeight: z.number().min(0).max(1).optional(),
   teamImpactWeight: z.number().min(0).max(1).optional(),
-  cognitiveLoad: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional()
+  cognitiveLoad: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional(),
+  dailyTargetMinutes: z.number().int().positive().max(720).optional().nullable()
 });
 
 export const taskUpdateSchema = z.object({
@@ -30,7 +31,8 @@ export const taskUpdateSchema = z.object({
   academicWeight: z.number().min(0).max(1).optional(),
   teamImpactWeight: z.number().min(0).max(1).optional(),
   cognitiveLoad: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional(),
-  status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'ARCHIVED']).optional()
+  status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'ARCHIVED']).optional(),
+  dailyTargetMinutes: z.number().int().positive().max(720).optional().nullable()
 }).strict().refine(
   data => Object.keys(data).length > 0,
   { message: 'At least one task field is required' }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
@@ -6,6 +7,16 @@ import '../../core/theme/theme.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/state/schedule_provider.dart';
 import '../../core/state/exam_provider.dart';
+
+// Duration options presented to the student
+const _kDurationOptions = [15, 30, 45, 60, 90, 120, 150, 180, 240];
+
+String _durationLabel(int mins) {
+  if (mins < 60) return '${mins}m';
+  final h = mins ~/ 60;
+  final m = mins % 60;
+  return m == 0 ? '${h}h' : '${h}h ${m}m';
+}
 
 class CreateTaskSheet extends StatefulWidget {
   const CreateTaskSheet({super.key});
@@ -18,7 +29,11 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   final _categoryCtrl = TextEditingController();
+  final _customDurationCtrl = TextEditingController();
+  final _dailyTargetCtrl = TextEditingController();
+
   int _estimateMinutes = 60;
+  bool _useCustomDuration = false;
   DateTime _deadline = DateTime.now().add(const Duration(days: 1));
   final String _cognitiveLoad = 'MEDIUM';
   String _deadlineType = 'HARD';
@@ -26,42 +41,85 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
   String? _errorText;
   Map<String, dynamic>? _preview;
   bool _isPreviewing = false;
-
-  final List<int> _durationOptions = [30, 60, 90, 120, 180];
+  bool _showDailyTarget = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ExamProvider>().fetchAll(); // Fetch subjects
+      context.read<ExamProvider>().fetchAll();
     });
   }
 
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _descCtrl.dispose();
+    _categoryCtrl.dispose();
+    _customDurationCtrl.dispose();
+    _dailyTargetCtrl.dispose();
+    super.dispose();
+  }
+
+  int get _effectiveEstimateMinutes {
+    if (_useCustomDuration) {
+      final val = int.tryParse(_customDurationCtrl.text.trim());
+      return (val != null && val > 0) ? val : _estimateMinutes;
+    }
+    return _estimateMinutes;
+  }
+
+  String? _validateForm() {
+    if (_titleCtrl.text.trim().isEmpty) return 'Please enter a task title';
+    if (_useCustomDuration) {
+      final val = int.tryParse(_customDurationCtrl.text.trim());
+      if (val == null || val <= 0) return 'Custom duration must be a positive number';
+      if (val > 10000) return 'Duration cannot exceed 10,000 minutes';
+    }
+    if (_showDailyTarget && _dailyTargetCtrl.text.trim().isNotEmpty) {
+      final dv = int.tryParse(_dailyTargetCtrl.text.trim());
+      if (dv == null || dv <= 0) return 'Daily target must be a positive number';
+      if (dv > 720) return 'Daily target cannot exceed 720 minutes (12 hours)';
+      final estimate = _effectiveEstimateMinutes;
+      if (dv >= estimate) return 'Daily target should be less than total estimate';
+    }
+    return null;
+  }
+
   void _submit() async {
-    if (_titleCtrl.text.trim().isEmpty) {
-      setState(() => _errorText = "Please enter a task title");
+    final validationError = _validateForm();
+    if (validationError != null) {
+      setState(() => _errorText = validationError);
       return;
     }
     setState(() => _errorText = null);
 
-    final provider = context.read<ScheduleProvider>();
-    final success = await provider.createTask({
+    final effectiveMinutes = _effectiveEstimateMinutes;
+    final Map<String, dynamic> payload = {
       'title': _titleCtrl.text.trim(),
       if (_descCtrl.text.trim().isNotEmpty) 'description': _descCtrl.text.trim(),
       if (_categoryCtrl.text.trim().isNotEmpty) 'category': _categoryCtrl.text.trim(),
       if (_subjectId != null) 'subjectId': _subjectId,
-      'estimateMinutes': _estimateMinutes,
+      'estimateMinutes': effectiveMinutes,
       'deadline': _deadline.toUtc().toIso8601String(),
       'deadlineType': _deadlineType,
       'cognitiveLoad': _cognitiveLoad,
       'academicWeight': 0.5,
       'teamImpactWeight': 0.0,
-    });
+    };
+
+    if (_showDailyTarget && _dailyTargetCtrl.text.trim().isNotEmpty) {
+      final dv = int.tryParse(_dailyTargetCtrl.text.trim());
+      if (dv != null && dv > 0) payload['dailyTargetMinutes'] = dv;
+    }
+
+    final provider = context.read<ScheduleProvider>();
+    final success = await provider.createTask(payload);
 
     if (success && mounted) {
       Navigator.pop(context);
     } else if (mounted) {
-      setState(() => _errorText = provider.errorMessage ?? "Failed to create task");
+      setState(() => _errorText = provider.errorMessage ?? 'Failed to create task. Please try again.');
     }
   }
 
@@ -76,7 +134,7 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
     });
     final preview = await context.read<ScheduleProvider>().simulateTask({
       'title': _titleCtrl.text.trim(),
-      'estimateMinutes': _estimateMinutes,
+      'estimateMinutes': _effectiveEstimateMinutes,
       'deadline': _deadline.toUtc().toIso8601String(),
       'cognitiveLoad': _cognitiveLoad,
       'academicWeight': 0.5,
@@ -116,7 +174,7 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
   Widget build(BuildContext context) {
     final colors = context.eqColors;
     final text = context.eqText;
-    
+
     return Container(
       padding: EdgeInsets.only(
         left: EqTokens.space24,
@@ -144,7 +202,7 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
               ],
             ),
             const SizedBox(height: EqTokens.space24),
-            
+
             // Title
             TextField(
               controller: _titleCtrl,
@@ -219,29 +277,176 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
               ],
             ).animate().fade().slideY(begin: 0.2, duration: 300.ms),
             const SizedBox(height: EqTokens.space24),
-            
+
+            // ── Estimated Effort ──────────────────────────────────────────
             Text('Estimated Effort', style: text.labelSmall?.copyWith(color: colors.textSecondary)),
             const SizedBox(height: EqTokens.space8),
             Wrap(
               spacing: EqTokens.space8,
               runSpacing: EqTokens.space8,
-              children: _durationOptions.map((mins) {
-                final isSelected = _estimateMinutes == mins;
-                return ChoiceChip(
-                  label: Text(mins % 60 == 0 ? '${mins ~/ 60}h' : '${mins ~/ 60}h ${mins % 60}m'),
-                  selected: isSelected,
+              children: [
+                ..._kDurationOptions.map((mins) {
+                  final isSelected = !_useCustomDuration && _estimateMinutes == mins;
+                  return ChoiceChip(
+                    label: Text(_durationLabel(mins)),
+                    selected: isSelected,
+                    onSelected: (val) {
+                      if (val) {
+                        setState(() {
+                          _estimateMinutes = mins;
+                          _useCustomDuration = false;
+                          _customDurationCtrl.clear();
+                        });
+                      }
+                    },
+                    selectedColor: colors.primary,
+                    backgroundColor: colors.surfaceElevated,
+                    labelStyle: TextStyle(color: isSelected ? colors.surface : colors.textPrimary, fontSize: 13),
+                  );
+                }),
+                // Custom option chip
+                ChoiceChip(
+                  label: const Text('Custom'),
+                  selected: _useCustomDuration,
                   onSelected: (val) {
-                    if (val) setState(() => _estimateMinutes = mins);
+                    setState(() {
+                      _useCustomDuration = val;
+                      if (!val) _customDurationCtrl.clear();
+                    });
                   },
                   selectedColor: colors.primary,
                   backgroundColor: colors.surfaceElevated,
-                  labelStyle: TextStyle(color: isSelected ? colors.surface : colors.textPrimary),
-                );
-              }).toList(),
+                  labelStyle: TextStyle(
+                    color: _useCustomDuration ? colors.surface : colors.textPrimary,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
             ).animate().fade(delay: 150.ms),
-            
+
+            // Custom duration input
+            if (_useCustomDuration) ...[
+              const SizedBox(height: EqTokens.space12),
+              TextField(
+                controller: _customDurationCtrl,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                style: TextStyle(color: colors.textPrimary),
+                decoration: InputDecoration(
+                  labelText: 'Custom duration (minutes)',
+                  hintText: 'e.g. 200',
+                  suffixText: 'min',
+                  filled: true,
+                  fillColor: colors.surface,
+                  border: OutlineInputBorder(borderRadius: EqTokens.border8, borderSide: BorderSide.none),
+                ),
+                onChanged: (_) {
+                  if (_errorText != null) setState(() => _errorText = null);
+                  setState(() {}); // Refresh label
+                },
+              ).animate().fadeIn(),
+            ],
+
+            const SizedBox(height: EqTokens.space16),
+
+            // ── Daily Study Target (optional) ─────────────────────────────
+            InkWell(
+              onTap: () => setState(() {
+                _showDailyTarget = !_showDailyTarget;
+                if (!_showDailyTarget) _dailyTargetCtrl.clear();
+              }),
+              borderRadius: EqTokens.border8,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: _showDailyTarget ? colors.primary.withValues(alpha: 0.08) : colors.surface,
+                  borderRadius: EqTokens.border8,
+                  border: Border.all(
+                    color: _showDailyTarget ? colors.primary.withValues(alpha: 0.4) : colors.surfaceElevated,
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.today_outlined,
+                      size: 18,
+                      color: _showDailyTarget ? colors.primary : colors.textSecondary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Set Daily Study Target (optional)',
+                        style: text.bodySmall?.copyWith(
+                          color: _showDailyTarget ? colors.primary : colors.textSecondary,
+                          fontWeight: _showDailyTarget ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      _showDailyTarget ? Icons.expand_less : Icons.expand_more,
+                      size: 18,
+                      color: colors.textSecondary,
+                    ),
+                  ],
+                ),
+              ),
+            ).animate().fade(delay: 200.ms),
+
+            if (_showDailyTarget) ...[
+              const SizedBox(height: EqTokens.space12),
+              TextField(
+                controller: _dailyTargetCtrl,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                style: TextStyle(color: colors.textPrimary),
+                decoration: InputDecoration(
+                  labelText: 'Daily study target',
+                  hintText: 'e.g. 60 (for 1 hour/day)',
+                  suffixText: 'min/day',
+                  helperText: 'Scheduler will pace this task across multiple days',
+                  filled: true,
+                  fillColor: colors.surface,
+                  border: OutlineInputBorder(borderRadius: EqTokens.border8, borderSide: BorderSide.none),
+                ),
+                onChanged: (_) {
+                  if (_errorText != null) setState(() => _errorText = null);
+                },
+              ).animate().fadeIn(),
+
+              if (_dailyTargetCtrl.text.isNotEmpty) ...[
+                const SizedBox(height: EqTokens.space8),
+                Builder(builder: (context) {
+                  final totalMins = _effectiveEstimateMinutes;
+                  final dailyMins = int.tryParse(_dailyTargetCtrl.text.trim());
+                  if (dailyMins == null || dailyMins <= 0 || totalMins <= 0) {
+                    return const SizedBox.shrink();
+                  }
+                  final days = (totalMins / dailyMins).ceil();
+                  return Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: colors.primary.withValues(alpha: 0.07),
+                      borderRadius: EqTokens.border8,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline, size: 14, color: colors.primary),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Approx. $days days × ~${dailyMins}m/day = ${totalMins}m total',
+                          style: text.labelSmall?.copyWith(color: colors.primary),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+            ],
+
             const SizedBox(height: EqTokens.space24),
-            
+
+            // ── Deadline & Flexibility ────────────────────────────────────
             Row(
               children: [
                 Expanded(
@@ -336,7 +541,7 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
                   shape: RoundedRectangleBorder(borderRadius: EqTokens.border8),
                   elevation: 0,
                 ),
-                child: context.watch<ScheduleProvider>().isLoading 
+                child: context.watch<ScheduleProvider>().isLoading
                     ? SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: colors.surface, strokeWidth: 2))
                     : Text('Add to Workload', style: text.labelLarge?.copyWith(color: colors.surface)),
               ),
@@ -363,7 +568,8 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(fits ? Icons.check_circle_outline : Icons.warning_amber_outlined, color: fits ? colors.success : colors.warning),
+          Icon(fits ? Icons.check_circle_outline : Icons.warning_amber_outlined,
+              color: fits ? colors.success : colors.warning),
           const SizedBox(width: EqTokens.space12),
           Expanded(
             child: Text(

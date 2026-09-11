@@ -50,7 +50,7 @@ class ExamProvider extends ChangeNotifier {
     try {
       final body = <String, dynamic>{
         'title': title,
-        'examDate': examDate.toIso8601String(),
+        'examDate': examDate.toUtc().toIso8601String(),
       };
       if (subjectId != null) body['subjectId'] = subjectId;
       if (venue != null) body['venue'] = venue;

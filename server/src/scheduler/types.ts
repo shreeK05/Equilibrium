@@ -8,6 +8,7 @@ export interface TaskInput {
   teamImpact: number; // 0.0 - 1.0
   cognitiveLoad: 'LOW' | 'MEDIUM' | 'HIGH';
   deferralCount: number;
+  dailyTargetMinutes?: number | null; // Optional: cap minutes scheduled per day
 }
 
 export interface ConstraintInput {

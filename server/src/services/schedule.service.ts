@@ -42,7 +42,8 @@ export class ScheduleService {
       academicWeight: t.academicWeight,
       teamImpact: t.teamImpactWeight,
       cognitiveLoad: t.cognitiveLoad as any,
-      deferralCount: t.deferralCount
+      deferralCount: t.deferralCount,
+      dailyTargetMinutes: (t as any).dailyTargetMinutes ?? null
     }));
     tasks.push({
       id: 'simulation-task',
@@ -110,7 +111,8 @@ export class ScheduleService {
       academicWeight: t.academicWeight,
       teamImpact: t.teamImpactWeight,
       cognitiveLoad: t.cognitiveLoad as any,
-      deferralCount: t.deferralCount
+      deferralCount: t.deferralCount,
+      dailyTargetMinutes: (t as any).dailyTargetMinutes ?? null
     }));
 
     // Calculate horizon (next 7 days)
@@ -193,7 +195,8 @@ export class ScheduleService {
       academicWeight: t.academicWeight,
       teamImpact: t.teamImpactWeight,
       cognitiveLoad: t.cognitiveLoad as any,
-      deferralCount: t.deferralCount
+      deferralCount: t.deferralCount,
+      dailyTargetMinutes: (t as any).dailyTargetMinutes ?? null
     }));
 
     const horizonStart = new Date(now);

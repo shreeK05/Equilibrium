@@ -92,8 +92,9 @@ model Task {
   category         String?  // Assignment, Revision, Lab, Project, Practice, Viva, etc.
   
   // Duration Tracking (Supports partial scheduling/splitting)
-  estimateMinutes  Int      // Initial user estimate
-  completedMinutes Int      @default(0) // Time permanently marked done
+  estimateMinutes     Int      // Initial user estimate
+  completedMinutes    Int      @default(0) // Time permanently marked done
+  dailyTargetMinutes  Int?     // Optional: max minutes/day the scheduler should allocate
   
   deadline         DateTime
   deadlineType     String   @default("HARD") // HARD, FLEXIBLE

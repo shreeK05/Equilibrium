@@ -21,6 +21,7 @@ class Task {
   final String? subjectName;
   final int estimateMinutes;
   final int completedMinutes;
+  final int? dailyTargetMinutes;
   final DateTime deadline;
   final DeadlineType deadlineType;
   final double academicWeight;
@@ -41,6 +42,7 @@ class Task {
     this.subjectName,
     required this.estimateMinutes,
     required this.completedMinutes,
+    this.dailyTargetMinutes,
     required this.deadline,
     this.deadlineType = DeadlineType.hard,
     this.academicWeight = 0.5,
@@ -82,6 +84,7 @@ class Task {
       subjectName: subjectJson?['name'] as String?,
       estimateMinutes: json['estimateMinutes'] as int,
       completedMinutes: json['completedMinutes'] as int? ?? 0,
+      dailyTargetMinutes: json['dailyTargetMinutes'] as int?,
       deadline: DateTime.parse(json['deadline'] as String),
       deadlineType: (json['deadlineType'] as String?) == 'FLEXIBLE'
           ? DeadlineType.flexible
