@@ -7,6 +7,13 @@ const repo = new FixedCommitmentRepository();
 export class FixedCommitmentsController {
   static async create(req: Request, res: Response) {
     const data = fixedCommitmentSchema.parse(req.body);
+    
+    // Check for overlap
+    const overlaps = await repo.findActive((req as any).userId, new Date(data.startTime), new Date(data.endTime));
+    if (overlaps.length > 0) {
+      return res.status(409).json({ error: { code: 'CONFLICT', message: 'That time conflicts with an existing commitment.' } });
+    }
+
     const commitment = await repo.create({
       ...data,
       userId: (req as any).userId
@@ -40,10 +47,21 @@ export class FixedCommitmentsController {
     });
     const data = patchSchema.parse(req.body);
 
-    const updated = await repo.updateStrict((req.params.id as string), (req as any).userId, data);
-    if (!updated) {
+    const existing = await repo.findById((req.params.id as string), (req as any).userId);
+    if (!existing) {
       return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Commitment not found' } });
     }
+
+    const newStart = data.startTime ? new Date(data.startTime) : existing.startTime;
+    const newEnd = data.endTime ? new Date(data.endTime) : existing.endTime;
+
+    const overlaps = await repo.findActive((req as any).userId, newStart, newEnd);
+    const hasRealOverlap = overlaps.some(c => c.id !== existing.id);
+    if (hasRealOverlap) {
+      return res.status(409).json({ error: { code: 'CONFLICT', message: 'That time conflicts with an existing commitment.' } });
+    }
+
+    const updated = await repo.updateStrict((req.params.id as string), (req as any).userId, data);
     res.json(updated);
   }
 
