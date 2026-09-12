@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { FixedCommitmentRepository } from '../repositories/commitment.repo';
 import { fixedCommitmentSchema } from '../validation/schemas';
+import { z } from 'zod';
 
 const repo = new FixedCommitmentRepository();
 
@@ -35,8 +36,18 @@ export class FixedCommitmentsController {
   }
 
   static async update(req: Request, res: Response) {
-    // Make properties optional for PATCH
-    const patchSchema = fixedCommitmentSchema.partial().superRefine((data, ctx) => {
+    // Create a fresh partial schema to avoid Zod Error about refinements
+    const patchSchema = z.object({
+      title: z.string().min(1).max(255).optional(),
+      startTime: z.string().datetime().optional(),
+      endTime: z.string().datetime().optional(),
+      type: z.enum(['CLASS', 'LAB', 'EXAM', 'PERSONAL', 'CUSTOM', 'ROUTINE']).optional(),
+      recurrence: z.string().max(255).optional().nullable(),
+      daysOfWeek: z.string().optional().nullable(),
+      flexibility: z.enum(['FIXED', 'FLEXIBLE', 'SOFT']).optional(),
+      color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional().nullable(),
+      isActive: z.boolean().optional()
+    }).superRefine((data, ctx) => {
       if (data.startTime && data.endTime) {
         const start = new Date(data.startTime).getTime();
         const end = new Date(data.endTime).getTime();
