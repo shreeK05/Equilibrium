@@ -7,8 +7,15 @@ import '../../core/theme/tokens.dart';
 import '../../core/state/schedule_provider.dart';
 import '../../widgets/status/empty_state.dart';
 
-class CommitmentsScreen extends StatelessWidget {
+class CommitmentsScreen extends StatefulWidget {
   const CommitmentsScreen({super.key});
+
+  @override
+  State<CommitmentsScreen> createState() => _CommitmentsScreenState();
+}
+
+class _CommitmentsScreenState extends State<CommitmentsScreen> {
+  bool _showPastCommitments = false;
 
   @override
   Widget build(BuildContext context) {
@@ -42,10 +49,33 @@ class CommitmentsScreen extends StatelessWidget {
             ),
           ),
           
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: EqTokens.space24),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Show past commitments',
+                  style: text.bodyMedium?.copyWith(color: colors.textSecondary),
+                ),
+                Switch(
+                  value: _showPastCommitments,
+                  onChanged: (val) => setState(() => _showPastCommitments = val),
+                  activeThumbColor: colors.primary,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: EqTokens.space12),
+          
           Expanded(
             child: Consumer<ScheduleProvider>(
               builder: (context, provider, child) {
-                final commitments = provider.commitments;
+                final now = DateTime.now();
+                final commitments = provider.commitments.where((c) {
+                  if (_showPastCommitments) return true;
+                  return c.endTime.isAfter(now);
+                }).toList();
                 
                 if (commitments.isEmpty) {
                   return const Center(

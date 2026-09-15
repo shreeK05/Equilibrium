@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/api/api_client.dart';
+import '../../core/api/api_error_mapper.dart';
 import '../../core/theme/theme.dart';
 import '../../core/theme/tokens.dart';
 import '../../models/commitment.dart';
@@ -110,6 +111,10 @@ class _RoutineBuilderSheetState extends State<RoutineBuilderSheet> {
       }
 
       if (mounted) Navigator.pop(context, true);
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() => _errorText = ApiErrorMapper.getUserFacingMessage(e.code, e.message));
+      }
     } catch (e) {
       if (mounted) setState(() => _errorText = 'Failed to save routine. Please try again.');
     } finally {

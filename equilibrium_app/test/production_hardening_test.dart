@@ -15,9 +15,8 @@ import 'package:equilibrium_app/core/theme/theme.dart';
 
 void main() {
   test('ApiException mapping for network failure', () {
-    const code = 'NETWORK_ERROR';
-    final message = ApiErrorMapper.getUserFacingMessage(code);
-    expect(message, 'An unexpected communication error occurred. Please check your connection and try again.');
+    final msg = ApiErrorMapper.getUserFacingMessage('NETWORK_ERROR');
+    expect(msg, contains('Network disconnected. Please check your internet connection.'));
   });
 
   testWidgets('Logout state clearing', (WidgetTester tester) async {

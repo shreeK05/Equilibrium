@@ -1,5 +1,6 @@
 export interface TaskInput {
   id: string;
+  title: string;
   estimateMinutes: number;
   completedMinutes: number;
   remainingMinutes: number;
@@ -42,4 +43,5 @@ export interface DecisionLog {
   scheduledMinutes: number;
   deferredMinutes: number;
   reasonCode: string;
+  humanReadable: string;
 }

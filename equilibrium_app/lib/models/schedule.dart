@@ -26,8 +26,8 @@ class ScheduleBlock {
       id: json['id'] as String,
       versionId: json['versionId'] as String,
       taskId: json['taskId'] as String?,
-      startTime: DateTime.parse(json['startTime'] as String),
-      endTime: DateTime.parse(json['endTime'] as String),
+      startTime: DateTime.parse(json['startTime'] as String).toLocal(),
+      endTime: DateTime.parse(json['endTime'] as String).toLocal(),
       durationMinutes: json['durationMinutes'] as int,
       isLocked: json['isLocked'] as bool? ?? false,
       // Backend uses 'blockType' field
@@ -71,7 +71,7 @@ class ScheduleVersion {
       id: json['id'] as String,
       triggerType: json['triggerType'] as String? ?? 'MANUAL',
       previousVersionId: json['previousVersionId'] as String?,
-      generatedAt: DateTime.tryParse(json['generatedAt'] as String? ?? '') ?? DateTime.now(),
+      generatedAt: (DateTime.tryParse(json['generatedAt'] as String? ?? '') ?? DateTime.now()).toLocal(),
       capacityMinutes: json['capacityMinutes'] as int? ?? 0,
       blocks: (json['blocks'] as List<dynamic>?)
               ?.map((e) => ScheduleBlock.fromJson(e as Map<String, dynamic>))

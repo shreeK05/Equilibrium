@@ -94,6 +94,7 @@ model Task {
   // Duration Tracking (Supports partial scheduling/splitting)
   estimateMinutes     Int      // Initial user estimate
   completedMinutes    Int      @default(0) // Time permanently marked done
+  scheduledMinutes    Int      @default(0) // Last scheduled amount from algorithm
   dailyTargetMinutes  Int?     // Optional: max minutes/day the scheduler should allocate
   
   deadline         DateTime

@@ -86,7 +86,9 @@ class TaskCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           if (subject != null || category != null) ...[
-                            Row(
+                            Wrap(
+                              spacing: 8.0,
+                              runSpacing: 4.0,
                               children: [
                                 if (subject != null)
                                   Container(
@@ -103,13 +105,15 @@ class TaskCard extends StatelessWidget {
                                       ),
                                     ),
                                   ),
-                                if (subject != null && category != null) const SizedBox(width: 8),
                                 if (category != null)
-                                  Text(
-                                    category!.toUpperCase(),
-                                    style: text.labelSmall?.copyWith(
-                                      color: colors.textSecondary,
-                                      letterSpacing: 0.5,
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 4),
+                                    child: Text(
+                                      category!.toUpperCase(),
+                                      style: text.labelSmall?.copyWith(
+                                        color: colors.textSecondary,
+                                        letterSpacing: 0.5,
+                                      ),
                                     ),
                                   ),
                               ],

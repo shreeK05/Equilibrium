@@ -94,7 +94,7 @@ class Exam {
       subjectName: subjectJson?['name'] as String?,
       subjectColor: subjectJson?['color'] as String?,
       title: json['title'] as String,
-      examDate: DateTime.parse(json['examDate'] as String),
+      examDate: DateTime.parse(json['examDate'] as String).toLocal(),
       venue: json['venue'] as String?,
       topics: (json['topics'] as List<dynamic>? ?? [])
           .map((t) => ExamTopic.fromJson(t as Map<String, dynamic>))

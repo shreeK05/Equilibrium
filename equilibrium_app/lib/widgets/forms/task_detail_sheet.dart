@@ -278,14 +278,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
     final colors = context.eqColors;
     final provider = context.watch<ScheduleProvider>();
     
-    int scheduledMinutes = 0;
-    if (provider.currentSchedule != null) {
-      for (var b in provider.currentSchedule!.blocks) {
-        if (b.taskId == widget.task.id) {
-          scheduledMinutes += b.durationMinutes;
-        }
-      }
-    }
+    int scheduledMinutes = widget.task.scheduledMinutes;
 
     final deadlineStr = DateFormat('MMM d, h:mm a').format(widget.task.deadline);
     final isFlexible = widget.task.deadlineType == DeadlineType.flexible;

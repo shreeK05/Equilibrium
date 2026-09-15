@@ -5,7 +5,9 @@ import '../../models/schedule.dart';
 import '../../models/task.dart';
 import 'timeline_block.dart';
 import '../forms/task_detail_sheet.dart';
-
+import '../forms/commitment_detail_sheet.dart';
+import 'package:provider/provider.dart';
+import '../../core/state/schedule_provider.dart';
 class AbsoluteTimelineBlock extends StatelessWidget {
   final ScheduleBlock block;
   final DateTime displayStart;
@@ -45,6 +47,17 @@ class AbsoluteTimelineBlock extends StatelessWidget {
                 backgroundColor: Colors.transparent,
                 builder: (context) => TaskDetailSheet(task: task!),
               );
+            } else if (block.type == 'FIXED' || block.type == 'ROUTINE') {
+              final provider = context.read<ScheduleProvider>();
+              try {
+                final commitment = provider.commitments.firstWhere((c) => c.id == block.id);
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (context) => CommitmentDetailSheet(commitment: commitment),
+                );
+              } catch (_) {}
             }
           },
           child: _buildInnerBlock(context),

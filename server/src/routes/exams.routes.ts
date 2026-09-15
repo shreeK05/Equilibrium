@@ -112,10 +112,22 @@ examsRouter.patch('/:id', validate(examUpdateSchema), async (req: any, res, next
 // DELETE /api/v1/exams/:id
 examsRouter.delete('/:id', async (req: any, res, next) => {
   try {
-    const result = await prisma.exam.deleteMany({
-      where: { id: req.params.id, userId: req.userId }
+    const exam = await prisma.exam.findFirst({ 
+      where: { id: req.params.id, userId: req.userId },
+      include: { topics: true }
     });
-    if (result.count === 0) return res.status(404).json({ error: { message: 'Exam not found' } });
+    if (!exam) return res.status(404).json({ error: { message: 'Exam not found' } });
+    
+    const linkedTaskIds = exam.topics.map((t: any) => t.linkedTaskId).filter(Boolean);
+    const ops: any[] = [];
+    if (linkedTaskIds.length > 0) {
+      ops.push(prisma.task.deleteMany({ where: { id: { in: linkedTaskIds } } }));
+    }
+    ops.push(prisma.examTopic.deleteMany({ where: { examId: req.params.id } }));
+    ops.push(prisma.exam.delete({ where: { id: req.params.id } }));
+
+    await prisma.$transaction(ops);
+    
     res.status(204).send();
   } catch (err) { next(err); }
 });

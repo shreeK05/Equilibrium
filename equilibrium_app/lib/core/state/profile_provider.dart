@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../api/api_client.dart';
+import '../api/api_error_mapper.dart';
 import '../../models/user_profile.dart';
 
 class ProfileProvider extends ChangeNotifier {
@@ -62,6 +63,10 @@ class ProfileProvider extends ChangeNotifier {
       _profile = UserProfile.fromJson(json as Map<String, dynamic>);
       notifyListeners();
       return true;
+    } on ApiException catch (e) {
+      _errorMessage = ApiErrorMapper.getUserFacingMessage(e.code);
+      notifyListeners();
+      return false;
     } catch (e) {
       _errorMessage = 'Could not save profile. Please try again.';
       notifyListeners();

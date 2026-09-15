@@ -44,6 +44,19 @@ class ApiClient {
     }
   }
 
+  Future<dynamic> put(String endpoint, {Map<String, dynamic>? body}) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl$endpoint'),
+        headers: await _getHeaders(),
+        body: body != null ? jsonEncode(body) : null,
+      ).timeout(const Duration(seconds: 60));
+      return _processResponse(response);
+    } catch (e) {
+      _handleNetworkError(e);
+    }
+  }
+
   Future<dynamic> postText(String endpoint, String body) async {
     try {
       final response = await http.post(

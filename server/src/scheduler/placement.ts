@@ -152,7 +152,8 @@ export function placeTasks(
         priorityComponents: priorities[task.id].components,
         scheduledMinutes: placedSlots * 30,
         deferredMinutes: 0,
-        reasonCode: 'SUCCESS'
+        reasonCode: 'SUCCESS',
+        humanReadable: `Fully scheduled '${task.title}' because its priority score (${priorities[task.id].score.toFixed(2)}) secured enough capacity.`
       });
     } else if (placedSlots > 0) {
       logs.push({
@@ -162,7 +163,10 @@ export function placeTasks(
         priorityComponents: priorities[task.id].components,
         scheduledMinutes: placedSlots * 30,
         deferredMinutes: remainingSlots * 30,
-        reasonCode: isLimitedByDailyTarget ? 'DAILY_TARGET_PACING' : 'FRAGMENTED_CAPACITY'
+        reasonCode: isLimitedByDailyTarget ? 'DAILY_TARGET_PACING' : 'FRAGMENTED_CAPACITY',
+        humanReadable: isLimitedByDailyTarget 
+          ? `Partially scheduled '${task.title}' to respect its daily workload limit. Deferred ${remainingSlots * 30}m to future days.`
+          : `Partially scheduled '${task.title}'. Deferred ${remainingSlots * 30}m because protected sleep and fixed commitments left insufficient contiguous capacity.`
       });
     } else {
       logs.push({
@@ -172,7 +176,8 @@ export function placeTasks(
         priorityComponents: priorities[task.id].components,
         scheduledMinutes: 0,
         deferredMinutes: originalSlots * 30,
-        reasonCode: 'NO_AVAILABLE_SLOTS'
+        reasonCode: 'NO_AVAILABLE_SLOTS',
+        humanReadable: `Deferred '${task.title}' entirely. No valid time slots were available after accommodating higher priority tasks and fixed commitments.`
       });
     }
   }

@@ -15,6 +15,7 @@ class ScheduleTimeline extends StatelessWidget {
   final List<Task> tasks; // Passed down to enrich TASK blocks
   final List<FixedCommitment> commitments;
   final Map<String, dynamic>? constraints;
+  final DateTime selectedDate;
 
   const ScheduleTimeline({
     super.key, 
@@ -22,56 +23,32 @@ class ScheduleTimeline extends StatelessWidget {
     required this.tasks,
     required this.commitments,
     required this.constraints,
+    required this.selectedDate,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Find all distinct days in the schedule horizon
-    final Set<DateTime> daysSet = {};
-    for (var b in schedule.blocks) {
-      daysSet.add(DateTime(b.startTime.year, b.startTime.month, b.startTime.day));
-      if (b.endTime.hour > 0 || b.endTime.minute > 0) {
-        // If a block crosses midnight, ensure the next day is also registered
-        daysSet.add(DateTime(b.endTime.year, b.endTime.month, b.endTime.day));
-      }
-    }
+    final dayStart = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+    final dayEnd = dayStart.add(const Duration(days: 1));
     
-    // Default to at least today if empty
-    if (daysSet.isEmpty) {
-      final now = DateTime.now();
-      daysSet.add(DateTime(now.year, now.month, now.day));
-    }
-
-    final sortedDays = daysSet.toList()..sort();
+    final dayBlocks = schedule.blocks.where((b) {
+      return b.startTime.isBefore(dayEnd) && b.endTime.isAfter(dayStart);
+    }).toList();
 
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 800), // Desktop responsiveness: don't stretch infinitely
-        child: ListView.builder(
+        constraints: const BoxConstraints(maxWidth: 800), // Desktop responsiveness
+        child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.only(top: EqTokens.space16, bottom: 100),
-          itemCount: sortedDays.length,
-          itemBuilder: (context, index) {
-            final day = sortedDays[index];
-            
-            // Find blocks that overlap with this day
-            // A block overlaps if it starts on this day, OR if it starts before this day and ends after the start of this day
-            final dayStart = day;
-            final dayEnd = day.add(const Duration(days: 1));
-            
-            final dayBlocks = schedule.blocks.where((b) {
-              return b.startTime.isBefore(dayEnd) && b.endTime.isAfter(dayStart);
-            }).toList();
-
-            return _DayTimeline(
-              day: day,
-              blocks: dayBlocks,
-              tasks: tasks,
-              commitments: commitments,
-              constraints: constraints,
-              pixelsPerMinute: 1.5,
-            );
-          },
+          child: _DayTimeline(
+            day: dayStart,
+            blocks: dayBlocks,
+            tasks: tasks,
+            commitments: commitments,
+            constraints: constraints,
+            pixelsPerMinute: 1.5,
+          ),
         ),
       ),
     );

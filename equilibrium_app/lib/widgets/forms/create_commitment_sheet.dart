@@ -5,9 +5,11 @@ import 'package:intl/intl.dart';
 import '../../core/theme/theme.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/state/schedule_provider.dart';
+import '../../models/commitment.dart';
 
 class CreateCommitmentSheet extends StatefulWidget {
-  const CreateCommitmentSheet({super.key});
+  final FixedCommitment? commitment;
+  const CreateCommitmentSheet({super.key, this.commitment});
 
   @override
   State<CreateCommitmentSheet> createState() => _CreateCommitmentSheetState();
@@ -15,10 +17,25 @@ class CreateCommitmentSheet extends StatefulWidget {
 
 class _CreateCommitmentSheetState extends State<CreateCommitmentSheet> {
   final _titleCtrl = TextEditingController();
-  DateTime _startTime = DateTime.now().add(const Duration(hours: 1));
-  DateTime _endTime = DateTime.now().add(const Duration(hours: 2));
-  String _type = 'CLASS';
+  late DateTime _startTime;
+  late DateTime _endTime;
+  late String _type;
   String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.commitment != null) {
+      _titleCtrl.text = widget.commitment!.title;
+      _startTime = widget.commitment!.startTime.toLocal();
+      _endTime = widget.commitment!.endTime.toLocal();
+      _type = widget.commitment!.type.name.toUpperCase();
+    } else {
+      _startTime = DateTime.now().add(const Duration(hours: 1));
+      _endTime = DateTime.now().add(const Duration(hours: 2));
+      _type = 'CLASS';
+    }
+  }
 
   void _submit() async {
     if (_titleCtrl.text.trim().isEmpty) {
@@ -32,18 +49,29 @@ class _CreateCommitmentSheetState extends State<CreateCommitmentSheet> {
     setState(() => _errorText = null);
 
     final provider = context.read<ScheduleProvider>();
-    final success = await provider.createCommitment({
-      'title': _titleCtrl.text.trim(),
-      'startTime': _startTime.toUtc().toIso8601String(),
-      'endTime': _endTime.toUtc().toIso8601String(),
-      'type': _type,
-      'isActive': true,
-    });
+    bool success;
+    
+    if (widget.commitment != null) {
+      success = await provider.updateCommitment(widget.commitment!.id, {
+        'title': _titleCtrl.text.trim(),
+        'startTime': _startTime.toUtc().toIso8601String(),
+        'endTime': _endTime.toUtc().toIso8601String(),
+        'type': _type,
+      });
+    } else {
+      success = await provider.createCommitment({
+        'title': _titleCtrl.text.trim(),
+        'startTime': _startTime.toUtc().toIso8601String(),
+        'endTime': _endTime.toUtc().toIso8601String(),
+        'type': _type,
+        'isActive': true,
+      });
+    }
 
     if (success && mounted) {
       Navigator.pop(context);
     } else if (mounted) {
-      setState(() => _errorText = provider.errorMessage ?? "Failed to create commitment");
+      setState(() => _errorText = provider.errorMessage ?? "Failed to save commitment");
     }
   }
 

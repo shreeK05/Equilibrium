@@ -18,6 +18,10 @@ import 'package:equilibrium_app/models/decision_log.dart';
 import 'package:equilibrium_app/widgets/timeline/timeline.dart' as equilibrium_app_timeline;
 import 'package:equilibrium_app/widgets/timeline/timeline_grid.dart' as equilibrium_app_grid;
 import 'package:equilibrium_app/widgets/status/change_summary.dart';
+import 'package:equilibrium_app/core/state/schedule_provider.dart';
+import 'package:equilibrium_app/screens/schedule/schedule_screen.dart';
+import 'package:equilibrium_app/widgets/status/empty_state.dart';
+import 'package:equilibrium_app/widgets/timeline/timeline_block_absolute.dart';
 
 void main() {
   Widget createTestWidget(Widget child) {
@@ -199,6 +203,7 @@ void main() {
         tasks: tasks,
         commitments: [],
         constraints: null,
+        selectedDate: DateTime(2026, 9, 15),
       )
     ));
 
@@ -244,5 +249,90 @@ void main() {
     expect(find.text('Schedule Updated'), findsOneWidget);
     expect(find.text('1 task moved'), findsOneWidget);
     expect(find.text('1 task deferred'), findsOneWidget);
+  });
+
+  testWidgets('empty state and Reschedule FAB are mutually exclusive', (WidgetTester tester) async {
+    final apiClient = ApiClient(baseUrl: 'http://localhost');
+    final provider = ScheduleProvider(apiClient);
+    
+    await tester.pumpWidget(
+      createTestWidget(
+        ChangeNotifierProvider<ScheduleProvider>.value(
+          value: provider,
+          child: const ScheduleScreen(),
+        ),
+      ),
+    );
+    
+    expect(find.byType(EmptyStateWidget), findsOneWidget);
+    expect(find.text('Reschedule'), findsNothing);
+    
+    // Exhaust animation timers
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('tapping a timeline block opens the correct sheet for task vs commitment', (WidgetTester tester) async {
+    final taskBlock = ScheduleBlock(
+      id: 'task_1',
+      type: 'TASK',
+      taskId: 'task_id_1',
+      versionId: 'v1',
+      startTime: DateTime.now(),
+      endTime: DateTime.now().add(const Duration(hours: 1)),
+      durationMinutes: 60,
+      isLocked: false,
+    );
+
+    final commitmentBlock = ScheduleBlock(
+      id: 'comm_1',
+      type: 'CLASS',
+      versionId: 'v1',
+      startTime: DateTime.now().add(const Duration(hours: 1)),
+      endTime: DateTime.now().add(const Duration(hours: 2)),
+      durationMinutes: 60,
+      isLocked: false,
+    );
+    final apiClient = ApiClient(baseUrl: 'http://localhost');
+    final provider = ScheduleProvider(apiClient);
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<ScheduleProvider>.value(
+        value: provider,
+        child: MaterialApp(
+          theme: EqTheme.lightTheme,
+          home: Scaffold(
+            body: Stack(
+              children: [
+                AbsoluteTimelineBlock(
+                  block: taskBlock,
+                  displayStart: DateTime(2026, 1, 1, 2, 0),
+                  displayDurationMinutes: 60,
+                  pixelsPerMinute: 2.0,
+                  task: Task(
+                    id: 'task_id_1',
+                    userId: 'user1',
+                    title: 'My Custom Task',
+                    estimateMinutes: 60,
+                    completedMinutes: 0,
+                    deadline: DateTime.now().add(const Duration(days: 1)),
+                    status: TaskStatus.pending,
+                    cognitiveLoad: CognitiveLoad.high,
+                  ),
+                ),
+                AbsoluteTimelineBlock(
+                  block: commitmentBlock,
+                  displayStart: DateTime(2026, 1, 1, 3, 0),
+                  displayDurationMinutes: 60,
+                  pixelsPerMinute: 2.0,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('My Custom Task'));
+    await tester.pumpAndSettle();
   });
 }

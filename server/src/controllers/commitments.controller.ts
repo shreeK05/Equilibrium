@@ -11,8 +11,11 @@ export class FixedCommitmentsController {
     
     // Check for overlap
     const overlaps = await repo.findActive((req as any).userId, new Date(data.startTime), new Date(data.endTime));
-    if (overlaps.length > 0) {
-      return res.status(409).json({ error: { code: 'CONFLICT', message: 'That time conflicts with an existing commitment.' } });
+    const now = new Date();
+    const activeOverlaps = overlaps.filter(o => o.endTime > now);
+
+    if (activeOverlaps.length > 0) {
+      return res.status(409).json({ error: { code: 'CONFLICT', message: `That time conflicts with an existing commitment: ${activeOverlaps[0].title}` } });
     }
 
     const commitment = await repo.create({

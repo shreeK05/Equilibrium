@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../api/api_client.dart';
+import '../api/api_error_mapper.dart';
 import '../../models/exam.dart';
 
 class ExamProvider extends ChangeNotifier {
@@ -33,6 +34,8 @@ class ExamProvider extends ChangeNotifier {
       _subjects = (results[1] as List<dynamic>)
           .map((s) => Subject.fromJson(s as Map<String, dynamic>))
           .toList();
+    } on ApiException catch (e) {
+      _errorMessage = ApiErrorMapper.getUserFacingMessage(e.code);
     } catch (e) {
       _errorMessage = 'Could not load exams. Please try again.';
     } finally {
@@ -61,6 +64,10 @@ class ExamProvider extends ChangeNotifier {
       _exams.sort((a, b) => a.examDate.compareTo(b.examDate));
       notifyListeners();
       return exam;
+    } on ApiException catch (e) {
+      _errorMessage = ApiErrorMapper.getUserFacingMessage(e.code);
+      notifyListeners();
+      return null;
     } catch (e) {
       _errorMessage = 'Could not create exam. Please try again.';
       notifyListeners();
@@ -76,6 +83,10 @@ class ExamProvider extends ChangeNotifier {
       if (idx >= 0) _exams[idx] = updated;
       notifyListeners();
       return true;
+    } on ApiException catch (e) {
+      _errorMessage = ApiErrorMapper.getUserFacingMessage(e.code);
+      notifyListeners();
+      return false;
     } catch (_) {
       _errorMessage = 'Could not update exam.';
       notifyListeners();
@@ -89,6 +100,10 @@ class ExamProvider extends ChangeNotifier {
       _exams.removeWhere((e) => e.id == id);
       notifyListeners();
       return true;
+    } on ApiException catch (e) {
+      _errorMessage = ApiErrorMapper.getUserFacingMessage(e.code);
+      notifyListeners();
+      return false;
     } catch (_) {
       _errorMessage = 'Could not delete exam.';
       notifyListeners();
@@ -123,6 +138,10 @@ class ExamProvider extends ChangeNotifier {
       }
       notifyListeners();
       return topic;
+    } on ApiException catch (e) {
+      _errorMessage = ApiErrorMapper.getUserFacingMessage(e.code);
+      notifyListeners();
+      return null;
     } catch (_) {
       _errorMessage = 'Could not add topic.';
       notifyListeners();
@@ -148,6 +167,10 @@ class ExamProvider extends ChangeNotifier {
       }
       notifyListeners();
       return true;
+    } on ApiException catch (e) {
+      _errorMessage = ApiErrorMapper.getUserFacingMessage(e.code);
+      notifyListeners();
+      return false;
     } catch (_) {
       _errorMessage = 'Could not update topic.';
       notifyListeners();
@@ -172,6 +195,10 @@ class ExamProvider extends ChangeNotifier {
       }
       notifyListeners();
       return true;
+    } on ApiException catch (e) {
+      _errorMessage = ApiErrorMapper.getUserFacingMessage(e.code);
+      notifyListeners();
+      return false;
     } catch (_) {
       _errorMessage = 'Could not delete topic.';
       notifyListeners();
@@ -184,6 +211,10 @@ class ExamProvider extends ChangeNotifier {
       final result = await _api.post('/exams/$examId/schedule-topics', body: {});
       await fetchAll(); // refresh exam list
       return result as Map<String, dynamic>;
+    } on ApiException catch (e) {
+      _errorMessage = ApiErrorMapper.getUserFacingMessage(e.code);
+      notifyListeners();
+      return null;
     } catch (_) {
       _errorMessage = 'Could not schedule topics.';
       notifyListeners();
@@ -204,6 +235,10 @@ class ExamProvider extends ChangeNotifier {
       _subjects.sort((a, b) => a.name.compareTo(b.name));
       notifyListeners();
       return subject;
+    } on ApiException catch (e) {
+      _errorMessage = ApiErrorMapper.getUserFacingMessage(e.code);
+      notifyListeners();
+      return null;
     } catch (_) {
       _errorMessage = 'Could not create subject. It may already exist.';
       notifyListeners();

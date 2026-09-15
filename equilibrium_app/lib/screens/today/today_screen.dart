@@ -59,7 +59,11 @@ class _TodayScreenState extends State<TodayScreen> {
             final schedule = provider.currentSchedule;
             final tasks = provider.activeTasks;
 
-            if (schedule == null || schedule.blocks.isEmpty) {
+            final nowStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+            final hasBlocksForToday = schedule?.blocks.any((b) => DateFormat('yyyy-MM-dd').format(b.startTime) == nowStr) ?? false;
+            final hasCommitmentsForToday = provider.commitments.any((c) => DateFormat('yyyy-MM-dd').format(c.startTime) == nowStr);
+
+            if (!hasBlocksForToday && !hasCommitmentsForToday) {
               return EmptyStateWidget(
                 title: tasks.isEmpty ? 'Your workload is clear.' : 'Your workload is ready.',
                 message: tasks.isEmpty ? "Add your first assignment to begin." : "Let's balance your first day.",
@@ -70,13 +74,13 @@ class _TodayScreenState extends State<TodayScreen> {
             }
 
             // Extract real metrics
-            final int plannedMinutes = schedule.blocks
-                .where((b) => b.type == 'TASK')
-                .fold(0, (sum, b) => sum + b.durationMinutes);
+            final int plannedMinutes = (schedule?.blocks ?? <ScheduleBlock>[])
+                .where((b) => b.type == 'TASK' && DateFormat('yyyy-MM-dd').format(b.startTime) == nowStr)
+                .fold<int>(0, (sum, b) => sum + b.durationMinutes);
             
             // Calculate total capacity natively based on blocks
             int availableMinutes = 0;
-            for (var b in schedule.blocks) {
+            for (var b in (schedule?.blocks ?? <ScheduleBlock>[])) {
               if (b.type == 'FREE' || b.type == 'TASK') {
                 availableMinutes += b.durationMinutes;
               }
@@ -146,7 +150,7 @@ class _TodayScreenState extends State<TodayScreen> {
                     
                     Builder(builder: (context) {
                       final now = DateTime.now();
-                      final nextTaskBlock = schedule.blocks.cast<ScheduleBlock?>().firstWhere(
+                      final nextTaskBlock = (schedule?.blocks ?? <ScheduleBlock>[]).cast<ScheduleBlock?>().firstWhere(
                         (b) => b != null && b.type == 'TASK' && b.endTime.isAfter(now),
                         orElse: () => null,
                       );

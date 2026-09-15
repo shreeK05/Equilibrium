@@ -8,6 +8,7 @@ import '../../services/commitment_repository.dart';
 import '../../services/constraint_repository.dart';
 import '../../core/api/api_client.dart';
 import '../../core/api/api_error_mapper.dart';
+import 'package:intl/intl.dart';
 import '../../services/notification_service.dart';
 
 class ScheduleProvider extends ChangeNotifier {
@@ -23,9 +24,18 @@ class ScheduleProvider extends ChangeNotifier {
   List<FixedCommitment> commitments = [];
   Map<String, dynamic>? constraints;
   Map<String, dynamic>? insights;
+  DateTime selectedDate = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
   bool isLoading = false;
   String? errorMessage;
   String? errorCode;
+
+  bool get hasContentForSelectedDate {
+    if (currentSchedule == null) return false;
+    final selectedDateStr = DateFormat('yyyy-MM-dd').format(selectedDate);
+    final hasBlocksForDay = (currentSchedule?.blocks ?? <ScheduleBlock>[]).any((b) => DateFormat('yyyy-MM-dd').format(b.startTime) == selectedDateStr);
+    final hasCommitmentsForDay = commitments.any((c) => DateFormat('yyyy-MM-dd').format(c.startTime) == selectedDateStr);
+    return hasBlocksForDay || hasCommitmentsForDay;
+  }
 
   ScheduleProvider(ApiClient api) 
     : _api = api,
@@ -58,7 +68,7 @@ class ScheduleProvider extends ChangeNotifier {
       errorCode = null;
     } on ApiException catch (e) {
       errorCode = e.code;
-      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code);
+      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code, e.message);
     } catch (e) {
       errorCode = 'INTERNAL_ERROR';
       errorMessage = ApiErrorMapper.getUserFacingMessage('INTERNAL_ERROR');
@@ -74,7 +84,7 @@ class ScheduleProvider extends ChangeNotifier {
       await generateSchedule(); // Regenerate immediately to respect the new hard constraint!
       return true;
     } on ApiException catch (e) {
-      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code);
+      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code, e.message);
       return false;
     } catch (e) {
       errorMessage = ApiErrorMapper.getUserFacingMessage('INTERNAL_ERROR');
@@ -91,7 +101,7 @@ class ScheduleProvider extends ChangeNotifier {
       await generateSchedule(); // Regenerate immediately to reclaim the capacity
       return true;
     } on ApiException catch (e) {
-      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code);
+      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code, e.message);
       return false;
     } catch (e) {
       errorMessage = ApiErrorMapper.getUserFacingMessage('INTERNAL_ERROR');
@@ -108,7 +118,24 @@ class ScheduleProvider extends ChangeNotifier {
       await fetchDashboardData(); // Refresh seamlessly
       return true;
     } on ApiException catch (e) {
-      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code);
+      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code, e.message);
+      return false;
+    } catch (e) {
+      errorMessage = ApiErrorMapper.getUserFacingMessage('INTERNAL_ERROR');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<bool> updateCommitment(String id, Map<String, dynamic> data) async {
+    _setLoading(true);
+    try {
+      await _api.put('/commitments/$id', body: data);
+      await fetchDashboardData();
+      return true;
+    } on ApiException catch (e) {
+      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code, e.message);
       return false;
     } catch (e) {
       errorMessage = ApiErrorMapper.getUserFacingMessage('INTERNAL_ERROR');
@@ -123,7 +150,7 @@ class ScheduleProvider extends ChangeNotifier {
       return await _api.post('/schedules/simulate', body: payload) as Map<String, dynamic>;
     } on ApiException catch (e) {
       errorCode = e.code;
-      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code);
+      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code, e.message);
       return null;
     } catch (_) {
       errorCode = 'INTERNAL_ERROR';
@@ -139,7 +166,7 @@ class ScheduleProvider extends ChangeNotifier {
       await fetchDashboardData();
       return true;
     } on ApiException catch (e) {
-      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code);
+      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code, e.message);
       return false;
     } catch (e) {
       errorMessage = ApiErrorMapper.getUserFacingMessage('INTERNAL_ERROR');
@@ -156,7 +183,7 @@ class ScheduleProvider extends ChangeNotifier {
       await fetchDashboardData();
       return true;
     } on ApiException catch (e) {
-      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code);
+      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code, e.message);
       return false;
     } catch (e) {
       errorMessage = ApiErrorMapper.getUserFacingMessage('INTERNAL_ERROR');
@@ -173,7 +200,7 @@ class ScheduleProvider extends ChangeNotifier {
       await fetchDashboardData();
       return true;
     } on ApiException catch (e) {
-      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code);
+      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code, e.message);
       return false;
     } catch (_) {
       errorMessage = ApiErrorMapper.getUserFacingMessage('INTERNAL_ERROR');
@@ -190,7 +217,7 @@ class ScheduleProvider extends ChangeNotifier {
       await fetchDashboardData();
       return true;
     } on ApiException catch (e) {
-      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code);
+      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code, e.message);
       return false;
     } catch (e) {
       errorMessage = ApiErrorMapper.getUserFacingMessage('INTERNAL_ERROR');
@@ -207,7 +234,7 @@ class ScheduleProvider extends ChangeNotifier {
       await fetchDashboardData();
       return true;
     } on ApiException catch (e) {
-      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code);
+      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code, e.message);
       return false;
     } catch (e) {
       errorMessage = ApiErrorMapper.getUserFacingMessage('INTERNAL_ERROR');
@@ -227,7 +254,7 @@ class ScheduleProvider extends ChangeNotifier {
       await fetchDashboardData();
       return true;
     } on ApiException catch (e) {
-      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code);
+      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code, e.message);
       return false;
     } catch (e) {
       errorMessage = ApiErrorMapper.getUserFacingMessage('INTERNAL_ERROR');
@@ -239,6 +266,11 @@ class ScheduleProvider extends ChangeNotifier {
 
   void clearChangeSummary() {
     previousSchedule = null;
+    notifyListeners();
+  }
+
+  void setSelectedDate(DateTime date) {
+    selectedDate = DateTime(date.year, date.month, date.day);
     notifyListeners();
   }
 

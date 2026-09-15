@@ -15,6 +15,28 @@ export class TaskRepository {
   }
 
   async safeUpdate(id: string, userId: string, data: Prisma.TaskUpdateInput) {
+    const task = await this.findById(id, userId);
+    if (!task) throw new Error('Task not found or unauthorized');
+
+    let newStatus = data.status ?? task.status;
+    let newCompleted = data.completedMinutes ?? task.completedMinutes;
+    let newEstimate = data.estimateMinutes ?? task.estimateMinutes;
+
+    if (typeof newCompleted === 'object' && newCompleted !== null && 'set' in newCompleted) newCompleted = newCompleted.set;
+    if (typeof newEstimate === 'object' && newEstimate !== null && 'set' in newEstimate) newEstimate = newEstimate.set;
+
+    if (typeof newCompleted === 'number' && typeof newEstimate === 'number') {
+      if (newStatus === 'COMPLETED' && newCompleted < newEstimate && (data.status === undefined || data.status === 'COMPLETED')) {
+        data.status = newCompleted > 0 ? 'IN_PROGRESS' : 'NOT_STARTED';
+      } else if (newStatus !== 'COMPLETED' && newCompleted >= newEstimate && (data.status === undefined || data.status !== 'COMPLETED')) {
+        data.status = 'COMPLETED';
+      } else if (newStatus === 'NOT_STARTED' && newCompleted > 0 && newCompleted < newEstimate && (data.status === undefined || data.status === 'NOT_STARTED')) {
+        data.status = 'IN_PROGRESS';
+      } else if (newStatus === 'IN_PROGRESS' && newCompleted === 0 && (data.status === undefined || data.status === 'IN_PROGRESS')) {
+        data.status = 'NOT_STARTED';
+      }
+    }
+
     const result = await prisma.task.updateMany({
       where: { id, userId },
       data: data as Prisma.TaskUncheckedUpdateManyInput

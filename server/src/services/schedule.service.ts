@@ -35,6 +35,7 @@ export class ScheduleService {
     const tasksData = await taskRepo.findActiveTasks(userId);
     const tasks: TaskInput[] = tasksData.map(t => ({
       id: t.id,
+      title: t.title,
       estimateMinutes: t.estimateMinutes,
       completedMinutes: t.completedMinutes,
       remainingMinutes: Math.max(0, t.estimateMinutes - t.completedMinutes),
@@ -47,6 +48,7 @@ export class ScheduleService {
     }));
     tasks.push({
       id: 'simulation-task',
+      title: proposedTask.title,
       estimateMinutes: proposedTask.estimateMinutes,
       completedMinutes: 0,
       remainingMinutes: proposedTask.estimateMinutes,
@@ -57,8 +59,13 @@ export class ScheduleService {
       deferralCount: 0
     });
 
-    const horizonStart = new Date(now);
-    horizonStart.setUTCHours(0, 0, 0, 0);
+    // Calculate horizon (next 7 days) aligned to IST midnight
+    const formatter = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' });
+    const parts = formatter.formatToParts(now);
+    const year = parseInt(parts.find(p => p.type === 'year')!.value);
+    const month = parseInt(parts.find(p => p.type === 'month')!.value) - 1;
+    const day = parseInt(parts.find(p => p.type === 'day')!.value);
+    const horizonStart = new Date(Date.UTC(year, month, day, -5, -30, 0, 0));
     const horizonEnd = new Date(horizonStart.getTime() + 7 * 24 * 3600000);
     const fixedData = await new FixedCommitmentRepository().findActive(userId, horizonStart, horizonEnd);
     const fixed: FixedCommitment[] = fixedData.map(f => ({ id: f.id, start: f.startTime, end: f.endTime }));
@@ -104,6 +111,7 @@ export class ScheduleService {
     const tasksData = await taskRepo.findActiveTasks(userId);
     const tasks: TaskInput[] = tasksData.map(t => ({
       id: t.id,
+      title: t.title,
       estimateMinutes: t.estimateMinutes,
       completedMinutes: t.completedMinutes,
       remainingMinutes: Math.max(0, t.estimateMinutes - t.completedMinutes),
@@ -116,8 +124,13 @@ export class ScheduleService {
     }));
 
     // Calculate horizon (next 7 days)
-    const horizonStart = new Date(now);
-    horizonStart.setUTCHours(0,0,0,0);
+    // Calculate horizon (next 7 days) aligned to IST midnight
+    const formatter = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' });
+    const parts = formatter.formatToParts(now);
+    const year = parseInt(parts.find(p => p.type === 'year')!.value);
+    const month = parseInt(parts.find(p => p.type === 'month')!.value) - 1;
+    const day = parseInt(parts.find(p => p.type === 'day')!.value);
+    const horizonStart = new Date(Date.UTC(year, month, day, -5, -30, 0, 0));
     const horizonEnd = new Date(horizonStart.getTime() + 7 * 24 * 3600000);
 
     // Call mathematical scheduler
@@ -188,6 +201,7 @@ export class ScheduleService {
     const tasksData = await taskRepo.findActiveTasks(userId);
     const tasks: TaskInput[] = tasksData.map(t => ({
       id: t.id,
+      title: t.title,
       estimateMinutes: t.estimateMinutes,
       completedMinutes: t.completedMinutes,
       remainingMinutes: Math.max(0, t.estimateMinutes - t.completedMinutes),
@@ -199,8 +213,13 @@ export class ScheduleService {
       dailyTargetMinutes: (t as any).dailyTargetMinutes ?? null
     }));
 
-    const horizonStart = new Date(now);
-    horizonStart.setUTCHours(0,0,0,0);
+    // Calculate horizon (next 7 days) aligned to IST midnight
+    const formatter = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' });
+    const parts = formatter.formatToParts(now);
+    const year = parseInt(parts.find(p => p.type === 'year')!.value);
+    const month = parseInt(parts.find(p => p.type === 'month')!.value) - 1;
+    const day = parseInt(parts.find(p => p.type === 'day')!.value);
+    const horizonStart = new Date(Date.UTC(year, month, day, -5, -30, 0, 0));
     const horizonEnd = new Date(horizonStart.getTime() + 7 * 24 * 3600000);
 
     const fixedData = await new FixedCommitmentRepository().findActive(userId, horizonStart, horizonEnd);

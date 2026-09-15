@@ -48,7 +48,8 @@ export function runReschedulerPipeline(
       priorityComponents: priorities[t.id].components,
       scheduledMinutes: 0,
       deferredMinutes: t.remainingMinutes,
-      reasonCode: 'CAPACITY_EXCEEDED'
+      reasonCode: 'CAPACITY_EXCEEDED',
+      humanReadable: `Deferred '${t.title}'. The schedule reached maximum capacity. This task was out-prioritized by others with higher academic weight, team impact, or closer deadlines.`
     });
   });
 

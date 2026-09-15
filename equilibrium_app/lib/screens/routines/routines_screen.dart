@@ -16,6 +16,7 @@ class RoutinesScreen extends StatefulWidget {
 class _RoutinesScreenState extends State<RoutinesScreen> {
   bool _isLoading = true;
   List<FixedCommitment> _routines = [];
+  bool _showPastRoutines = false;
 
   @override
   void initState() {
@@ -28,8 +29,7 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
     try {
       final data = await context.read<ApiClient>().get('/commitments');
       final allCommitments = (data as List).map((e) => FixedCommitment.fromJson(e)).toList();
-      _routines = allCommitments.where((c) => c.type == CommitmentType.custom && c.recurrence != null).toList();
-      // Wait, in schema.prisma type is ROUTINE. So CommitmentType needs to support routine.
+      _routines = allCommitments.where((c) => c.type == CommitmentType.routine && c.recurrence != null).toList();
     } catch (e) {
       // Error handling
     } finally {
@@ -58,10 +58,38 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
         backgroundColor: colors.background,
         elevation: 0,
       ),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator()) 
-        : _routines.isEmpty 
-          ? Center(
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: EqTokens.space24, vertical: EqTokens.space12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Show past routines',
+                  style: text.bodyMedium?.copyWith(color: colors.textSecondary),
+                ),
+                Switch(
+                  value: _showPastRoutines,
+                  onChanged: (val) => setState(() => _showPastRoutines = val),
+                  activeTrackColor: colors.primary.withValues(alpha: 0.5),
+                  activeThumbColor: colors.primary,
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: _isLoading 
+              ? const Center(child: CircularProgressIndicator()) 
+              : (() {
+                  final now = DateTime.now();
+                  final filteredRoutines = _routines.where((r) {
+                    if (_showPastRoutines) return true;
+                    return r.endTime.isAfter(now);
+                  }).toList();
+
+                  if (filteredRoutines.isEmpty) {
+                    return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -86,12 +114,14 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
                   ),
                 ],
               ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(EqTokens.space24),
-              itemCount: _routines.length,
-              itemBuilder: (context, index) {
-                final routine = _routines[index];
+              );
+                  }
+                  
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(EqTokens.space24),
+                    itemCount: filteredRoutines.length,
+                    itemBuilder: (context, index) {
+                      final routine = filteredRoutines[index];
                 return Container(
                   margin: const EdgeInsets.only(bottom: EqTokens.space16),
                   padding: const EdgeInsets.all(EqTokens.space20),
@@ -178,7 +208,11 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
                   ),
                 );
               },
-            ),
+            );
+                })(),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
           await showModalBottomSheet(

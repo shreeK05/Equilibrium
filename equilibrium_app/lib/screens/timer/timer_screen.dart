@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/state/timer_provider.dart';
 import '../../core/state/schedule_provider.dart';
+import '../../core/state/exam_provider.dart';
 import '../../core/theme/theme.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/theme/colors.dart';
@@ -83,8 +84,9 @@ class _TimerScreenState extends State<TimerScreen> with WidgetsBindingObserver {
 
     final completed = await timer.completeSession();
     if (completed != null && mounted) {
-      // Refresh dashboard/tasks
+      // Refresh dashboard/tasks and exams
       context.read<ScheduleProvider>().fetchDashboardData();
+      context.read<ExamProvider>().fetchAll();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Session complete — ${timer.displayTime} recorded!'),

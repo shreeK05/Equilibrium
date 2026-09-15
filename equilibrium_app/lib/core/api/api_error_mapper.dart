@@ -1,5 +1,5 @@
 class ApiErrorMapper {
-  static String getUserFacingMessage(String? errorCode) {
+  static String getUserFacingMessage(String? errorCode, [String? serverMessage]) {
     switch (errorCode) {
       case 'VALIDATION_ERROR':
         return 'Some information provided is invalid. Please check your inputs.';
@@ -9,6 +9,10 @@ class ApiErrorMapper {
         return 'Your session has expired. Please log in again.';
       case 'NOT_FOUND':
         return 'The requested information could not be found.';
+      case 'CONFLICT':
+        return serverMessage ?? 'That time overlaps with another commitment.';
+      case 'NETWORK_ERROR':
+        return 'Network disconnected. Please check your internet connection.';
       case 'CAPACITY_EXCEEDED':
         return 'Your schedule is full. Some tasks could not be placed before their deadlines.';
       case 'INTERNAL_ERROR':

@@ -11,6 +11,8 @@ import '../../core/state/schedule_provider.dart';
 import '../../widgets/status/workload_meter.dart' as equilibrium_app_workload;
 import '../../widgets/status/change_summary.dart';
 
+import 'package:intl/intl.dart';
+
 class ScheduleScreen extends StatelessWidget {
   const ScheduleScreen({super.key});
 
@@ -23,7 +25,20 @@ class ScheduleScreen extends StatelessWidget {
       body: Consumer<ScheduleProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading && provider.currentSchedule == null) {
-            return const EquilibriumLoadingState();
+            return Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const EquilibriumLoadingState(),
+                const SizedBox(height: EqTokens.space16),
+                Text(
+                  'Preparing your day...\nFinding available time...\nBalancing workload...',
+                  textAlign: TextAlign.center,
+                  style: context.eqText.bodyMedium?.copyWith(
+                    color: context.eqColors.textSecondary,
+                  ),
+                ).animate().fade().slideY(begin: 0.2),
+              ],
+            );
           }
 
           if (provider.errorMessage != null && provider.currentSchedule == null) {
@@ -37,19 +52,36 @@ class ScheduleScreen extends StatelessWidget {
           final schedule = provider.currentSchedule;
           
           if (schedule == null) {
-            return const EmptyStateWidget(
-              title: 'Nothing needs scheduling yet.',
+            return EmptyStateWidget(
+              title: 'No schedule generated yet.',
               message: 'Add tasks and let Equilibrium balance your workload.',
               icon: Icons.auto_awesome,
+              actionLabel: 'Generate Schedule',
+              onAction: provider.generateSchedule,
             ).animate().fade().scale(begin: const Offset(0.95, 0.95));
           }
 
-          if (schedule.blocks.isEmpty) {
-            return const EmptyStateWidget(
-              title: 'Your workload is ready to be balanced.',
-              message: 'Generate a schedule to let Equilibrium optimize your day.',
-              icon: Icons.calendar_today_outlined,
-            ).animate().fade().scale(begin: const Offset(0.95, 0.95));
+          if (!provider.hasContentForSelectedDate) {
+            return Column(
+              children: [
+                if (provider.previousSchedule != null)
+                  ChangeSummaryBanner(
+                    currentSchedule: schedule,
+                    previousSchedule: provider.previousSchedule,
+                    onDismiss: provider.clearChangeSummary,
+                  ).animate().fade().slideY(begin: -0.1),
+                _buildDateNavigator(context, provider),
+                const Spacer(),
+                EmptyStateWidget(
+                  title: 'Your workload is ready to be balanced.',
+                  message: 'Not enough available time, or no tasks exist.',
+                  icon: Icons.calendar_today_outlined,
+                  actionLabel: 'Generate Schedule',
+                  onAction: provider.generateSchedule,
+                ).animate().fade().scale(begin: const Offset(0.95, 0.95)),
+                const Spacer(),
+              ],
+            );
           }
 
           int plannedMinutes = 0;
@@ -72,6 +104,7 @@ class ScheduleScreen extends StatelessWidget {
                   previousSchedule: provider.previousSchedule,
                   onDismiss: provider.clearChangeSummary,
                 ).animate().fade().slideY(begin: -0.1),
+              _buildDateNavigator(context, provider),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: EqTokens.space16, vertical: EqTokens.space8),
                 child: equilibrium_app_workload.WorkloadMeter(
@@ -85,6 +118,7 @@ class ScheduleScreen extends StatelessWidget {
                   tasks: provider.activeTasks,
                   commitments: provider.commitments,
                   constraints: provider.constraints,
+                  selectedDate: provider.selectedDate,
                 ).animate().fade(delay: 200.ms),
               ),
             ],
@@ -93,7 +127,11 @@ class ScheduleScreen extends StatelessWidget {
       ),
       floatingActionButton: Consumer<ScheduleProvider>(
         builder: (context, provider, child) {
-          if (provider.currentSchedule == null || provider.isLoading) {
+          final schedule = provider.currentSchedule;
+          if (schedule == null || provider.isLoading) {
+            return const SizedBox.shrink();
+          }
+          if (!provider.hasContentForSelectedDate) {
             return const SizedBox.shrink();
           }
           return FloatingActionButton.extended(
@@ -104,6 +142,62 @@ class ScheduleScreen extends StatelessWidget {
             foregroundColor: colors.surface,
           ).animate().scale(delay: 500.ms, duration: 300.ms, curve: Curves.easeOutBack);
         },
+      ),
+    );
+  }
+
+  Widget _buildDateNavigator(BuildContext context, ScheduleProvider provider) {
+    final colors = context.eqColors;
+    final selected = provider.selectedDate;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    
+    final isToday = selected.isAtSameMomentAs(today);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: EqTokens.space16, vertical: EqTokens.space12),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        border: Border(bottom: BorderSide(color: colors.textSecondary.withValues(alpha: 0.2))),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            icon: Icon(Icons.chevron_left, color: colors.textPrimary),
+            onPressed: () => provider.setSelectedDate(selected.subtract(const Duration(days: 1))),
+          ),
+          Column(
+            children: [
+              Text(
+                isToday ? 'TODAY' : DateFormat('E, d MMM').format(selected).toUpperCase(),
+                style: context.eqText.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: colors.textPrimary,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              if (!isToday)
+                GestureDetector(
+                  onTap: () => provider.setSelectedDate(today),
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      'Back to Today',
+                      style: context.eqText.labelMedium?.copyWith(
+                        color: colors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          IconButton(
+            icon: Icon(Icons.chevron_right, color: colors.textPrimary),
+            onPressed: () => provider.setSelectedDate(selected.add(const Duration(days: 1))),
+          ),
+        ],
       ),
     );
   }
