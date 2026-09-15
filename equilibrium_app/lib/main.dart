@@ -15,6 +15,8 @@ import 'services/decision_repository.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await NotificationService.instance.initialize();
@@ -54,6 +56,7 @@ class EquilibriumApp extends StatelessWidget {
     return Consumer<ProfileProvider>(
       builder: (context, profileProvider, child) {
         return MaterialApp(
+          navigatorKey: navigatorKey,
           title: 'Equilibrium',
           debugShowCheckedModeBanner: false,
           theme: EqTheme.lightTheme,

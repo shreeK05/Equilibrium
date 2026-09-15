@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/auth_repository.dart';
 import '../../core/api/api_client.dart';
 import '../../core/api/api_error_mapper.dart';
+import '../../main.dart';
 
 enum AuthStatus { initial, authenticated, unauthenticated }
 
@@ -77,6 +78,7 @@ class AuthProvider extends ChangeNotifier {
     await _authRepo.logout();
     _status = AuthStatus.unauthenticated;
     notifyListeners();
+    navigatorKey.currentState?.popUntil((route) => route.isFirst);
   }
 
   void clearError() {

@@ -15,8 +15,10 @@ import 'package:equilibrium_app/core/theme/theme.dart';
 
 void main() {
   test('ApiException mapping for network failure', () {
-    final msg = ApiErrorMapper.getUserFacingMessage('NETWORK_ERROR');
-    expect(msg, contains('Network disconnected. Please check your internet connection.'));
+    expect(
+      ApiErrorMapper.getUserFacingMessage('NETWORK_ERROR'),
+      contains('Connection problem. Please check your internet connection and try again.'),
+    );
   });
 
   testWidgets('Logout state clearing', (WidgetTester tester) async {

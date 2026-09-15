@@ -155,7 +155,7 @@ void main() {
   });
 
   testWidgets('ScheduleTimeline renders correct blocks and sleep shield', (WidgetTester tester) async {
-    final now = DateTime.now();
+    final now = DateTime(2026, 9, 15);
     final schedule = ScheduleVersion(
       id: 'v1',
       generatedAt: now,

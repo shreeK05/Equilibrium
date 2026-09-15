@@ -103,17 +103,43 @@ describe('Equilibrium Security Tests', () => {
     });
   });
 
-  describe('3. Login Security & Rate Limiting', () => {
+  describe('3. Password Recovery Flow', () => {
+    it('returns generic response for forgot-password on non-existent email', async () => {
+      const res = await request(app).post('/api/v1/auth/forgot-password').send({ email: 'nobody@test.com' });
+      expect(res.status).toBe(200);
+      expect(res.body.message).toMatch(/Password reset requested/);
+    });
+
+    it('generates a reset token for existing user', async () => {
+      const res = await request(app).post('/api/v1/auth/forgot-password').send({ email: 'secA@test.com' });
+      expect(res.status).toBe(200);
+      expect(res.body.message).toMatch(/Password reset requested/);
+
+      // Verify token exists in database
+      const user = await prisma.user.findUnique({ where: { email: 'seca@test.com' } });
+      const tokens = await prisma.passwordResetToken.findMany({ where: { userId: user!.id } });
+      expect(tokens.length).toBe(1);
+      expect(tokens[0].usedAt).toBeNull();
+    });
+
+    it('rejects invalid or expired reset token', async () => {
+      const res = await request(app).post('/api/v1/auth/reset-password').send({ token: 'invalid_token', newPassword: 'newpassword123' });
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('INVALID_TOKEN');
+    });
+  });
+
+  describe('4. Login Security & Rate Limiting', () => {
     it('returns generic error on invalid email', async () => {
       const res = await request(app).post('/api/v1/auth/login').send({ email: 'nonexistent@test.com', password: 'password123' });
       expect(res.status).toBe(401);
-      expect(res.body.error.message).toBe('Invalid credentials');
+      expect(res.body.error.message).toBe('Invalid email or password.');
     });
 
     it('returns generic error on invalid password', async () => {
       const res = await request(app).post('/api/v1/auth/login').send({ email: 'secA@test.com', password: 'wrongpassword' });
       expect(res.status).toBe(401);
-      expect(res.body.error.message).toBe('Invalid credentials');
+      expect(res.body.error.message).toBe('Invalid email or password.');
     });
 
     it('rate limits authentication endpoints', async () => {
@@ -127,7 +153,7 @@ describe('Equilibrium Security Tests', () => {
     });
   });
 
-  describe('4. Safe Error Handling', () => {
+  describe('5. Safe Error Handling', () => {
     it('masks internal Prisma or Server errors', async () => {
       // Force a Zod error by sending malformed body to a route expecting it
       const res = await request(app).post('/api/v1/tasks').set('Authorization', `Bearer ${userAToken}`).send({

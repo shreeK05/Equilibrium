@@ -1,6 +1,11 @@
 const { PrismaClient } = require('@prisma/client');
 
 module.exports = async function globalSetup() {
+  const dbUrl = process.env.DATABASE_URL || '';
+  if (!dbUrl.includes('localhost') && !dbUrl.includes('127.0.0.1')) {
+    throw new Error("REFUSING TO RUN TESTS: DATABASE_URL is not a local test database.");
+  }
+
   const prisma = new PrismaClient();
   try {
     await prisma.$transaction([

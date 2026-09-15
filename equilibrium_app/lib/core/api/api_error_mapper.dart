@@ -3,6 +3,8 @@ class ApiErrorMapper {
     switch (errorCode) {
       case 'VALIDATION_ERROR':
         return 'Some information provided is invalid. Please check your inputs.';
+      case 'INVALID_CREDENTIALS':
+        return 'Invalid email or password.';
       case 'UNAUTHORIZED':
       case 'TOKEN_EXPIRED':
       case 'AUTHENTICATION_ERROR':
@@ -12,7 +14,9 @@ class ApiErrorMapper {
       case 'CONFLICT':
         return serverMessage ?? 'That time overlaps with another commitment.';
       case 'NETWORK_ERROR':
-        return 'Network disconnected. Please check your internet connection.';
+        return 'Connection problem. Please check your internet connection and try again.';
+      case 'SERVER_ERROR':
+        return 'The server is currently unavailable. Please try again later.';
       case 'CAPACITY_EXCEEDED':
         return 'Your schedule is full. Some tasks could not be placed before their deadlines.';
       case 'INTERNAL_ERROR':

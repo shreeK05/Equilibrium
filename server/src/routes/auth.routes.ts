@@ -7,6 +7,15 @@ import { z } from 'zod';
 import { authenticate } from '../middleware/auth';
 import { userRepo } from '../repositories/user.repo';
 
+const forgotPasswordSchema = z.object({
+  email: z.string().email().toLowerCase(),
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string(),
+  newPassword: z.string().min(8),
+});
+
 export const authRouter = Router();
 
 authRouter.use(authRateLimiter);
@@ -28,7 +37,33 @@ authRouter.post('/login', validate(registerSchema), async (req, res, next) => {
     const result = await authService.login(email, password);
     res.json(result);
   } catch (err: any) {
-    if (err.message === 'Invalid credentials') return res.status(401).json({ error: { message: err.message } });
+    if (err.message === 'Invalid credentials') {
+      return res.status(401).json({ error: { code: 'INVALID_CREDENTIALS', message: 'Invalid email or password.' } });
+    }
+    next(err);
+  }
+});
+
+authRouter.post('/forgot-password', validate(forgotPasswordSchema), async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    await authService.forgotPassword(email);
+    // Generic response regardless of existence, noting the email limitation
+    res.json({ message: "Password reset requested. Note: Email delivery is not currently configured on this server. Please contact your administrator." });
+  } catch (err) {
+    next(err);
+  }
+});
+
+authRouter.post('/reset-password', validate(resetPasswordSchema), async (req, res, next) => {
+  try {
+    const { token, newPassword } = req.body;
+    await authService.resetPassword(token, newPassword);
+    res.json({ message: 'Password has been successfully reset.' });
+  } catch (err: any) {
+    if (err.message === 'Invalid or expired reset token') {
+      return res.status(400).json({ error: { code: 'INVALID_TOKEN', message: err.message } });
+    }
     next(err);
   }
 });

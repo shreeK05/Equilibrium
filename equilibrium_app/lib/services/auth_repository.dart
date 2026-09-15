@@ -1,4 +1,5 @@
 import '../../core/api/api_client.dart';
+import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthRepository {
@@ -11,7 +12,7 @@ class AuthRepository {
       'email': email,
       'password': password,
     });
-    
+
     final token = response['token'];
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('jwt_token', token);
@@ -22,7 +23,7 @@ class AuthRepository {
       'email': email,
       'password': password,
     });
-    
+
     final token = response['token'];
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('jwt_token', token);
@@ -35,6 +36,30 @@ class AuthRepository {
 
   Future<bool> isLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.containsKey('jwt_token');
+    final token = prefs.getString('jwt_token');
+    if (token == null) return false;
+
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) {
+        await logout();
+        return false;
+      }
+      final payload = jsonDecode(
+        utf8.decode(base64Url.decode(base64Url.normalize(parts[1])))
+      );
+      final exp = payload['exp'] as int?;
+      if (exp == null) return true; // fallback if no exp
+
+      final now = DateTime.now().millisecondsSinceEpoch / 1000;
+      if (now >= exp) {
+        await logout();
+        return false;
+      }
+      return true;
+    } catch (_) {
+      await logout();
+      return false;
+    }
   }
 }
