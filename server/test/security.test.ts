@@ -122,6 +122,23 @@ describe('Equilibrium Security Tests', () => {
       expect(tokens[0].usedAt).toBeNull();
     });
 
+    it('serves a safe reset-redirect page with a manual button and escapes XSS', async () => {
+      const xssToken = 'fakeToken" onclick="alert(1)';
+      const res = await request(app).get(`/api/v1/auth/reset-redirect?token=${xssToken}`);
+      expect(res.status).toBe(200);
+
+      const html = res.text;
+      // HTML contains the Open Equilibrium button
+      expect(html).toContain('Open Equilibrium');
+      // Button uses equilibrium://reset-password
+      expect(html).toContain('href="equilibrium://reset-password?token=');
+      // Token is HTML escaped
+      expect(html).toContain('fakeToken&quot; onclick=&quot;alert(1)');
+      // JavaScript automatic redirect is NOT present
+      expect(html).not.toContain('<script>');
+      expect(html).not.toContain('window.location.href');
+    });
+
     it('rejects invalid or expired reset token', async () => {
       const res = await request(app).post('/api/v1/auth/reset-password').send({ token: 'invalid_token', newPassword: 'newpassword123' });
       expect(res.status).toBe(400);

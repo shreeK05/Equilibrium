@@ -16,6 +16,7 @@ import { focusSessionsRouter } from './routes/focus-sessions.routes';
 import { subjectsRouter } from './routes/subjects.routes';
 import { examsRouter } from './routes/exams.routes';
 import { dashboardRouter } from './routes/dashboard.routes';
+import { webShareRouter } from './routes/web-share.routes';
 import { errorHandler } from './middleware/error';
 import { requestCorrelation, requestLogger } from './middleware/logger';
 
@@ -69,5 +70,7 @@ app.use('/api/v1/focus-sessions', focusSessionsRouter);
 app.use('/api/v1/subjects', subjectsRouter);
 app.use('/api/v1/exams', examsRouter);
 app.use('/api/v1/dashboard', dashboardRouter);
+
+app.use('/team', webShareRouter);
 
 app.use(errorHandler);
