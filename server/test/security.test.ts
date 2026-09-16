@@ -107,13 +107,13 @@ describe('Equilibrium Security Tests', () => {
     it('returns generic response for forgot-password on non-existent email', async () => {
       const res = await request(app).post('/api/v1/auth/forgot-password').send({ email: 'nobody@test.com' });
       expect(res.status).toBe(200);
-      expect(res.body.message).toMatch(/Password reset requested/);
+      expect(res.body.message).toMatch(/If an account exists/);
     });
 
     it('generates a reset token for existing user', async () => {
       const res = await request(app).post('/api/v1/auth/forgot-password').send({ email: 'secA@test.com' });
       expect(res.status).toBe(200);
-      expect(res.body.message).toMatch(/Password reset requested/);
+      expect(res.body.message).toMatch(/If an account exists/);
 
       // Verify token exists in database
       const user = await prisma.user.findUnique({ where: { email: 'seca@test.com' } });

@@ -14,6 +14,9 @@ import 'services/notification_service.dart';
 import 'services/decision_repository.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
+import 'package:app_links/app_links.dart';
+import 'dart:async';
+import 'screens/auth/reset_password_screen.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -48,8 +51,63 @@ Future<void> main() async {
   );
 }
 
-class EquilibriumApp extends StatelessWidget {
+class EquilibriumApp extends StatefulWidget {
   const EquilibriumApp({super.key});
+
+  @override
+  State<EquilibriumApp> createState() => _EquilibriumAppState();
+}
+
+class _EquilibriumAppState extends State<EquilibriumApp> {
+  late AppLinks _appLinks;
+  StreamSubscription<Uri>? _linkSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _initDeepLinks();
+  }
+
+  Future<void> _initDeepLinks() async {
+    _appLinks = AppLinks();
+
+    // Check initial link if app was in cold state (terminated)
+    try {
+      final initialUri = await _appLinks.getInitialLink();
+      if (initialUri != null) {
+        _handleDeepLink(initialUri);
+      }
+    } catch (e) {
+      // Ignored
+    }
+
+    // Handle link when app is in warm state (foreground or background)
+    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
+      _handleDeepLink(uri);
+    });
+  }
+
+  void _handleDeepLink(Uri uri) {
+    if (uri.scheme == 'equilibrium' && uri.host == 'reset-password') {
+      final token = uri.queryParameters['token'];
+      if (token != null && token.isNotEmpty) {
+        // Use a slight delay to ensure navigator is mounted
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (navigatorKey.currentState != null) {
+            navigatorKey.currentState!.push(
+              MaterialPageRoute(builder: (_) => ResetPasswordScreen(token: token)),
+            );
+          }
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _linkSubscription?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

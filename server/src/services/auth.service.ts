@@ -5,6 +5,10 @@ import { config } from '../config';
 import { constraintRepo } from '../repositories/constraint.repo';
 import crypto from 'crypto';
 import { prisma } from '../db';
+import { Resend } from 'resend';
+
+const resend = new Resend(config.resendApiKey);
+
 
 export class AuthService {
   async register(email: string, passwordHashRaw: string) {
@@ -62,10 +66,28 @@ export class AuthService {
       }
     });
 
-    // NOTE: EMAIL DELIVERY IS NOT CONFIGURED IN PRODUCTION.
-    // In a real production environment, you would send an email here using a provider (e.g., Resend, Sendgrid, AWS SES).
-    // The email would contain a link: https://your-domain.com/reset-password?token=${token}
-    // We do NOT log the raw token or return it in the API response to maintain security.
+    if (process.env.NODE_ENV !== 'test') {
+      try {
+        const resetLink = `${config.appPublicUrl}/api/v1/auth/reset-redirect?token=${token}`;
+        await resend.emails.send({
+          from: `Equilibrium <${config.emailFrom}>`,
+          to: email,
+          subject: 'Equilibrium Password Reset',
+          html: `
+            <div style="font-family: sans-serif; padding: 20px;">
+              <h2>Reset your Equilibrium Password</h2>
+              <p>We received a request to reset the password for your Equilibrium account.</p>
+              <p>Click the link below to choose a new password. This link will expire in 15 minutes.</p>
+              <a href="${resetLink}" style="display: inline-block; padding: 12px 24px; background-color: #6366f1; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">Reset Password</a>
+              <p style="margin-top: 30px; font-size: 12px; color: #6b7280;">If you did not request this reset, you can safely ignore this email.</p>
+            </div>
+          `
+        });
+      } catch (error) {
+        // Log the error safely without exposing the API key
+        console.error('Failed to send password reset email:', error instanceof Error ? error.message : 'Unknown error');
+      }
+    }
     return;
   }
 

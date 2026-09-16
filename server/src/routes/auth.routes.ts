@@ -48,8 +48,8 @@ authRouter.post('/forgot-password', validate(forgotPasswordSchema), async (req, 
   try {
     const { email } = req.body;
     await authService.forgotPassword(email);
-    // Generic response regardless of existence, noting the email limitation
-    res.json({ message: "Password reset requested. Note: Email delivery is not currently configured on this server. Please contact your administrator." });
+    // Generic response regardless of existence
+    res.json({ message: "If an account exists for this email, we've sent password reset instructions." });
   } catch (err) {
     next(err);
   }
@@ -74,4 +74,23 @@ authRouter.get('/me', authenticate, async (req: any, res, next) => {
     if (!user) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'User not found' } });
     res.json({ id: user.id, email: user.email, timezone: user.timezone, createdAt: user.createdAt });
   } catch (err) { next(err); }
+});
+
+authRouter.get('/reset-redirect', (req, res) => {
+  const token = req.query.token;
+  if (!token) {
+    return res.status(400).send('Invalid token');
+  }
+  // This simple HTML page redirects the browser to the Flutter app via a custom scheme deep link.
+  res.send(`
+    <html>
+      <head><title>Resetting Password...</title></head>
+      <body>
+        <p>Redirecting to the Equilibrium app...</p>
+        <script>
+          window.location.href = "equilibrium://reset-password?token=${token}";
+        </script>
+      </body>
+    </html>
+  `);
 });
