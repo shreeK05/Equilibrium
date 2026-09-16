@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "npx prisma generate && tsc",
-    "start": "npx prisma migrate resolve --rolled-back 20260915181811_add_password_reset ; npx prisma migrate deploy && node dist/server.js",
+    "start": "npx prisma migrate deploy && node dist/server.js",
     "test": "jest --config jest.scheduler.config.js",
     "test:scheduler": "jest --config jest.scheduler.config.js",
     "test:api": "jest --config jest.config.js",
