@@ -25,14 +25,11 @@ export function validateSchedule(
     }
 
     // Check Sleep Overlap for the day of the block
-    const IST_OFFSET = 5.5 * 3600000;
-    const baseDate = new Date(block.start.getTime() + IST_OFFSET);
+    const baseDate = new Date(block.start);
     baseDate.setUTCHours(0, 0, 0, 0);
 
     let sleepStart = parseTimeStrToDate(baseDate, constraints.sleepStart);
-    sleepStart = new Date(sleepStart.getTime() - IST_OFFSET);
     let sleepEnd = parseTimeStrToDate(baseDate, constraints.sleepEnd);
-    sleepEnd = new Date(sleepEnd.getTime() - IST_OFFSET);
     if (sleepEnd <= sleepStart) {
       sleepEnd = new Date(sleepEnd.getTime() + 24 * 60 * 60000);
     }

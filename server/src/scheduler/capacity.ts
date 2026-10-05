@@ -28,10 +28,9 @@ export function applyConstraints(
   fixed: FixedCommitment[],
   lockedBlocks: ScheduleBlock[]
 ) {
-  const IST_OFFSET = 5.5 * 3600000;
   // Apply sleep shield for each unique day in horizon
   const days = new Set(slots.map(s => {
-    const d = new Date(s.start.getTime() + IST_OFFSET);
+    const d = new Date(s.start);
     d.setUTCHours(0, 0, 0, 0);
     return d.toISOString();
   }));
@@ -39,9 +38,7 @@ export function applyConstraints(
   days.forEach(dayStr => {
     const baseDate = new Date(dayStr);
     let sleepStart = parseTimeStrToDate(baseDate, constraints.sleepStart);
-    sleepStart = new Date(sleepStart.getTime() - IST_OFFSET);
     let sleepEnd = parseTimeStrToDate(baseDate, constraints.sleepEnd);
-    sleepEnd = new Date(sleepEnd.getTime() - IST_OFFSET);
     
     // Handle midnight crossing
     if (sleepEnd <= sleepStart) {
@@ -85,9 +82,7 @@ export function applyConstraints(
     const baseDate = new Date(dayStr);
     constraints.peakEnergyWindows.forEach(window => {
       let wStart = parseTimeStrToDate(baseDate, window.start);
-      wStart = new Date(wStart.getTime() - IST_OFFSET);
       let wEnd = parseTimeStrToDate(baseDate, window.end);
-      wEnd = new Date(wEnd.getTime() - IST_OFFSET);
       if (wEnd <= wStart) {
           wEnd = new Date(wEnd.getTime() + 24 * 60 * 60000);
       }
