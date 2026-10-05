@@ -27,6 +27,24 @@ export class AuthService {
       peakEnergyWindowsJson: '[]'
     });
 
+    const defaultSubjects = [
+      { name: 'Mathematics', color: '#3B82F6' },
+      { name: 'Physics', color: '#8B5CF6' },
+      { name: 'Computer Science', color: '#10B981' },
+      { name: 'Engineering', color: '#F59E0B' },
+      { name: 'Literature', color: '#EF4444' },
+      { name: 'Business', color: '#14B8A6' },
+      { name: 'Chemistry', color: '#6366F1' }
+    ];
+
+    await prisma.subject.createMany({
+      data: defaultSubjects.map(s => ({
+        userId: user.id,
+        name: s.name,
+        color: s.color
+      }))
+    });
+
     const token = jwt.sign({ userId: user.id }, config.jwtSecret, { expiresIn: '7d' });
     return { token, user: { id: user.id, email } };
   }
