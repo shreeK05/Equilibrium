@@ -263,7 +263,7 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
                 Expanded(
                   flex: 2,
                   child: DropdownButtonFormField<String>(
-                    value: _categoryCtrl.text.isEmpty ? null : _categoryCtrl.text,
+                    initialValue: _categoryCtrl.text.isEmpty ? null : _categoryCtrl.text,
                     decoration: InputDecoration(
                       labelText: 'Subject',
                       filled: true,
