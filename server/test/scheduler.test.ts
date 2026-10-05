@@ -35,6 +35,41 @@ describe('Equilibrium Core Scheduler', () => {
     }
   });
 
+  it('A2. Sleep Shield Invariant - Respects IST Timezone (K1)', () => {
+    const tzConstraints: ConstraintInput = {
+      sleepStart: '23:00',
+      sleepEnd: '06:30',
+      minSleepHours: 7.5,
+      timezone: 'Asia/Kolkata'
+    };
+    
+    // Now is 10 PM IST on Oct 14 (16:30 UTC)
+    const istNow = new Date('2026-10-14T16:30:00.000Z'); 
+    
+    // We have a 2-hour task due tomorrow at 10 AM IST (04:30 UTC)
+    // There's only 1 hour before sleep (22:00 to 23:00 IST), and 3.5 hours after sleep (06:30 to 10:00 IST)
+    const task: TaskInput = {
+      id: 'tz-task', estimateMinutes: 120, completedMinutes: 0, remainingMinutes: 120,
+      deadline: new Date('2026-10-15T04:30:00.000Z'), academicWeight: 1.0, teamImpact: 0, cognitiveLoad: 'MEDIUM', deferralCount: 0
+    };
+
+    const result = runReschedulerPipeline([task], tzConstraints, [], [], new Date('2026-10-14T00:00:00.000Z'), new Date('2026-10-15T18:30:00.000Z'), istNow);
+    
+    // The task should be scheduled, but NO block should fall between 23:00 IST (17:30 UTC) and 06:30 IST (01:00 UTC next day)
+    const sleepStartUTC = new Date('2026-10-14T17:30:00.000Z');
+    const sleepEndUTC = new Date('2026-10-15T01:00:00.000Z');
+    
+    for (const b of result.blocks) {
+      if (b.type === 'TASK') {
+        const overlaps = intervalsIntersect(b.start, b.end, sleepStartUTC, sleepEndUTC);
+        if (overlaps) {
+           console.log(`Failed overlap: Block ${b.start.toISOString()} to ${b.end.toISOString()} overlaps with ${sleepStartUTC.toISOString()} to ${sleepEndUTC.toISOString()}`);
+        }
+        expect(overlaps).toBe(false);
+      }
+    }
+  });
+
   it('B. Fixed Commitments Protection', () => {
     const fixed: FixedCommitment[] = [{
       id: 'f1', start: new Date('2026-10-14T09:00:00.000Z'), end: new Date('2026-10-14T12:00:00.000Z')

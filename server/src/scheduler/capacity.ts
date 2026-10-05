@@ -79,7 +79,7 @@ export function applyConstraints(
 
   // Apply Energy Windows
   days.forEach(dayStr => {
-    constraints.peakEnergyWindows.forEach(window => {
+    (constraints.peakEnergyWindows || []).forEach(window => {
       let wStart = parseTimeStrToDate(dayStr, window.start, tz);
       let wEnd = parseTimeStrToDate(dayStr, window.end, tz);
       if (wEnd <= wStart) {
