@@ -191,6 +191,13 @@ class _DayTimeline extends StatelessWidget {
           matchedTask = tasks.firstWhere((t) => t.id == block.taskId);
         } catch (_) {}
       }
+      
+      String? blockTitle;
+      if (block.type == 'FIXED' || block.type == 'ROUTINE') {
+        try {
+          blockTitle = commitments.firstWhere((c) => c.id == block.id).title;
+        } catch(_) {}
+      }
 
       return AbsoluteTimelineBlock(
         block: block,
@@ -198,6 +205,7 @@ class _DayTimeline extends StatelessWidget {
         displayDurationMinutes: displayDuration,
         pixelsPerMinute: pixelsPerMinute,
         task: matchedTask,
+        customTitle: blockTitle,
       );
     }).toList();
   }

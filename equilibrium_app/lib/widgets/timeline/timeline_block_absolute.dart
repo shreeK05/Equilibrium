@@ -14,6 +14,7 @@ class AbsoluteTimelineBlock extends StatelessWidget {
   final int displayDurationMinutes;
   final double pixelsPerMinute;
   final Task? task;
+  final String? customTitle;
 
   const AbsoluteTimelineBlock({
     super.key,
@@ -22,6 +23,7 @@ class AbsoluteTimelineBlock extends StatelessWidget {
     required this.displayDurationMinutes,
     required this.pixelsPerMinute,
     this.task,
+    this.customTitle,
   });
 
   @override
@@ -115,23 +117,25 @@ class AbsoluteTimelineBlock extends StatelessWidget {
       borderColor = colors.surfaceElevated;
     }
 
-    String title = 'Task';
-    if (block.taskId != null) {
-      title = 'Task ${block.taskId!.length > 4 ? block.taskId!.substring(0, 4) : block.taskId}';
-    }
-    if (task != null) {
-      title = task!.title;
-    } else if (type == BlockType.fixed || block.type == 'ROUTINE') {
-      title = 'Fixed Commitment';
-      try {
-        final provider = context.read<ScheduleProvider>();
-        final c = provider.commitments.firstWhere((c) => c.id == block.id);
-        title = c.title;
-      } catch (_) {}
-    } else if (type == BlockType.breakTime) {
-      title = 'Break';
-    } else if (type == BlockType.free) {
-      title = 'Available Capacity';
+    String title = customTitle ?? 'Task';
+    if (customTitle == null) {
+      if (block.taskId != null) {
+        title = 'Task ${block.taskId!.length > 4 ? block.taskId!.substring(0, 4) : block.taskId}';
+      }
+      if (task != null) {
+        title = task!.title;
+      } else if (type == BlockType.fixed || block.type == 'ROUTINE') {
+        title = 'Fixed Commitment';
+        try {
+          final provider = context.read<ScheduleProvider>();
+          final c = provider.commitments.firstWhere((c) => c.id == block.id);
+          title = c.title;
+        } catch (_) {}
+      } else if (type == BlockType.breakTime) {
+        title = 'Break';
+      } else if (type == BlockType.free) {
+        title = 'Available Capacity';
+      }
     }
 
     final start = '${displayStart.hour.toString().padLeft(2, '0')}:${displayStart.minute.toString().padLeft(2, '0')}';

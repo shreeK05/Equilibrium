@@ -154,20 +154,24 @@ class ScheduleScreen extends StatelessWidget {
                   letterSpacing: 1.2,
                 ),
               ),
-              if (!isToday)
-                GestureDetector(
-                  onTap: () => provider.setSelectedDate(today),
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      'Back to Today',
-                      style: context.eqText.labelMedium?.copyWith(
-                        color: colors.primary,
-                        fontWeight: FontWeight.w600,
+              SizedBox(
+                height: 20,
+                child: !isToday
+                  ? GestureDetector(
+                      onTap: () => provider.setSelectedDate(today),
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          'Back to Today',
+                          style: context.eqText.labelMedium?.copyWith(
+                            color: colors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ),
+                    )
+                  : const SizedBox.shrink(),
+              ),
             ],
           ),
           IconButton(
