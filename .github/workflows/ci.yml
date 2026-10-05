@@ -43,6 +43,9 @@ jobs:
       - run: npx prisma generate
       - run: npx prisma db push --skip-generate
       - run: npm run build
+      - run: npm test
+        env:
+          TZ: Asia/Kolkata
 
   flutter:
     runs-on: ubuntu-latest

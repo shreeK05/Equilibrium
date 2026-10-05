@@ -43,7 +43,7 @@ export class AuthService {
       }))
     });
 
-    const token = jwt.sign({ userId: user.id }, config.jwtSecret, { expiresIn: '7d' });
+    const token = jwt.sign({ userId: user.id, tokenVersion: user.tokenVersion }, config.jwtSecret, { expiresIn: '7d' });
     return { token, user: { id: user.id, email } };
   }
 
@@ -54,7 +54,7 @@ export class AuthService {
     const valid = await bcrypt.compare(passwordHashRaw, user.passwordHash);
     if (!valid) throw new Error('Invalid credentials');
 
-    const token = jwt.sign({ userId: user.id }, config.jwtSecret, { expiresIn: '7d' });
+    const token = jwt.sign({ userId: user.id, tokenVersion: user.tokenVersion }, config.jwtSecret, { expiresIn: '7d' });
     return { token, user: { id: user.id, email } };
   }
 
@@ -120,11 +120,13 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(newPasswordRaw, 10);
 
-    // Run password update and token invalidation in a transaction to prevent race conditions
     await prisma.$transaction([
       prisma.user.update({
         where: { id: resetRecord.userId },
-        data: { passwordHash }
+        data: { 
+          passwordHash,
+          tokenVersion: { increment: 1 }
+        }
       }),
       prisma.passwordResetToken.update({
         where: { id: resetRecord.id },
@@ -132,10 +134,6 @@ export class AuthService {
       })
     ]);
 
-    // NOTE: If the authentication architecture used stateful sessions (e.g., stored refresh tokens),
-    // they should be revoked here. Since it uses stateless JWTs without a denylist, we cannot securely
-    // revoke existing JWTs. The user is strongly recommended to implement a refresh-token architecture or
-    // a token generation counter on the User model to invalidate all previous JWTs on password reset.
     return { success: true };
   }
 }

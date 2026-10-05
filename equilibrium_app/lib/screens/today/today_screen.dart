@@ -229,7 +229,6 @@ class _TodayScreenState extends State<TodayScreen> {
                           },
                           child: TaskCard(
                             title: task.title,
-                            subject: task.subjectName,
                             category: task.category,
                             durationStr: '${task.estimateMinutes}m',
                             deadlineStr: 'Due in ${task.deadline.difference(DateTime.now()).inDays} days',

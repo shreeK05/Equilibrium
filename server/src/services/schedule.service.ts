@@ -2,8 +2,10 @@ import { scheduleRepo } from '../repositories/schedule.repo';
 import { taskRepo } from '../repositories/task.repo';
 import { constraintRepo } from '../repositories/constraint.repo';
 import { FixedCommitmentRepository } from '../repositories/commitment.repo';
+import { userRepo } from '../repositories/user.repo';
 import { runReschedulerPipeline } from '../scheduler/rescheduler';
 import { TaskInput, ConstraintInput, ScheduleBlock, FixedCommitment } from '../scheduler/types';
+import { toDate, format } from 'date-fns-tz';
 
 export class ScheduleService {
   async simulateSchedule(userId: string, proposedTask: {
@@ -25,12 +27,17 @@ export class ScheduleService {
       throw new Error('Stored peak energy windows are invalid; update constraints before simulating a schedule');
     }
 
+    const user = await userRepo.findById(userId);
+    if (!user) throw new Error('User not found');
+    const timezone = user.timezone || 'Asia/Kolkata';
+
     const constraints: ConstraintInput = {
       sleepStart: constraintsData.sleepStart,
       sleepEnd: constraintsData.sleepEnd,
       minSleepHours: constraintsData.minSleepHours,
       bufferMinutes: constraintsData.bufferMinutes,
-      peakEnergyWindows
+      peakEnergyWindows,
+      timezone
     };
     const tasksData = await taskRepo.findActiveTasks(userId);
     const tasks: TaskInput[] = tasksData.map(t => ({
@@ -59,13 +66,9 @@ export class ScheduleService {
       deferralCount: 0
     });
 
-    // Calculate horizon (next 7 days) aligned to IST midnight
-    const formatter = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' });
-    const parts = formatter.formatToParts(now);
-    const year = parseInt(parts.find(p => p.type === 'year')!.value);
-    const month = parseInt(parts.find(p => p.type === 'month')!.value) - 1;
-    const day = parseInt(parts.find(p => p.type === 'day')!.value);
-    const horizonStart = new Date(Date.UTC(year, month, day, -5, -30, 0, 0));
+    // Calculate horizon (next 7 days) aligned to user midnight
+    const dayStr = format(now, 'yyyy-MM-dd', { timeZone: timezone });
+    const horizonStart = toDate(`${dayStr}T00:00:00`, { timeZone: timezone });
     const horizonEnd = new Date(horizonStart.getTime() + 7 * 24 * 3600000);
     const fixedData = await new FixedCommitmentRepository().findActive(userId, horizonStart, horizonEnd);
     const fixed: FixedCommitment[] = fixedData.map(f => ({ id: f.id, start: f.startTime, end: f.endTime }));
@@ -100,12 +103,17 @@ export class ScheduleService {
       throw new Error('Stored peak energy windows are invalid; update constraints before generating a schedule');
     }
 
+    const user = await userRepo.findById(userId);
+    if (!user) throw new Error('User not found');
+    const timezone = user.timezone || 'Asia/Kolkata';
+
     const constraints: ConstraintInput = {
       sleepStart: constraintsData.sleepStart,
       sleepEnd: constraintsData.sleepEnd,
       minSleepHours: constraintsData.minSleepHours,
       bufferMinutes: constraintsData.bufferMinutes,
-      peakEnergyWindows
+      peakEnergyWindows,
+      timezone
     };
 
     const tasksData = await taskRepo.findActiveTasks(userId);
@@ -123,14 +131,9 @@ export class ScheduleService {
       dailyTargetMinutes: (t as any).dailyTargetMinutes ?? null
     }));
 
-    // Calculate horizon (next 7 days)
-    // Calculate horizon (next 7 days) aligned to IST midnight
-    const formatter = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' });
-    const parts = formatter.formatToParts(now);
-    const year = parseInt(parts.find(p => p.type === 'year')!.value);
-    const month = parseInt(parts.find(p => p.type === 'month')!.value) - 1;
-    const day = parseInt(parts.find(p => p.type === 'day')!.value);
-    const horizonStart = new Date(Date.UTC(year, month, day, -5, -30, 0, 0));
+    // Calculate horizon (next 7 days) aligned to user midnight
+    const dayStr = format(now, 'yyyy-MM-dd', { timeZone: timezone });
+    const horizonStart = toDate(`${dayStr}T00:00:00`, { timeZone: timezone });
     const horizonEnd = new Date(horizonStart.getTime() + 7 * 24 * 3600000);
 
     // Call mathematical scheduler
@@ -190,12 +193,17 @@ export class ScheduleService {
       throw new Error('Stored peak energy windows are invalid; update constraints before rescheduling');
     }
 
+    const user = await userRepo.findById(userId);
+    if (!user) throw new Error('User not found');
+    const timezone = user.timezone || 'Asia/Kolkata';
+
     const constraints: ConstraintInput = {
       sleepStart: constraintsData.sleepStart,
       sleepEnd: constraintsData.sleepEnd,
       minSleepHours: constraintsData.minSleepHours,
       bufferMinutes: constraintsData.bufferMinutes,
-      peakEnergyWindows
+      peakEnergyWindows,
+      timezone
     };
 
     const tasksData = await taskRepo.findActiveTasks(userId);
@@ -213,13 +221,9 @@ export class ScheduleService {
       dailyTargetMinutes: (t as any).dailyTargetMinutes ?? null
     }));
 
-    // Calculate horizon (next 7 days) aligned to IST midnight
-    const formatter = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' });
-    const parts = formatter.formatToParts(now);
-    const year = parseInt(parts.find(p => p.type === 'year')!.value);
-    const month = parseInt(parts.find(p => p.type === 'month')!.value) - 1;
-    const day = parseInt(parts.find(p => p.type === 'day')!.value);
-    const horizonStart = new Date(Date.UTC(year, month, day, -5, -30, 0, 0));
+    // Calculate horizon (next 7 days) aligned to user midnight
+    const dayStr = format(now, 'yyyy-MM-dd', { timeZone: timezone });
+    const horizonStart = toDate(`${dayStr}T00:00:00`, { timeZone: timezone });
     const horizonEnd = new Date(horizonStart.getTime() + 7 * 24 * 3600000);
 
     const fixedData = await new FixedCommitmentRepository().findActive(userId, horizonStart, horizonEnd);

@@ -1,3 +1,4 @@
+import { format } from 'date-fns-tz';
 import { intervalsIntersect, parseTimeStrToDate } from './guard';
 import { ConstraintInput, FixedCommitment, ScheduleBlock } from './types';
 
@@ -28,17 +29,16 @@ export function applyConstraints(
   fixed: FixedCommitment[],
   lockedBlocks: ScheduleBlock[]
 ) {
+  const tz = constraints.timezone || 'Asia/Kolkata';
+
   // Apply sleep shield for each unique day in horizon
   const days = new Set(slots.map(s => {
-    const d = new Date(s.start);
-    d.setUTCHours(0, 0, 0, 0);
-    return d.toISOString();
+    return format(s.start, 'yyyy-MM-dd', { timeZone: tz });
   }));
 
   days.forEach(dayStr => {
-    const baseDate = new Date(dayStr);
-    let sleepStart = parseTimeStrToDate(baseDate, constraints.sleepStart);
-    let sleepEnd = parseTimeStrToDate(baseDate, constraints.sleepEnd);
+    let sleepStart = parseTimeStrToDate(dayStr, constraints.sleepStart, tz);
+    let sleepEnd = parseTimeStrToDate(dayStr, constraints.sleepEnd, tz);
     
     // Handle midnight crossing
     if (sleepEnd <= sleepStart) {
@@ -79,10 +79,9 @@ export function applyConstraints(
 
   // Apply Energy Windows
   days.forEach(dayStr => {
-    const baseDate = new Date(dayStr);
     constraints.peakEnergyWindows.forEach(window => {
-      let wStart = parseTimeStrToDate(baseDate, window.start);
-      let wEnd = parseTimeStrToDate(baseDate, window.end);
+      let wStart = parseTimeStrToDate(dayStr, window.start, tz);
+      let wEnd = parseTimeStrToDate(dayStr, window.end, tz);
       if (wEnd <= wStart) {
           wEnd = new Date(wEnd.getTime() + 24 * 60 * 60000);
       }

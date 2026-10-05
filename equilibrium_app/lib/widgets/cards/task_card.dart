@@ -5,7 +5,6 @@ import '../status/status_badge.dart';
 
 class TaskCard extends StatelessWidget {
   final String title;
-  final String? subject;
   final String? category;
   final String durationStr;
   final String deadlineStr;
@@ -18,7 +17,6 @@ class TaskCard extends StatelessWidget {
   const TaskCard({
     super.key,
     required this.title,
-    this.subject,
     this.category,
     required this.durationStr,
     required this.deadlineStr,
@@ -85,34 +83,19 @@ class TaskCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (subject != null || category != null) ...[
+                          if (category != null) ...[
                             Wrap(
                               spacing: 8.0,
                               runSpacing: 4.0,
                               children: [
-                                if (subject != null)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: colors.primary.withValues(alpha: 0.1),
-                                      borderRadius: EqTokens.border8,
-                                    ),
-                                    child: Text(
-                                      subject!.toUpperCase(),
-                                      style: text.labelSmall?.copyWith(
-                                        color: colors.primary,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ),
-                                if (category != null)
                                   Container(
                                     padding: const EdgeInsets.symmetric(vertical: 4),
                                     child: Text(
                                       category!.toUpperCase(),
                                       style: text.labelSmall?.copyWith(
-                                        color: colors.textSecondary,
+                                        color: colors.primary,
                                         letterSpacing: 0.5,
+                                        fontWeight: FontWeight.w700,
                                       ),
                                     ),
                                   ),

@@ -37,7 +37,6 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
   DateTime _deadline = DateTime.now().add(const Duration(days: 1));
   final String _cognitiveLoad = 'MEDIUM';
   String _deadlineType = 'HARD';
-  String? _subjectId;
   String? _errorText;
   Map<String, dynamic>? _preview;
   bool _isPreviewing = false;
@@ -99,7 +98,6 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
       'title': _titleCtrl.text.trim(),
       if (_descCtrl.text.trim().isNotEmpty) 'description': _descCtrl.text.trim(),
       if (_categoryCtrl.text.trim().isNotEmpty) 'category': _categoryCtrl.text.trim(),
-      if (_subjectId != null) 'subjectId': _subjectId,
       'estimateMinutes': effectiveMinutes,
       'deadline': _deadline.toUtc().toIso8601String(),
       'deadlineType': _deadlineType,

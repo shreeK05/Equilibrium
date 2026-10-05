@@ -24,14 +24,15 @@ insightsRouter.get('/', async (req: any, res, next) => {
     );
     const deferredCount = tasks.reduce((total, task) => total + task.deferralCount, 0);
     const safeDailyMinutes = Math.max(0, 1440 - sleepMinutes - (constraints?.bufferMinutes ?? 30));
+    const safeTotalMinutes = safeDailyMinutes * 7;
 
     res.json({
       safeDailyMinutes,
       scheduledMinutes,
       remainingMinutes,
-      utilization: safeDailyMinutes === 0 ? 0 : scheduledMinutes / safeDailyMinutes,
+      utilization: safeTotalMinutes === 0 ? 0 : scheduledMinutes / safeTotalMinutes,
       deferredCount,
-      riskLevel: scheduledMinutes > safeDailyMinutes ? 'HIGH' : scheduledMinutes > safeDailyMinutes * 0.8 ? 'MEDIUM' : 'LOW'
+      riskLevel: scheduledMinutes > safeTotalMinutes ? 'HIGH' : scheduledMinutes > safeTotalMinutes * 0.8 ? 'MEDIUM' : 'LOW'
     });
   } catch (err) { next(err); }
 });

@@ -18,6 +18,7 @@ export interface ConstraintInput {
   minSleepHours: number; // >= 7.0
   bufferMinutes: number;
   peakEnergyWindows: Array<{ start: string, end: string }>;
+  timezone?: string; // e.g. "Asia/Kolkata"
 }
 
 export interface FixedCommitment {

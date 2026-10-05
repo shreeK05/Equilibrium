@@ -19,6 +19,7 @@ model User {
   branch           String?
   semester         String?
   themePreference  String            @default("system") // "light", "dark", "system"
+  tokenVersion     Int               @default(0)
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   

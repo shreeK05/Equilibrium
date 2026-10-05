@@ -149,18 +149,6 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
 
             Row(
               children: [
-                if (widget.task.subjectName != null) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: colors.primary.withValues(alpha: 0.1),
-                      borderRadius: EqTokens.border8,
-                    ),
-                    child: Text(widget.task.subjectName!,
-                      style: text.labelSmall?.copyWith(color: colors.primary)),
-                  ),
-                  const SizedBox(width: EqTokens.space8),
-                ],
                 Expanded(
                   child: TextField(
                     controller: TextEditingController(text: widget.task.category),

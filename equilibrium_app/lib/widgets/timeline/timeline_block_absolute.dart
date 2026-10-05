@@ -185,17 +185,18 @@ class AbsoluteTimelineBlock extends StatelessWidget {
                 ),
                 if (task != null && displayDurationMinutes >= 45) ...[
                   const Spacer(),
-                  Row(
+                  Wrap(
+                    spacing: 4.0,
+                    runSpacing: 2.0,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Icon(Icons.psychology, size: 14, color: fgColor.withValues(alpha: 0.7)),
-                      const SizedBox(width: 4),
                       Text(
                         task!.cognitiveLoadLabel,
                         style: text.labelSmall?.copyWith(color: fgColor.withValues(alpha: 0.7)),
                       ),
-                      const SizedBox(width: 8),
-                      Icon(Icons.hourglass_bottom, size: 14, color: fgColor.withValues(alpha: 0.7)),
                       const SizedBox(width: 4),
+                      Icon(Icons.hourglass_bottom, size: 14, color: fgColor.withValues(alpha: 0.7)),
                       Text(
                         '${block.durationMinutes}m chunk',
                         style: text.labelSmall?.copyWith(color: fgColor.withValues(alpha: 0.7)),

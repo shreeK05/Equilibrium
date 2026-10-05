@@ -14,18 +14,65 @@ export class FixedCommitmentRepository {
   }
 
   async findActive(userId: string, fromDate: Date, toDate: Date) {
-    // Basic range overlap query + isActive filter
-    // In a real system handling recurrences, you'd expand the RRULEs here or in service.
-    // For now we just query explicit overlapping windows + isActive
-    return prisma.fixedCommitment.findMany({
+    const records = await prisma.fixedCommitment.findMany({
       where: {
         userId,
         isActive: true,
-        startTime: { lt: toDate },
-        endTime: { gt: fromDate },
+        OR: [
+          {
+            type: { not: 'ROUTINE' },
+            startTime: { lt: toDate },
+            endTime: { gt: fromDate },
+          },
+          {
+            type: 'ROUTINE'
+          }
+        ]
       },
       orderBy: { startTime: 'asc' }
     });
+
+    const expanded: typeof records = [];
+    
+    for (const record of records) {
+      if (record.type === 'ROUTINE' && record.daysOfWeek) {
+        let days: number[] = [];
+        try {
+          days = JSON.parse(record.daysOfWeek);
+        } catch { continue; }
+
+        const startHour = record.startTime.getUTCHours();
+        const startMin = record.startTime.getUTCMinutes();
+        const endHour = record.endTime.getUTCHours();
+        const endMin = record.endTime.getUTCMinutes();
+
+        let current = new Date(fromDate);
+        current.setUTCHours(0, 0, 0, 0);
+
+        while (current < toDate) {
+          if (days.includes(current.getUTCDay())) {
+            const instStart = new Date(current);
+            instStart.setUTCHours(startHour, startMin, 0, 0);
+            
+            const instEnd = new Date(current);
+            instEnd.setUTCHours(endHour, endMin, 0, 0);
+            // Handle cross-midnight routine
+            if (instEnd <= instStart) {
+                instEnd.setDate(instEnd.getDate() + 1);
+            }
+
+            if (instStart < toDate && instEnd > fromDate) {
+              expanded.push({ ...record, startTime: instStart, endTime: instEnd });
+            }
+          }
+          current.setDate(current.getDate() + 1);
+        }
+      } else {
+        expanded.push(record);
+      }
+    }
+
+    return expanded.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
   }
 
   async findById(id: string, userId: string) {

@@ -1,5 +1,6 @@
 import { ScheduleBlock, ConstraintInput, FixedCommitment, TaskInput } from './types';
 import { intervalsIntersect, parseTimeStrToDate } from './guard';
+import { format } from 'date-fns-tz';
 
 export function validateSchedule(
   blocks: ScheduleBlock[],
@@ -25,11 +26,11 @@ export function validateSchedule(
     }
 
     // Check Sleep Overlap for the day of the block
-    const baseDate = new Date(block.start);
-    baseDate.setUTCHours(0, 0, 0, 0);
+    const tz = constraints.timezone || 'Asia/Kolkata';
+    const dayStr = format(block.start, 'yyyy-MM-dd', { timeZone: tz });
 
-    let sleepStart = parseTimeStrToDate(baseDate, constraints.sleepStart);
-    let sleepEnd = parseTimeStrToDate(baseDate, constraints.sleepEnd);
+    let sleepStart = parseTimeStrToDate(dayStr, constraints.sleepStart, tz);
+    let sleepEnd = parseTimeStrToDate(dayStr, constraints.sleepEnd, tz);
     if (sleepEnd <= sleepStart) {
       sleepEnd = new Date(sleepEnd.getTime() + 24 * 60 * 60000);
     }

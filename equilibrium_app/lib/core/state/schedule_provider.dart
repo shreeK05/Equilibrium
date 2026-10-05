@@ -131,7 +131,7 @@ class ScheduleProvider extends ChangeNotifier {
   Future<bool> updateCommitment(String id, Map<String, dynamic> data) async {
     _setLoading(true);
     try {
-      await _api.put('/commitments/$id', body: data);
+      await _api.patch('/commitments/$id', body: data);
       await fetchDashboardData();
       return true;
     } on ApiException catch (e) {
