@@ -18,8 +18,8 @@ export function validateSchedule(
     if (block.taskId) {
       const task = taskMap.get(block.taskId);
       if (!block.isLocked) {
-        if (!task) return false;
-        if (block.end > task.deadline) return false;
+        if (!task) { console.log('Validation failed: task not found', block.taskId); return false; }
+        if (block.end > task.deadline) { console.log('Validation failed: past deadline', block); return false; }
         durationMap.set(block.taskId, (durationMap.get(block.taskId) || 0) + block.durationMinutes);
       }
     }
@@ -41,21 +41,27 @@ export function validateSchedule(
     let prevSleepStart = new Date(sleepStart.getTime() - 24 * 60 * 60000);
     let prevSleepEnd = new Date(sleepEnd.getTime() - 24 * 60 * 60000);
 
-    if (intervalsIntersect(block.start, block.end, sleepStart, sleepEnd)) return false;
-    if (intervalsIntersect(block.start, block.end, prevSleepStart, prevSleepEnd)) return false;
+    if (intervalsIntersect(block.start, block.end, sleepStart, sleepEnd)) { console.log('Validation failed: sleep overlap 1', block); return false; }
+    if (intervalsIntersect(block.start, block.end, prevSleepStart, prevSleepEnd)) { console.log('Validation failed: sleep overlap 2', block); return false; }
 
     // Check Fixed Overlap
     for (const f of fixed) {
         const bufferBefore = new Date(f.start.getTime() - bufferMinutes * 60000);
         const bufferAfter = new Date(f.end.getTime() + bufferMinutes * 60000);
-        if (intervalsIntersect(block.start, block.end, bufferBefore, bufferAfter)) return false;
+        if (intervalsIntersect(block.start, block.end, bufferBefore, bufferAfter)) { console.log('Validation failed: fixed overlap', block, f); return false; }
     }
   }
 
-  // Check scheduled <= remaining
+  // Check scheduled <= remaining (allowing rounding up to 30 min block)
   for (const [taskId, scheduled] of durationMap.entries()) {
     const task = taskMap.get(taskId);
-    if (task && scheduled > task.remainingMinutes) return false;
+    if (task) {
+      const allowedScheduled = Math.ceil(task.remainingMinutes / 30) * 30;
+      if (scheduled > allowedScheduled) {
+        console.log('Validation failed: scheduled > remaining for', taskId);
+        return false;
+      }
+    }
   }
 
   // Check self overlap
@@ -65,6 +71,7 @@ export function validateSchedule(
       if (blocks[i].end <= blocks[j].start || blocks[i].start >= blocks[j].end) continue;
       
       if (intervalsIntersect(blocks[i].start, blocks[i].end, blocks[j].start, blocks[j].end)) {
+        console.log('Validation failed: self overlap between', blocks[i], 'and', blocks[j]);
         return false;
       }
     }
