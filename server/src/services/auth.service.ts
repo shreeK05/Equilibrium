@@ -28,13 +28,11 @@ export class AuthService {
     });
 
     const defaultSubjects = [
-      { name: 'Mathematics', color: '#3B82F6' },
-      { name: 'Physics', color: '#8B5CF6' },
-      { name: 'Computer Science', color: '#10B981' },
-      { name: 'Engineering', color: '#F59E0B' },
-      { name: 'Literature', color: '#EF4444' },
-      { name: 'Business', color: '#14B8A6' },
-      { name: 'Chemistry', color: '#6366F1' }
+      { name: 'Self Study', color: '#10B981' },
+      { name: 'Project', color: '#8B5CF6' },
+      { name: 'Assignment', color: '#3B82F6' },
+      { name: 'Practical / Lab', color: '#F59E0B' },
+      { name: 'Exam Prep', color: '#EF4444' }
     ];
 
     await prisma.subject.createMany({
