@@ -28,6 +28,7 @@ class _SyllabusImportScreenState extends State<SyllabusImportScreen> {
     if (result != null && result.files.single.bytes != null) {
       setState(() => _isProcessing = true);
       
+      if (!mounted) return;
       final provider = context.read<ScheduleProvider>();
       final res = await provider.importSyllabusPdf(result.files.single.bytes!);
       

@@ -29,6 +29,7 @@ class _IcsImportScreenState extends State<IcsImportScreen> {
       setState(() => _isProcessing = true);
       
       final icsText = utf8.decode(result.files.single.bytes!);
+      if (!mounted) return;
       final provider = context.read<ScheduleProvider>();
       final res = await provider.importIcs(icsText);
       
