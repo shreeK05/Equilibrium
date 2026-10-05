@@ -61,28 +61,7 @@ class ScheduleScreen extends StatelessWidget {
             ).animate().fade().scale(begin: const Offset(0.95, 0.95));
           }
 
-          if (!provider.hasContentForSelectedDate) {
-            return Column(
-              children: [
-                if (provider.previousSchedule != null)
-                  ChangeSummaryBanner(
-                    currentSchedule: schedule,
-                    previousSchedule: provider.previousSchedule,
-                    onDismiss: provider.clearChangeSummary,
-                  ).animate().fade().slideY(begin: -0.1),
-                _buildDateNavigator(context, provider),
-                const Spacer(),
-                EmptyStateWidget(
-                  title: 'Your workload is ready to be balanced.',
-                  message: 'Not enough available time, or no tasks exist.',
-                  icon: Icons.calendar_today_outlined,
-                  actionLabel: 'Generate Schedule',
-                  onAction: provider.generateSchedule,
-                ).animate().fade().scale(begin: const Offset(0.95, 0.95)),
-                const Spacer(),
-              ],
-            );
-          }
+
 
           int plannedMinutes = 0;
           for (var t in provider.activeTasks) {
@@ -131,9 +110,7 @@ class ScheduleScreen extends StatelessWidget {
           if (schedule == null || provider.isLoading) {
             return const SizedBox.shrink();
           }
-          if (!provider.hasContentForSelectedDate) {
-            return const SizedBox.shrink();
-          }
+
           return FloatingActionButton.extended(
             onPressed: () => provider.reschedule(),
             icon: const Icon(Icons.auto_fix_high),

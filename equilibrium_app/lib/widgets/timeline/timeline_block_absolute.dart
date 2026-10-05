@@ -39,6 +39,7 @@ class AbsoluteTimelineBlock extends StatelessWidget {
         label: _getSemanticLabel(),
         button: task != null,
         child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onTap: () {
             if (task != null) {
               showModalBottomSheet(
@@ -120,8 +121,13 @@ class AbsoluteTimelineBlock extends StatelessWidget {
     }
     if (task != null) {
       title = task!.title;
-    } else if (type == BlockType.fixed) {
+    } else if (type == BlockType.fixed || block.type == 'ROUTINE') {
       title = 'Fixed Commitment';
+      try {
+        final provider = context.read<ScheduleProvider>();
+        final c = provider.commitments.firstWhere((c) => c.id == block.id);
+        title = c.title;
+      } catch (_) {}
     } else if (type == BlockType.breakTime) {
       title = 'Break';
     } else if (type == BlockType.free) {

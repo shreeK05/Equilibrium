@@ -279,6 +279,10 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
     final provider = context.watch<ScheduleProvider>();
     
     int scheduledMinutes = widget.task.scheduledMinutes;
+    String displayStatus = widget.task.status.toString().split('.').last.toUpperCase();
+    if (widget.task.status == TaskStatus.pending && scheduledMinutes > 0) {
+      displayStatus = 'SCHEDULED';
+    }
 
     final deadlineStr = DateFormat('MMM d, h:mm a').format(widget.task.deadline);
     final isFlexible = widget.task.deadlineType == DeadlineType.flexible;
@@ -304,7 +308,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildMetric(context, 'Status', widget.task.status.toString().split('.').last.toUpperCase(), Icons.info_outline),
+              _buildMetric(context, 'Status', displayStatus, Icons.info_outline),
               _buildMetric(context, 'Load', widget.task.cognitiveLoadLabel, Icons.psychology_alt),
             ],
           ),

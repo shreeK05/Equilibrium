@@ -262,16 +262,26 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
                 const SizedBox(width: EqTokens.space12),
                 Expanded(
                   flex: 2,
-                  child: TextField(
-                    controller: _categoryCtrl,
-                    style: TextStyle(color: colors.textPrimary, fontSize: 13),
+                  child: DropdownButtonFormField<String>(
+                    value: _categoryCtrl.text.isEmpty ? null : _categoryCtrl.text,
                     decoration: InputDecoration(
                       labelText: 'Category',
-                      hintText: 'e.g. Assignment',
                       filled: true,
                       fillColor: colors.surface,
                       border: OutlineInputBorder(borderRadius: EqTokens.border8, borderSide: BorderSide.none),
                     ),
+                    items: const [
+                      DropdownMenuItem(value: 'Assignment', child: Text('Assignment')),
+                      DropdownMenuItem(value: 'Project', child: Text('Project')),
+                      DropdownMenuItem(value: 'Revision', child: Text('Revision')),
+                      DropdownMenuItem(value: 'Lab', child: Text('Lab')),
+                      DropdownMenuItem(value: 'Reading', child: Text('Reading')),
+                      DropdownMenuItem(value: 'Exam Prep', child: Text('Exam Prep')),
+                      DropdownMenuItem(value: 'Other', child: Text('Other')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) setState(() => _categoryCtrl.text = val);
+                    },
                   ),
                 ),
               ],
