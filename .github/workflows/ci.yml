@@ -60,10 +60,10 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
+      - run: flutter build web --release --dart-define=API_BASE_URL=https://equilibrium-42g8.onrender.com/api/v1
       - run: flutter build apk --release --dart-define=API_BASE_URL=https://equilibrium-42g8.onrender.com/api/v1
-      
-      - name: Upload Android APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: equilibrium-android-apk
+          name: Equilibrium-APK
           path: equilibrium_app/build/app/outputs/flutter-apk/app-release.apk

@@ -235,56 +235,27 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
             ).animate().fade().slideY(begin: 0.2, duration: 300.ms),
             const SizedBox(height: EqTokens.space16),
 
-            // Subject & Category row
-            Row(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: Consumer<ExamProvider>(
-                    builder: (context, provider, _) {
-                      return DropdownButtonFormField<String>(
-                        initialValue: _subjectId,
-                        decoration: InputDecoration(
-                          labelText: 'Category',
-                          filled: true,
-                          fillColor: colors.surface,
-                          border: OutlineInputBorder(borderRadius: EqTokens.border8, borderSide: BorderSide.none),
-                        ),
-                        items: [
-                          const DropdownMenuItem(value: null, child: Text('General')),
-                          ...provider.subjects.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name))),
-                        ],
-                        onChanged: (val) => setState(() => _subjectId = val),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(width: EqTokens.space12),
-                Expanded(
-                  flex: 2,
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _categoryCtrl.text.isEmpty ? null : _categoryCtrl.text,
-                    decoration: InputDecoration(
-                      labelText: 'Subject',
-                      filled: true,
-                      fillColor: colors.surface,
-                      border: OutlineInputBorder(borderRadius: EqTokens.border8, borderSide: BorderSide.none),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'Assignment', child: Text('Assignment')),
-                      DropdownMenuItem(value: 'Project', child: Text('Project')),
-                      DropdownMenuItem(value: 'Revision', child: Text('Revision')),
-                      DropdownMenuItem(value: 'Lab', child: Text('Lab')),
-                      DropdownMenuItem(value: 'Reading', child: Text('Reading')),
-                      DropdownMenuItem(value: 'Exam Prep', child: Text('Exam Prep')),
-                      DropdownMenuItem(value: 'Other', child: Text('Other')),
-                    ],
-                    onChanged: (val) {
-                      if (val != null) setState(() => _categoryCtrl.text = val);
-                    },
-                  ),
-                ),
+            // Category
+            DropdownButtonFormField<String>(
+              initialValue: _categoryCtrl.text.isEmpty ? null : _categoryCtrl.text,
+              decoration: InputDecoration(
+                labelText: 'Category',
+                filled: true,
+                fillColor: colors.surface,
+                border: OutlineInputBorder(borderRadius: EqTokens.border8, borderSide: BorderSide.none),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'Assignment', child: Text('Assignment')),
+                DropdownMenuItem(value: 'Project', child: Text('Project')),
+                DropdownMenuItem(value: 'Revision', child: Text('Revision')),
+                DropdownMenuItem(value: 'Lab', child: Text('Lab')),
+                DropdownMenuItem(value: 'Reading', child: Text('Reading')),
+                DropdownMenuItem(value: 'Exam Prep', child: Text('Exam Prep')),
+                DropdownMenuItem(value: 'Other', child: Text('Other')),
               ],
+              onChanged: (val) {
+                if (val != null) setState(() => _categoryCtrl.text = val);
+              },
             ).animate().fade().slideY(begin: 0.2, duration: 300.ms),
             const SizedBox(height: EqTokens.space24),
 
