@@ -12,7 +12,8 @@ describe('Equilibrium Core Scheduler', () => {
     sleepStart: '23:00',
     sleepEnd: '06:00',
     minSleepHours: 7.0,
-    peakEnergyWindows: [{ start: '09:00', end: '12:00' }]
+    peakEnergyWindows: [{ start: '09:00', end: '12:00' }],
+    timezone: 'UTC'
   };
 
   it('A. Sleep Shield Invariant - Never overlaps', () => {

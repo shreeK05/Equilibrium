@@ -213,4 +213,32 @@ describe('Equilibrium API Integration Tests', () => {
       expect(res.body.status).toBe('ok');
     });
   });
+  describe('6. Imports API', () => {
+    it('should extract varied durations and confidences from syllabus text', async () => {
+      const syllabusText = `Computer Science 101 Syllabus\nCourse Requirements:\n- Programming Assignment 1: 120 minutes. Due: October 20, 2026.\n- Midterm Project: 240 minutes. Due: November 15, 2026.\n- Read Chapter 4: 60 minutes.\n-- 1 of 1 --\n`;
+      
+      const res = await request(app)
+        .post('/api/v1/imports/syllabus')
+        .set('Authorization', `Bearer ${userAToken}`)
+        .set('Content-Type', 'text/plain')
+        .send(syllabusText);
+      
+      expect(res.status).toBe(201);
+      expect(res.body.candidates).toBeDefined();
+      
+      const candidates = res.body.candidates;
+      
+      const assign = candidates.find((c: any) => c.title.includes('Programming Assignment 1'));
+      expect(assign.estimateMinutes).toBe(120);
+      expect(assign.confidence).toBeGreaterThan(0.5);
+
+      const proj = candidates.find((c: any) => c.title.includes('Midterm Project'));
+      expect(proj.estimateMinutes).toBe(240);
+      expect(proj.confidence).toBeGreaterThan(0.5);
+
+      const fallback = candidates.find((c: any) => c.title.includes('Course Requirements'));
+      expect(fallback.estimateMinutes).toBe(60);
+      expect(fallback.confidence).toBe(0.2); // Base confidence
+    });
+  });
 });

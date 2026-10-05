@@ -20,12 +20,47 @@ const confirmationSchema = z.object({
 
 function parseCandidates(rawText: string) {
   return rawText.split(/\r?\n/).map(line => line.trim()).filter(Boolean).map(line => {
-    const match = line.match(/^(.+?)(?:\s+-\s+|\s+due\s+)(\d{4}-\d{2}-\d{2})(?:\s+(\d+)\s*(?:m|min|minutes))?$/i);
+    let estimateMinutes = 60;
+    let confidence = 0.2; // base confidence
+    
+    // Find duration like "120 minutes", "30 min"
+    const minMatch = line.match(/(\d+)\s*(?:m|min|minute|minutes)\b/i);
+    // Find duration like "2 hours", "1.5 hr"
+    const hrMatch = line.match(/([\d.]+)\s*(?:h|hr|hour|hours)\b/i);
+    
+    if (minMatch) {
+      estimateMinutes = parseInt(minMatch[1], 10);
+      confidence += 0.4;
+    } else if (hrMatch) {
+      estimateMinutes = Math.round(parseFloat(hrMatch[1]) * 60);
+      confidence += 0.4;
+    }
+
+    // Find dates like "2026-10-20" or "Due: October 20, 2026"
+    let deadline: Date | null = null;
+    const isoDateMatch = line.match(/(\d{4}-\d{2}-\d{2})/);
+    const textDateMatch = line.match(/Due:?\s*([a-zA-Z]+\s+\d{1,2}(?:,\s*\d{4})?)/i);
+    
+    if (isoDateMatch) {
+      deadline = new Date(`${isoDateMatch[1]}T23:59:00.000Z`);
+      confidence += 0.3;
+    } else if (textDateMatch) {
+      const parsedDate = new Date(textDateMatch[1]);
+      if (!isNaN(parsedDate.getTime())) {
+        parsedDate.setUTCHours(23, 59, 0, 0);
+        deadline = parsedDate;
+        confidence += 0.3;
+      }
+    }
+    
+    // Clean up title
+    let title = line.replace(/^(?:-|\*|\d+\.)\s*/, '').trim();
+
     return {
-      title: match?.[1]?.trim() ?? line,
-      deadline: match?.[2] ? new Date(`${match[2]}T23:59:00.000Z`) : null,
-      estimateMinutes: match?.[3] ? Number(match[3]) : 60,
-      confidence: match ? 0.9 : 0.45,
+      title,
+      deadline,
+      estimateMinutes,
+      confidence: Math.min(confidence, 1.0),
       rawText: line
     };
   });

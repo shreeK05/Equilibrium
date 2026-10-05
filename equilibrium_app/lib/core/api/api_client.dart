@@ -57,13 +57,29 @@ class ApiClient {
     }
   }
 
-  Future<dynamic> postText(String endpoint, String body) async {
+  Future<dynamic> postBinary(String endpoint, Uint8List body, String contentType) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl$endpoint'),
         headers: {
           ...await _getHeaders(),
-          'Content-Type': 'text/plain',
+          'Content-Type': contentType,
+        },
+        body: body,
+      ).timeout(const Duration(seconds: 60));
+      return _processResponse(response);
+    } catch (e) {
+      _handleNetworkError(e);
+    }
+  }
+
+  Future<dynamic> postText(String endpoint, String body, {String contentType = 'text/plain'}) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl$endpoint'),
+        headers: {
+          ...await _getHeaders(),
+          'Content-Type': contentType,
         },
         body: body,
       ).timeout(const Duration(seconds: 60));

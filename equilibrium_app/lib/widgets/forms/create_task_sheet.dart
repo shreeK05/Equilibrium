@@ -245,10 +245,12 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
               items: const [
                 DropdownMenuItem(value: 'Assignment', child: Text('Assignment')),
                 DropdownMenuItem(value: 'Project', child: Text('Project')),
-                DropdownMenuItem(value: 'Revision', child: Text('Revision')),
-                DropdownMenuItem(value: 'Lab', child: Text('Lab')),
-                DropdownMenuItem(value: 'Reading', child: Text('Reading')),
-                DropdownMenuItem(value: 'Exam Prep', child: Text('Exam Prep')),
+                DropdownMenuItem(value: 'Lab Record', child: Text('Lab Record')),
+                DropdownMenuItem(value: 'Internal Prep', child: Text('Internal Prep')),
+                DropdownMenuItem(value: 'End Sem Prep', child: Text('End Sem Prep')),
+                DropdownMenuItem(value: 'Viva Prep', child: Text('Viva Prep')),
+                DropdownMenuItem(value: 'Tutorial', child: Text('Tutorial')),
+                DropdownMenuItem(value: 'Placement Prep', child: Text('Placement Prep')),
                 DropdownMenuItem(value: 'Other', child: Text('Other')),
               ],
               onChanged: (val) {

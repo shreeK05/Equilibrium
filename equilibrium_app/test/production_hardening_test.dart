@@ -81,7 +81,7 @@ void main() {
     // Let the network call fail immediately or eventually
     await tester.pumpAndSettle();
 
-    // Should show error state since it's a fake URL
-    expect(find.textContaining('load the scheduling explanation'), findsOneWidget);
+    // Should show error state since it's a fake URL, which now renders the local explanation UI
+    expect(find.textContaining('Why this matters'), findsOneWidget);
   });
 }

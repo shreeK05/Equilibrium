@@ -11,6 +11,8 @@ import '../../screens/profile/profile_screen.dart';
 import '../../screens/timer/timer_screen.dart';
 import '../forms/create_task_sheet.dart';
 import '../forms/create_commitment_sheet.dart';
+import '../../screens/imports/syllabus_import_screen.dart';
+import '../../screens/imports/ics_import_screen.dart';
 import '../../core/state/schedule_provider.dart';
 import '../../core/state/timer_provider.dart';
 import '../../core/api/api_client.dart';
@@ -264,6 +266,26 @@ class _AppShellState extends State<AppShell> {
                     backgroundColor: Colors.transparent,
                     builder: (context) => const CreateCommitmentSheet(),
                   );
+                },
+              ),
+              const SizedBox(height: 4),
+              ListTile(
+                leading: CircleAvatar(backgroundColor: colors.surfaceElevated, child: Icon(Icons.picture_as_pdf, color: colors.primary)),
+                title: Text('Import Syllabus', style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600)),
+                subtitle: Text('Extract tasks from a PDF', style: TextStyle(color: colors.textSecondary)),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const SyllabusImportScreen()));
+                },
+              ),
+              const SizedBox(height: 4),
+              ListTile(
+                leading: CircleAvatar(backgroundColor: colors.surfaceElevated, child: Icon(Icons.calendar_today, color: colors.primary)),
+                title: Text('Import Calendar', style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600)),
+                subtitle: Text('Import from ICS file', style: TextStyle(color: colors.textSecondary)),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const IcsImportScreen()));
                 },
               ),
             ],

@@ -10,7 +10,7 @@ import { runReschedulerPipeline } from '../src/scheduler/rescheduler';
 import { TaskInput, ConstraintInput, FixedCommitment } from '../src/scheduler/types';
 import { intervalsIntersect } from '../src/scheduler/guard';
 
-describe.skip('Regression: Student Workflow Fixes', () => {
+describe('Regression: Student Workflow Fixes', () => {
   const now = new Date('2026-10-14T08:00:00.000Z');
   const horizonStart = new Date('2026-10-14T00:00:00.000Z');
   const horizonEnd = new Date('2026-10-21T00:00:00.000Z'); // 7-day horizon
@@ -20,7 +20,8 @@ describe.skip('Regression: Student Workflow Fixes', () => {
     sleepEnd: '06:00',
     minSleepHours: 7.0,
     bufferMinutes: 15,
-    peakEnergyWindows: [{ start: '09:00', end: '12:00' }, { start: '15:00', end: '17:00' }]
+    peakEnergyWindows: [{ start: '09:00', end: '12:00' }, { start: '15:00', end: '17:00' }],
+    timezone: 'UTC'
   };
 
   // ─── Bug 1: Fixed Commitment Protection ──────────────────────────────────────
@@ -203,7 +204,8 @@ describe.skip('Regression: Student Workflow Fixes', () => {
       sleepEnd: '07:00',
       minSleepHours: 7.5,
       bufferMinutes: 0,
-      peakEnergyWindows: [{ start: '09:00', end: '12:00' }]
+      peakEnergyWindows: [{ start: '09:00', end: '12:00' }],
+      timezone: 'UTC'
     };
 
     it('REG-3a: Tasks never scheduled during 23:30–07:00 sleep window', () => {

@@ -227,7 +227,58 @@ class ScheduleProvider extends ChangeNotifier {
     }
   }
 
-    Future<bool> generateSchedule() async {
+  Future<Map<String, dynamic>?> importSyllabusPdf(Uint8List bytes) async {
+    _setLoading(true);
+    try {
+      return await _api.postBinary('/imports/syllabus', bytes, 'application/pdf');
+    } on ApiException catch (e) {
+      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code, e.message);
+      return null;
+    } catch (_) {
+      errorMessage = ApiErrorMapper.getUserFacingMessage('INTERNAL_ERROR');
+      return null;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<bool> confirmSyllabusTasks(String jobId, List<Map<String, dynamic>> candidates) async {
+    _setLoading(true);
+    try {
+      await _api.post('/imports/syllabus/$jobId/confirm', body: {
+        'candidates': candidates
+      });
+      await fetchDashboardData();
+      return true;
+    } on ApiException catch (e) {
+      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code, e.message);
+      return false;
+    } catch (_) {
+      errorMessage = ApiErrorMapper.getUserFacingMessage('INTERNAL_ERROR');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<Map<String, dynamic>?> importIcs(String icsData) async {
+    _setLoading(true);
+    try {
+      final res = await _api.postText('/imports/calendar/ics', icsData, contentType: 'text/calendar');
+      await fetchDashboardData();
+      return res;
+    } on ApiException catch (e) {
+      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code, e.message);
+      return null;
+    } catch (_) {
+      errorMessage = ApiErrorMapper.getUserFacingMessage('INTERNAL_ERROR');
+      return null;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<bool> generateSchedule() async {
     _setLoading(true);
     try {
       await _scheduleRepo.generateSchedule();

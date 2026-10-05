@@ -69,8 +69,8 @@ async function run() {
       title: 'MWF Morning Routine',
       type: 'ROUTINE',
       daysOfWeek: "[1,3,5]", // Mon, Wed, Fri
-      startTime: '2026-10-14T07:00:00.000Z',
-      endTime: '2026-10-14T08:00:00.000Z'
+      startTime: '2026-10-14T01:30:00.000Z', // 07:00 IST
+      endTime: '2026-10-14T02:30:00.000Z'    // 08:00 IST
     });
     log('PASS: Recurring routine added');
 
@@ -173,6 +173,42 @@ async function run() {
       } else {
         throw err;
       }
+    }
+
+    log('10. Prove K4 (Recurring Routines) Blocks Time');
+    let routineOverlaps = 0;
+    const routineStart = 7 * 60; // 07:00 IST
+    const routineEnd = 8 * 60;   // 08:00 IST
+    
+    for (const b of newSchedule.blocks) {
+      if (b.blockType === 'TASK') {
+        const dStart = new Date(b.startTime);
+        const dEnd = new Date(b.endTime);
+        const startIST = new Date(dStart.getTime() + tzOffset);
+        const endIST = new Date(dEnd.getTime() + tzOffset);
+        
+        // Days 1, 3, 5 are Monday, Wednesday, Friday
+        const dayOfWeek = startIST.getUTCDay();
+        if (dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 5) {
+          const hStart = startIST.getUTCHours();
+          const mStart = startIST.getUTCMinutes();
+          const hEnd = endIST.getUTCHours();
+          const mEnd = endIST.getUTCMinutes();
+          
+          const mTimeStart = hStart * 60 + mStart;
+          const mTimeEnd = hEnd * 60 + mEnd;
+          
+          if (mTimeStart < routineEnd && mTimeEnd > routineStart) {
+             routineOverlaps++;
+             log(`FAIL K4 OVERLAP on Day ${dayOfWeek}: Block ${b.startTime} to ${b.endTime}`);
+          }
+        }
+      }
+    }
+    if (routineOverlaps === 0) {
+      log('PASS: 0 task blocks fall between 07:00 and 08:00 IST on Mon/Wed/Fri');
+    } else {
+      log(`FAIL: Found ${routineOverlaps} overlaps with routine window`);
     }
 
     log('ALL VERIFICATIONS COMPLETE AND PASSED.');

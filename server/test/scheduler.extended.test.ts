@@ -16,7 +16,7 @@ class LCG {
   }
 }
 
-describe.skip('Equilibrium Extended Core Scheduler Test Suite', () => {
+describe('Equilibrium Extended Core Scheduler Test Suite', () => {
   const now = new Date('2026-10-14T08:00:00.000Z');
   const horizonStart = new Date('2026-10-14T00:00:00.000Z');
   const horizonEnd = new Date('2026-10-21T00:00:00.000Z'); // 7 days
@@ -25,7 +25,8 @@ describe.skip('Equilibrium Extended Core Scheduler Test Suite', () => {
     sleepStart: '23:00',
     sleepEnd: '06:00',
     minSleepHours: 7.0,
-    peakEnergyWindows: [{ start: '09:00', end: '12:00' }]
+    peakEnergyWindows: [{ start: '09:00', end: '12:00' }],
+    timezone: 'UTC'
   };
 
   const createTask = (id: string, estimateMinutes: number, deadline: Date): TaskInput => ({

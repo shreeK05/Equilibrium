@@ -39,38 +39,38 @@ class AbsoluteSleepShield extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(EqTokens.space12),
           decoration: BoxDecoration(
-            color: context.eqColors.surfaceElevated.withValues(alpha: 0.5),
+            color: context.eqColors.sleepShieldMuted.withValues(alpha: 0.8),
             borderRadius: EqTokens.border8,
             border: Border.all(
-              color: context.eqColors.textSecondary.withValues(alpha: 0.2),
+              color: context.eqColors.sleepShield.withValues(alpha: 0.3),
               width: 1,
             ),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                Icons.nights_stay,
-                size: 16,
-                color: context.eqColors.textSecondary,
-              ),
-              const SizedBox(width: EqTokens.space8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Sleep Shield',
-                      style: context.eqText.labelLarge?.copyWith(
-                        color: context.eqColors.textSecondary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    if (displayDurationMinutes >= 60)
+                Icon(
+                  Icons.nights_stay,
+                  size: 16,
+                  color: context.eqColors.sleepShield,
+                ),
+                const SizedBox(width: EqTokens.space8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        '$startStr → $endStr',
-                        style: context.eqText.labelSmall?.copyWith(
-                          color: context.eqColors.textSecondary.withValues(alpha: 0.8),
+                        'Sleep Shield',
+                        style: context.eqText.labelLarge?.copyWith(
+                          color: context.eqColors.sleepShield,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      if (displayDurationMinutes >= 60)
+                        Text(
+                          '$startStr → $endStr',
+                          style: context.eqText.labelSmall?.copyWith(
+                            color: context.eqColors.sleepShield.withValues(alpha: 0.8),
                         ),
                       ),
                   ],

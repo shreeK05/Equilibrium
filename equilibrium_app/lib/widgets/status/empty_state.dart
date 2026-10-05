@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/theme.dart';
 import '../../core/theme/tokens.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class EmptyStateWidget extends StatelessWidget {
   final String title;
@@ -36,7 +37,7 @@ class EmptyStateWidget extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, size: 48, color: colors.primary),
-            ),
+            ).animate().scale(delay: 100.ms, duration: 400.ms, curve: Curves.easeOutBack),
             const SizedBox(height: EqTokens.space24),
             Text(
               title,
@@ -60,11 +61,11 @@ class EmptyStateWidget extends StatelessWidget {
                 ),
                 onPressed: onAction,
                 child: Text(actionLabel!, style: text.labelLarge?.copyWith(color: colors.surface)),
-              )
+              ).animate().fade(delay: 200.ms).slideY(begin: 0.2)
             ]
           ],
         ),
-      ),
+      ).animate().fade(duration: 400.ms),
     );
   }
 }

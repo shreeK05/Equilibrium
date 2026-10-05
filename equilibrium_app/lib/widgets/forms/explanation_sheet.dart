@@ -143,34 +143,47 @@ class _ExplanationSheetState extends State<ExplanationSheet> {
     final remaining = widget.task.remainingMinutes;
     final completion = widget.task.completedMinutes;
     return Container(
-      padding: const EdgeInsets.all(EqTokens.space16),
+      padding: const EdgeInsets.all(EqTokens.space24),
       decoration: BoxDecoration(
         color: colors.surface,
-        borderRadius: EqTokens.border12,
+        borderRadius: EqTokens.border16,
         border: Border.all(color: colors.surfaceElevated),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            Icon(Icons.info_outline, color: colors.primary),
-            const SizedBox(width: EqTokens.space8),
-            Text('Here is the simple version', style: text.titleMedium?.copyWith(color: colors.textPrimary)),
+            Icon(Icons.lightbulb_outline, color: colors.primary, size: 28),
+            const SizedBox(width: EqTokens.space12),
+            Text('Why this matters', style: text.headlineSmall?.copyWith(color: colors.primary, fontWeight: FontWeight.bold)),
           ]),
-          const SizedBox(height: EqTokens.space8),
+          const SizedBox(height: EqTokens.space16),
           Text(
-            'Couldn\'t load the scheduling explanation. Showing a simple explanation instead.',
-            style: text.bodySmall?.copyWith(color: colors.textSecondary),
+            'This task needs $remaining minutes more. It has a ${widget.task.cognitiveLoadLabel} focus load and an academic priority of ${(widget.task.academicWeight * 100).round()}%.',
+            style: text.bodyLarge?.copyWith(color: colors.textPrimary, height: 1.5, fontSize: 18),
           ),
-          const SizedBox(height: EqTokens.space12),
+          const SizedBox(height: EqTokens.space16),
           Text(
-            'This task needs $remaining minutes more. It has a ${widget.task.cognitiveLoadLabel} focus load and an academic priority of ${(widget.task.academicWeight * 100).round()}%. The planner places it only in safe time before the deadline and never inside your Sleep Shield.',
-            style: text.bodyLarge?.copyWith(color: colors.textPrimary, height: 1.35),
+            'The Equilibrium engine places it safely before the deadline and strictly outside your Sleep Shield.',
+            style: text.titleMedium?.copyWith(color: colors.textSecondary, height: 1.4, fontStyle: FontStyle.italic),
           ),
-          const SizedBox(height: EqTokens.space12),
-          Text(
-            '$completion minutes completed so far. Detailed server reasoning will appear after the schedule decision is available.',
-            style: text.bodyMedium?.copyWith(color: colors.textSecondary),
+          const SizedBox(height: EqTokens.space16),
+          Container(
+            padding: const EdgeInsets.all(EqTokens.space12),
+            decoration: BoxDecoration(color: colors.primary.withValues(alpha: 0.1), borderRadius: EqTokens.border8),
+            child: Row(
+              children: [
+                Icon(Icons.timeline, color: colors.primary, size: 20),
+                const SizedBox(width: EqTokens.space8),
+                Text(
+                  '$completion minutes completed so far.',
+                  style: text.labelLarge?.copyWith(color: colors.primary, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -225,39 +238,53 @@ class _ExplanationSheetState extends State<ExplanationSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: EqTokens.space12, vertical: EqTokens.space4),
+            padding: const EdgeInsets.symmetric(horizontal: EqTokens.space16, vertical: EqTokens.space8),
             decoration: BoxDecoration(
-              color: badgeColor.withValues(alpha: 0.1),
-              borderRadius: EqTokens.border4,
+              color: badgeColor.withValues(alpha: 0.15),
+              borderRadius: EqTokens.border8,
+              border: Border.all(color: badgeColor.withValues(alpha: 0.5)),
             ),
             child: Text(
               decisionTitle,
-              style: text.labelSmall?.copyWith(color: badgeColor, fontWeight: FontWeight.bold),
+              style: text.titleSmall?.copyWith(color: badgeColor, fontWeight: FontWeight.bold, letterSpacing: 1.5),
             ),
           ),
-          const SizedBox(height: EqTokens.space16),
+          const SizedBox(height: EqTokens.space24),
           Text(
-            'Reason:',
-            style: text.labelLarge?.copyWith(color: colors.textSecondary),
+            'THE ENGINE\'S REASONING',
+            style: text.labelLarge?.copyWith(color: colors.textSecondary, letterSpacing: 2.0, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: EqTokens.space4),
+          const SizedBox(height: EqTokens.space8),
           Text(
             explanationText,
-            style: text.bodyLarge?.copyWith(color: colors.textPrimary),
+            style: text.headlineSmall?.copyWith(color: colors.textPrimary, height: 1.4, fontWeight: FontWeight.w600),
           ),
           
           const SizedBox(height: EqTokens.space32),
-          Text(
-            'CONSTRAINTS PROTECTED',
-            style: text.labelMedium?.copyWith(
-              color: colors.textSecondary,
-              letterSpacing: 1.0,
+          Container(
+            padding: const EdgeInsets.all(EqTokens.space20),
+            decoration: BoxDecoration(
+              color: colors.surfaceElevated,
+              borderRadius: EqTokens.border16,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'CONSTRAINTS PROTECTED',
+                  style: text.labelMedium?.copyWith(
+                    color: colors.textSecondary,
+                    letterSpacing: 1.5,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: EqTokens.space16),
+                _buildConstraintCheck(context, 'Sleep Shield active'),
+                _buildConstraintCheck(context, 'Fixed routines respected'),
+                _buildConstraintCheck(context, 'Deadline honored'),
+              ],
             ),
           ),
-          const SizedBox(height: EqTokens.space12),
-          _buildConstraintCheck(context, 'Sleep protected'),
-          _buildConstraintCheck(context, 'Fixed commitments respected'),
-          _buildConstraintCheck(context, 'Deadline considered'),
         ],
       ),
     );

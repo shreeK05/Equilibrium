@@ -62,14 +62,12 @@ void main() {
     await tester.pumpWidget(createTestWidget(
       const TaskCard(
         title: 'Math HW',
-        subject: 'MATH101',
         durationStr: '2h 0m',
         deadlineStr: 'Tomorrow',
         status: EqStatus.deferred,
       ),
     ));
 
-    expect(find.text('MATH101'), findsOneWidget);
     expect(find.text('Math HW'), findsOneWidget);
     // TaskCard no longer renders status badge directly in the new UI.
   });
