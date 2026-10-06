@@ -19,6 +19,7 @@ import '../../core/api/api_client.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../screens/commitments/commitments_screen.dart';
+import '../../screens/analytics/analytics_screen.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -36,13 +37,14 @@ class _AppShellState extends State<AppShell> {
     TasksScreen(),
     ExamsScreen(),
     CommitmentsScreen(),
+    AnalyticsScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
     final colors = context.eqColors;
 
-    final tabTitles = ['Today', 'Schedule', 'Tasks', 'Exams', 'Commitments'];
+    final tabTitles = ['Today', 'Schedule', 'Tasks', 'Exams', 'Locked', 'Analytics'];
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -201,6 +203,11 @@ class _AppShellState extends State<AppShell> {
               activeIcon: Icon(CupertinoIcons.pin_fill),
               label: 'Locked',
             ),
+            BottomNavigationBarItem(
+              icon: Icon(CupertinoIcons.chart_bar),
+              activeIcon: Icon(CupertinoIcons.chart_bar_fill),
+              label: 'Analytics',
+            ),
           ],
         ),
       ),
@@ -221,12 +228,13 @@ class _AppShellState extends State<AppShell> {
       backgroundColor: colors.background,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('What would you like to add?',
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('What would you like to add?',
                 style: TextStyle(color: colors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 24),
               ListTile(
@@ -292,6 +300,7 @@ class _AppShellState extends State<AppShell> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

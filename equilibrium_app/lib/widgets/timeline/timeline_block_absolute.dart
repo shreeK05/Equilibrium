@@ -129,11 +129,29 @@ class AbsoluteTimelineBlock extends StatelessWidget {
       } else if (type == BlockType.fixed || block.type == 'ROUTINE') {
         title = 'Fixed Commitment';
         try {
-          if (block.fixedCommitmentId != null) {
-            final provider = context.read<ScheduleProvider>();
-            final c = provider.commitments.firstWhere((c) => c.id == block.fixedCommitmentId);
-            title = c.title;
-          }
+          final displayStartLocal = displayStart.toLocal();
+          final provider = context.read<ScheduleProvider>();
+          final c = provider.commitments.firstWhere((c) {
+            if (block.fixedCommitmentId != null && c.id == block.fixedCommitmentId) return true;
+            
+            // Time match
+            final cStartLocal = c.startTime.toLocal();
+            if (cStartLocal.hour != displayStartLocal.hour || cStartLocal.minute != displayStartLocal.minute) {
+              return false;
+            }
+            
+            // Date/Day match (handle recurring vs one-off)
+            if (c.daysOfWeek != null && c.daysOfWeek!.isNotEmpty) {
+               final currentDayMap = { 1:'MON', 2:'TUE', 3:'WED', 4:'THU', 5:'FRI', 6:'SAT', 7:'SUN' };
+               final currentDayStr = currentDayMap[displayStartLocal.weekday]!;
+               return c.daysOfWeek!.contains(currentDayStr);
+            } else {
+               return cStartLocal.year == displayStartLocal.year &&
+                      cStartLocal.month == displayStartLocal.month &&
+                      cStartLocal.day == displayStartLocal.day;
+            }
+          });
+          title = c.title;
         } catch (_) {}
       } else if (type == BlockType.breakTime) {
         title = 'Break';
