@@ -122,7 +122,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 ),
               ),
               Text(
-                '${focusScore.toStringAsFixed(0)}',
+                focusScore.toStringAsFixed(0),
                 style: TextStyle(color: colors.textPrimary, fontSize: 36, fontWeight: FontWeight.w800),
               ),
             ],
