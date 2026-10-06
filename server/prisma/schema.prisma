@@ -11,7 +11,7 @@ model User {
   id               String            @id @default(uuid())
   email            String            @unique
   passwordHash     String
-  timezone         String            @default("UTC")
+  timezone         String            @default("Asia/Kolkata")
   // V2 Profile fields
   name             String?
   college          String?

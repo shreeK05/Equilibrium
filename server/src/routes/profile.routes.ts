@@ -3,6 +3,7 @@ import { authenticate } from '../middleware/auth';
 import { prisma } from '../db';
 import { z } from 'zod';
 import { validate } from '../middleware/validate';
+import { isValidTimezone } from '../scheduler/timezone';
 
 export const profileRouter = Router();
 profileRouter.use(authenticate);
@@ -14,7 +15,7 @@ const profileUpdateSchema = z.object({
   branch: z.string().max(100).optional().nullable(),
   semester: z.string().max(20).optional().nullable(),
   themePreference: z.enum(['light', 'dark', 'system']).optional(),
-  timezone: z.string().max(50).optional(),
+  timezone: z.string().max(64).refine(isValidTimezone, 'Invalid IANA timezone').optional(),
 }).strict().refine(data => Object.keys(data).length > 0, { message: 'At least one field required' });
 
 // GET /api/v1/profile

@@ -40,7 +40,7 @@ class ScheduleTimeline extends StatelessWidget {
         constraints: const BoxConstraints(maxWidth: 800), // Desktop responsiveness
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.only(top: EqTokens.space16, bottom: 100),
+          padding: const EdgeInsets.only(top: EqTokens.space16, bottom: 140),
           child: _DayTimeline(
             day: dayStart,
             blocks: dayBlocks,

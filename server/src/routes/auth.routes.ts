@@ -22,8 +22,8 @@ authRouter.use(authRateLimiter);
 
 authRouter.post('/register', validate(registerSchema), async (req, res, next) => {
   try {
-    const { email, password } = req.body;
-    const result = await authService.register(email, password);
+    const { email, password, timezone } = req.body;
+    const result = await authService.register(email, password, timezone);
     res.json(result);
   } catch (err: any) {
     if (err.message === 'Email in use') return res.status(409).json({ error: { message: err.message } });

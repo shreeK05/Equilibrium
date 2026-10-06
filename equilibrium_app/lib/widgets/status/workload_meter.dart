@@ -45,26 +45,26 @@ class WorkloadMeter extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             SizedBox(
-              width: 80,
-              height: 80,
+              width: 56,
+              height: 56,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
                   CircularProgressIndicator(
                     value: 1.0,
-                    strokeWidth: 8,
+                    strokeWidth: 6,
                     color: colors.surfaceElevated,
                   ),
                   CircularProgressIndicator(
                     value: value,
-                    strokeWidth: 8,
+                    strokeWidth: 6,
                     strokeCap: StrokeCap.round,
                     color: indicatorColor,
                   ),
                   Center(
                     child: Text(
                       '${(value * 100).toInt()}%',
-                      style: text.titleLarge?.copyWith(
+                      style: text.titleMedium?.copyWith(
                         color: colors.textPrimary,
                         fontWeight: FontWeight.w700,
                       ),
@@ -73,19 +73,20 @@ class WorkloadMeter extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: EqTokens.space24),
+            const SizedBox(width: EqTokens.space16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     '$plannedStr planned',
-                    style: text.titleMedium?.copyWith(color: colors.textPrimary),
+                    style: text.titleSmall?.copyWith(color: colors.textPrimary, fontWeight: FontWeight.w600),
                   ),
-                  const SizedBox(height: EqTokens.space4),
+                  const SizedBox(height: 2),
                   Text(
                     '$remainingStr remaining capacity',
-                    style: text.bodyMedium?.copyWith(color: colors.textSecondary),
+                    style: text.bodySmall?.copyWith(color: colors.textSecondary),
                   ),
                 ],
               ),

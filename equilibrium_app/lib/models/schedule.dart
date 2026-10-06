@@ -4,6 +4,7 @@ class ScheduleBlock {
   final String id;
   final String versionId;
   final String? taskId;
+  final String? fixedCommitmentId;
   final DateTime startTime;
   final DateTime endTime;
   final int durationMinutes;
@@ -14,6 +15,7 @@ class ScheduleBlock {
     required this.id,
     required this.versionId,
     this.taskId,
+    this.fixedCommitmentId,
     required this.startTime,
     required this.endTime,
     required this.durationMinutes,
@@ -26,6 +28,7 @@ class ScheduleBlock {
       id: json['id'] as String,
       versionId: json['versionId'] as String,
       taskId: json['taskId'] as String?,
+      fixedCommitmentId: json['fixedCommitmentId'] as String?,
       startTime: DateTime.parse(json['startTime'] as String).toLocal(),
       endTime: DateTime.parse(json['endTime'] as String).toLocal(),
       durationMinutes: json['durationMinutes'] as int,
@@ -39,6 +42,7 @@ class ScheduleBlock {
     'id': id,
     'versionId': versionId,
     'taskId': taskId,
+    'fixedCommitmentId': fixedCommitmentId,
     'startTime': startTime.toIso8601String(),
     'endTime': endTime.toIso8601String(),
     'durationMinutes': durationMinutes,

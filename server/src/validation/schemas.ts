@@ -1,8 +1,10 @@
 import { z } from 'zod';
+import { isValidTimezone } from '../scheduler/timezone';
 
 export const registerSchema = z.object({
   email: z.string().email().toLowerCase().max(255),
-  password: z.string().min(8, 'Password must be at least 8 characters').max(128)
+  password: z.string().min(8, 'Password must be at least 8 characters').max(128),
+  timezone: z.string().max(64).refine(isValidTimezone, 'Invalid IANA timezone').optional()
 });
 
 export const taskSchema = z.object({

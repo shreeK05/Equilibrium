@@ -3,6 +3,7 @@ import { authenticate } from '../middleware/auth';
 import { prisma } from '../db';
 import { z } from 'zod';
 import { validate } from '../middleware/validate';
+import { examPrepService } from '../services/exam-prep.service';
 
 export const examsRouter = Router();
 examsRouter.use(authenticate);
@@ -185,39 +186,12 @@ examsRouter.delete('/:examId/topics/:topicId', async (req: any, res, next) => {
   }
 });
 
-// POST /api/v1/exams/:id/schedule-topics — converts exam topics into real tasks for scheduling
+// POST /api/v1/exams/:id/schedule-topics — converts exam topics into tasks, then re-plans the calendar
+// through the shared scheduling pipeline (see ExamPrepService.scheduleTopics).
 examsRouter.post('/:id/schedule-topics', async (req: any, res, next) => {
   try {
-    const exam = await prisma.exam.findFirst({
-      where: { id: req.params.id, userId: req.userId },
-      include: { topics: true }
-    });
-    if (!exam) return res.status(404).json({ error: { message: 'Exam not found' } });
-
-    const createdTasks = [];
-    for (const topic of exam.topics) {
-      if (topic.isCompleted || topic.linkedTaskId) continue;
-
-      // Create a real task for this topic so the scheduler can plan it
-      const task = await prisma.task.create({
-        data: {
-          userId: req.userId,
-          subjectId: exam.subjectId ?? null,
-          title: `${exam.title} — ${topic.title}`,
-          description: `${topic.topicType} session for ${exam.title}`,
-          category: 'Exam Prep',
-          estimateMinutes: topic.estimateMinutes,
-          deadline: exam.examDate,
-          deadlineType: 'HARD',
-          academicWeight: 0.9, // exam prep gets high academic weight
-          cognitiveLoad: topic.topicType === 'MOCK_TEST' ? 'HIGH' : 'MEDIUM',
-        }
-      });
-      // Link back
-      await prisma.examTopic.update({ where: { id: topic.id }, data: { linkedTaskId: task.id } });
-      createdTasks.push(task);
-    }
-
-    res.status(201).json({ tasksCreated: createdTasks.length, tasks: createdTasks });
+    const result = await examPrepService.scheduleTopics(req.userId, req.params.id);
+    if (!result) return res.status(404).json({ error: { message: 'Exam not found' } });
+    res.status(201).json(result);
   } catch (err) { next(err); }
 });

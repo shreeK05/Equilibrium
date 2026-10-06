@@ -92,13 +92,25 @@ class ScheduleScreen extends StatelessWidget {
                 ),
               ).animate().fade(delay: 100.ms),
               Expanded(
-                child: ScheduleTimeline(
-                  schedule: schedule,
-                  tasks: provider.activeTasks,
-                  commitments: provider.commitments,
-                  constraints: provider.constraints,
-                  selectedDate: provider.selectedDate,
-                ).animate().fade(delay: 200.ms),
+                child: GestureDetector(
+                  onHorizontalDragEnd: (details) {
+                    final velocity = details.primaryVelocity ?? 0;
+                    if (velocity > 300) {
+                      // Swipe right -> previous day
+                      provider.setSelectedDate(provider.selectedDate.subtract(const Duration(days: 1)));
+                    } else if (velocity < -300) {
+                      // Swipe left -> next day
+                      provider.setSelectedDate(provider.selectedDate.add(const Duration(days: 1)));
+                    }
+                  },
+                  child: ScheduleTimeline(
+                    schedule: schedule,
+                    tasks: provider.activeTasks,
+                    commitments: provider.commitments,
+                    constraints: provider.constraints,
+                    selectedDate: provider.selectedDate,
+                  ).animate().fade(delay: 200.ms),
+                ),
               ),
             ],
           );

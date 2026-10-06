@@ -81,7 +81,8 @@ describe('Extended Integration API Tests (Focus Sessions, Exams, Subjects, Profi
       
       expect(res.status).toBe(200);
       expect(res.body.length).toBeGreaterThan(0);
-      expect(res.body[0].name).toBe('Computer Science');
+      const subject = res.body.find((s: any) => s.name === 'Computer Science');
+      expect(subject).toBeDefined();
     });
   });
 

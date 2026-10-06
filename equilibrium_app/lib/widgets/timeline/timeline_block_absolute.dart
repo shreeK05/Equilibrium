@@ -53,13 +53,15 @@ class AbsoluteTimelineBlock extends StatelessWidget {
             } else if (block.type == 'FIXED' || block.type == 'ROUTINE') {
               final provider = context.read<ScheduleProvider>();
               try {
-                final commitment = provider.commitments.firstWhere((c) => c.id == block.id);
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  builder: (context) => CommitmentDetailSheet(commitment: commitment),
-                );
+                if (block.fixedCommitmentId != null) {
+                  final commitment = provider.commitments.firstWhere((c) => c.id == block.fixedCommitmentId);
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (context) => CommitmentDetailSheet(commitment: commitment),
+                  );
+                }
               } catch (_) {}
             }
           },
@@ -100,19 +102,19 @@ class AbsoluteTimelineBlock extends StatelessWidget {
     Color borderColor;
     
     if (type == BlockType.task) {
-      bgColor = block.isLocked ? colors.statusCompleted.withValues(alpha: 0.1) : colors.primary.withValues(alpha: 0.05);
+      bgColor = block.isLocked ? colors.statusCompleted.withValues(alpha: 0.15) : colors.primary.withValues(alpha: 0.12);
       fgColor = block.isLocked ? colors.statusCompleted : colors.primary;
-      borderColor = block.isLocked ? colors.statusCompleted.withValues(alpha: 0.3) : colors.primary.withValues(alpha: 0.2);
+      borderColor = block.isLocked ? colors.statusCompleted.withValues(alpha: 0.4) : colors.primary.withValues(alpha: 0.3);
     } else if (type == BlockType.fixed) {
-      bgColor = colors.warning.withValues(alpha: 0.1);
+      bgColor = colors.warning.withValues(alpha: 0.15);
       fgColor = colors.warning;
-      borderColor = colors.warning.withValues(alpha: 0.3);
+      borderColor = colors.warning.withValues(alpha: 0.5);
     } else if (type == BlockType.breakTime) {
-      bgColor = colors.energyMedium.withValues(alpha: 0.1);
+      bgColor = colors.energyMedium.withValues(alpha: 0.15);
       fgColor = colors.energyMedium;
-      borderColor = colors.energyMedium.withValues(alpha: 0.3);
+      borderColor = colors.energyMedium.withValues(alpha: 0.4);
     } else {
-      bgColor = Colors.transparent;
+      bgColor = colors.textSecondary.withValues(alpha: 0.05);
       fgColor = colors.textSecondary;
       borderColor = colors.surfaceElevated;
     }
@@ -127,9 +129,11 @@ class AbsoluteTimelineBlock extends StatelessWidget {
       } else if (type == BlockType.fixed || block.type == 'ROUTINE') {
         title = 'Fixed Commitment';
         try {
-          final provider = context.read<ScheduleProvider>();
-          final c = provider.commitments.firstWhere((c) => c.id == block.id);
-          title = c.title;
+          if (block.fixedCommitmentId != null) {
+            final provider = context.read<ScheduleProvider>();
+            final c = provider.commitments.firstWhere((c) => c.id == block.fixedCommitmentId);
+            title = c.title;
+          }
         } catch (_) {}
       } else if (type == BlockType.breakTime) {
         title = 'Break';

@@ -160,9 +160,9 @@ describe('Equilibrium Security Tests', () => {
     });
 
     it('rate limits authentication endpoints', async () => {
-      // Loop to trigger rate limit (max 100 requests in test mode)
+      // Loop to trigger rate limit (max 1000 requests in test mode)
       let finalStatus = 200;
-      for (let i = 0; i < 105; i++) {
+      for (let i = 0; i < 1005; i++) {
         const res = await request(app).post('/api/v1/auth/login').send({ email: 'secA@test.com', password: 'wrong' });
         finalStatus = res.status;
       }

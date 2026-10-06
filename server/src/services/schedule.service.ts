@@ -4,18 +4,25 @@ import { constraintRepo } from '../repositories/constraint.repo';
 import { FixedCommitmentRepository } from '../repositories/commitment.repo';
 import { userRepo } from '../repositories/user.repo';
 import { runReschedulerPipeline } from '../scheduler/rescheduler';
+import { resolveTimezone } from '../scheduler/timezone';
 import { TaskInput, ConstraintInput, ScheduleBlock, FixedCommitment } from '../scheduler/types';
 import { toDate, format } from 'date-fns-tz';
 
+/**
+ * Everything the pipeline needs, built in exactly one place so no entry point can
+ * construct its own (possibly wrong) constraints — e.g. a sleep window in the wrong timezone.
+ */
+interface SchedulingContext {
+  constraints: ConstraintInput;
+  tasks: TaskInput[];
+  fixed: FixedCommitment[];
+  horizonStart: Date;
+  horizonEnd: Date;
+}
+
 export class ScheduleService {
-  async simulateSchedule(userId: string, proposedTask: {
-    title: string;
-    estimateMinutes: number;
-    deadline: string;
-    academicWeight?: number;
-    teamImpactWeight?: number;
-    cognitiveLoad?: string;
-  }, now = new Date()) {
+  /** The ONLY place ConstraintInput / horizon / task inputs are assembled for the scheduler. */
+  private async loadContext(userId: string, now: Date): Promise<SchedulingContext> {
     const constraintsData = await constraintRepo.findByUserId(userId);
     if (!constraintsData) throw new Error('Constraints not found');
 
@@ -24,12 +31,12 @@ export class ScheduleService {
       peakEnergyWindows = JSON.parse(constraintsData.peakEnergyWindowsJson);
       if (!Array.isArray(peakEnergyWindows)) throw new Error('must be an array');
     } catch {
-      throw new Error('Stored peak energy windows are invalid; update constraints before simulating a schedule');
+      throw new Error('Stored peak energy windows are invalid; update constraints before scheduling');
     }
 
     const user = await userRepo.findById(userId);
     if (!user) throw new Error('User not found');
-    const timezone = user.timezone || 'Asia/Kolkata';
+    const timezone = resolveTimezone(user.timezone);
 
     const constraints: ConstraintInput = {
       sleepStart: constraintsData.sleepStart,
@@ -39,6 +46,7 @@ export class ScheduleService {
       peakEnergyWindows,
       timezone
     };
+
     const tasksData = await taskRepo.findActiveTasks(userId);
     const tasks: TaskInput[] = tasksData.map(t => ({
       id: t.id,
@@ -53,7 +61,28 @@ export class ScheduleService {
       deferralCount: t.deferralCount,
       dailyTargetMinutes: (t as any).dailyTargetMinutes ?? null
     }));
-    tasks.push({
+
+    // Horizon (next 7 days) aligned to the user's local midnight
+    const dayStr = format(now, 'yyyy-MM-dd', { timeZone: timezone });
+    const horizonStart = toDate(`${dayStr}T00:00:00`, { timeZone: timezone });
+    const horizonEnd = new Date(horizonStart.getTime() + 7 * 24 * 3600000);
+
+    const fixedData = await new FixedCommitmentRepository().findActive(userId, horizonStart, horizonEnd);
+    const fixed: FixedCommitment[] = fixedData.map(f => ({ id: f.id, start: f.startTime, end: f.endTime }));
+
+    return { constraints, tasks, fixed, horizonStart, horizonEnd };
+  }
+
+  async simulateSchedule(userId: string, proposedTask: {
+    title: string;
+    estimateMinutes: number;
+    deadline: string;
+    academicWeight?: number;
+    teamImpactWeight?: number;
+    cognitiveLoad?: string;
+  }, now = new Date()) {
+    const ctx = await this.loadContext(userId, now);
+    const tasks = [...ctx.tasks, {
       id: 'simulation-task',
       title: proposedTask.title,
       estimateMinutes: proposedTask.estimateMinutes,
@@ -64,15 +93,9 @@ export class ScheduleService {
       teamImpact: proposedTask.teamImpactWeight ?? 0,
       cognitiveLoad: (proposedTask.cognitiveLoad ?? 'MEDIUM') as any,
       deferralCount: 0
-    });
+    }];
 
-    // Calculate horizon (next 7 days) aligned to user midnight
-    const dayStr = format(now, 'yyyy-MM-dd', { timeZone: timezone });
-    const horizonStart = toDate(`${dayStr}T00:00:00`, { timeZone: timezone });
-    const horizonEnd = new Date(horizonStart.getTime() + 7 * 24 * 3600000);
-    const fixedData = await new FixedCommitmentRepository().findActive(userId, horizonStart, horizonEnd);
-    const fixed: FixedCommitment[] = fixedData.map(f => ({ id: f.id, start: f.startTime, end: f.endTime }));
-    const result = runReschedulerPipeline(tasks, constraints, fixed, [], horizonStart, horizonEnd, now);
+    const result = runReschedulerPipeline(tasks, ctx.constraints, ctx.fixed, [], ctx.horizonStart, ctx.horizonEnd, now);
     const proposedLog = result.logs.find(log => log.taskId === 'simulation-task');
 
     return {
@@ -92,87 +115,26 @@ export class ScheduleService {
   }
 
   async generateSchedule(userId: string, triggerType: string = 'MANUAL', now = new Date()) {
-    const constraintsData = await constraintRepo.findByUserId(userId);
-    if (!constraintsData) throw new Error('Constraints not found');
-
-    let peakEnergyWindows: ConstraintInput['peakEnergyWindows'];
-    try {
-      peakEnergyWindows = JSON.parse(constraintsData.peakEnergyWindowsJson);
-      if (!Array.isArray(peakEnergyWindows)) throw new Error('must be an array');
-    } catch {
-      throw new Error('Stored peak energy windows are invalid; update constraints before generating a schedule');
-    }
-
-    const user = await userRepo.findById(userId);
-    if (!user) throw new Error('User not found');
-    const timezone = user.timezone || 'Asia/Kolkata';
-
-    const constraints: ConstraintInput = {
-      sleepStart: constraintsData.sleepStart,
-      sleepEnd: constraintsData.sleepEnd,
-      minSleepHours: constraintsData.minSleepHours,
-      bufferMinutes: constraintsData.bufferMinutes,
-      peakEnergyWindows,
-      timezone
-    };
-
-    const tasksData = await taskRepo.findActiveTasks(userId);
-    const tasks: TaskInput[] = tasksData.map(t => ({
-      id: t.id,
-      title: t.title,
-      estimateMinutes: t.estimateMinutes,
-      completedMinutes: t.completedMinutes,
-      remainingMinutes: Math.max(0, t.estimateMinutes - t.completedMinutes),
-      deadline: t.deadline,
-      academicWeight: t.academicWeight,
-      teamImpact: t.teamImpactWeight,
-      cognitiveLoad: t.cognitiveLoad as any,
-      deferralCount: t.deferralCount,
-      dailyTargetMinutes: (t as any).dailyTargetMinutes ?? null
-    }));
-
-    // Calculate horizon (next 7 days) aligned to user midnight
-    const dayStr = format(now, 'yyyy-MM-dd', { timeZone: timezone });
-    const horizonStart = toDate(`${dayStr}T00:00:00`, { timeZone: timezone });
-    const horizonEnd = new Date(horizonStart.getTime() + 7 * 24 * 3600000);
-
-    // Call mathematical scheduler
-    const fixedData = await new FixedCommitmentRepository().findActive(userId, horizonStart, horizonEnd);
-    const fixed: FixedCommitment[] = fixedData.map(f => ({
-      id: f.id,
-      start: f.startTime,
-      end: f.endTime
-    }));
-
+    const ctx = await this.loadContext(userId, now);
     const result = runReschedulerPipeline(
-      tasks,
-      constraints,
-      fixed,
+      ctx.tasks, ctx.constraints, ctx.fixed,
       [], // No locked blocks for a fresh generation
-      horizonStart,
-      horizonEnd,
-      now
+      ctx.horizonStart, ctx.horizonEnd, now
     );
-
     const totalScheduled = result.logs.reduce((acc, l) => acc + l.scheduledMinutes, 0);
-
     return scheduleRepo.createSchedule(
-      userId,
-      triggerType,
+      userId, triggerType,
       totalScheduled, // using total scheduled as a proxy for used capacity
-      result.blocks,
-      result.logs,
+      result.blocks, result.logs,
       undefined // No previous version for base generate
     );
   }
 
-  async reschedule(userId: string, versionId: string, now = new Date()) {
+  async reschedule(userId: string, versionId: string, now = new Date(), triggerType: string = 'DISRUPTION') {
     const oldVersion = await scheduleRepo.getVersion(versionId, userId);
     if (!oldVersion) throw new Error('Schedule version not found');
 
     const lockedBlocksData = await scheduleRepo.getLockedBlocks(versionId);
-    
-    // Convert to scheduler types
     const lockedBlocks: ScheduleBlock[] = lockedBlocksData.map(b => ({
       taskId: b.taskId || undefined,
       type: b.blockType as any,
@@ -182,77 +144,29 @@ export class ScheduleService {
       isLocked: true
     }));
 
-    const constraintsData = await constraintRepo.findByUserId(userId);
-    if (!constraintsData) throw new Error('Constraints not found');
-
-    let peakEnergyWindows: ConstraintInput['peakEnergyWindows'];
-    try {
-      peakEnergyWindows = JSON.parse(constraintsData.peakEnergyWindowsJson);
-      if (!Array.isArray(peakEnergyWindows)) throw new Error('must be an array');
-    } catch {
-      throw new Error('Stored peak energy windows are invalid; update constraints before rescheduling');
-    }
-
-    const user = await userRepo.findById(userId);
-    if (!user) throw new Error('User not found');
-    const timezone = user.timezone || 'Asia/Kolkata';
-
-    const constraints: ConstraintInput = {
-      sleepStart: constraintsData.sleepStart,
-      sleepEnd: constraintsData.sleepEnd,
-      minSleepHours: constraintsData.minSleepHours,
-      bufferMinutes: constraintsData.bufferMinutes,
-      peakEnergyWindows,
-      timezone
-    };
-
-    const tasksData = await taskRepo.findActiveTasks(userId);
-    const tasks: TaskInput[] = tasksData.map(t => ({
-      id: t.id,
-      title: t.title,
-      estimateMinutes: t.estimateMinutes,
-      completedMinutes: t.completedMinutes,
-      remainingMinutes: Math.max(0, t.estimateMinutes - t.completedMinutes),
-      deadline: t.deadline,
-      academicWeight: t.academicWeight,
-      teamImpact: t.teamImpactWeight,
-      cognitiveLoad: t.cognitiveLoad as any,
-      deferralCount: t.deferralCount,
-      dailyTargetMinutes: (t as any).dailyTargetMinutes ?? null
-    }));
-
-    // Calculate horizon (next 7 days) aligned to user midnight
-    const dayStr = format(now, 'yyyy-MM-dd', { timeZone: timezone });
-    const horizonStart = toDate(`${dayStr}T00:00:00`, { timeZone: timezone });
-    const horizonEnd = new Date(horizonStart.getTime() + 7 * 24 * 3600000);
-
-    const fixedData = await new FixedCommitmentRepository().findActive(userId, horizonStart, horizonEnd);
-    const fixed: FixedCommitment[] = fixedData.map(f => ({
-      id: f.id,
-      start: f.startTime,
-      end: f.endTime
-    }));
-
+    const ctx = await this.loadContext(userId, now);
     const result = runReschedulerPipeline(
-      tasks,
-      constraints,
-      fixed,
-      lockedBlocks,
-      horizonStart,
-      horizonEnd,
-      now
+      ctx.tasks, ctx.constraints, ctx.fixed, lockedBlocks,
+      ctx.horizonStart, ctx.horizonEnd, now
     );
-
     const totalScheduled = result.logs.reduce((acc, l) => acc + l.scheduledMinutes, 0);
-
     return scheduleRepo.createSchedule(
-      userId,
-      'DISRUPTION',
-      totalScheduled,
-      result.blocks,
-      result.logs,
+      userId, triggerType, totalScheduled,
+      result.blocks, result.logs,
       versionId // Passes as previousVersionId to preserve history
     );
+  }
+
+  /**
+   * Re-plan the user's calendar after their workload changed (e.g. exam topics were added).
+   * Keeps locked blocks from the latest version if one exists; otherwise generates fresh.
+   * Either way it goes through loadContext + runReschedulerPipeline — there is no other path.
+   */
+  async replan(userId: string, triggerType: string, now = new Date()) {
+    const latest = await scheduleRepo.getLatestVersion(userId);
+    return latest
+      ? this.reschedule(userId, latest.id, now, triggerType)
+      : this.generateSchedule(userId, triggerType, now);
   }
 }
 

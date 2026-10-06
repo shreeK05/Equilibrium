@@ -6,17 +6,20 @@ import { constraintRepo } from '../repositories/constraint.repo';
 import crypto from 'crypto';
 import { prisma } from '../db';
 import { Resend } from 'resend';
+import { resolveTimezone } from '../scheduler/timezone';
 
 const resend = new Resend(config.resendApiKey);
 
 
 export class AuthService {
-  async register(email: string, passwordHashRaw: string) {
+  async register(email: string, passwordHashRaw: string, timezone?: string) {
     const existing = await userRepo.findByEmail(email);
     if (existing) throw new Error('Email in use');
 
     const passwordHash = await bcrypt.hash(passwordHashRaw, 10);
-    const user = await userRepo.create({ email, passwordHash });
+    // Always store an explicit zone: never rely on the column default, which was "UTC" and
+    // caused sleep windows to be evaluated 5h30m off for every app-registered user.
+    const user = await userRepo.create({ email, passwordHash, timezone: resolveTimezone(timezone) });
 
     // Create default constraints
     await constraintRepo.upsert(user.id, {
