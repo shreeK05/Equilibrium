@@ -33,7 +33,7 @@ if (allowedOriginsString) {
   if (allowedOriginsString === '*' && process.env.NODE_ENV === 'production') {
     console.warn('ALLOWED_ORIGINS=* is permissive in production; configure explicit browser origins in Render.');
   }
-  corsOrigin = allowedOriginsString === '*' ? '*' : allowedOriginsString.split(',');
+  corsOrigin = allowedOriginsString === '*' ? '*' : allowedOriginsString.split(',').map(o => o.trim());
 }
 
 app.use(cors({ origin: corsOrigin }));
