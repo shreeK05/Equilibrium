@@ -1,6 +1,7 @@
 # Equilibrium Testing Specification
 
-The testing strategy isolates the mathematical backend to ensure no generic AI hallucinations or buggy algorithms compromise the student's constraints.
+> [!IMPORTANT]
+> The authoritative, production-grade specification covering all 7 test layers, 435 automated tests, live cloud verification probes, and the physical device manual QA protocol is detailed in [MASTER_TESTING_SPECIFICATION.md](file:///d:/3rd%20Year%20I%20Sem/DTPLM/Equilibrium%20CP/docs/MASTER_TESTING_SPECIFICATION.md).
 
 ## 1. Unit Tests (Backend Scheduler)
 - **Sleep Shield**:
