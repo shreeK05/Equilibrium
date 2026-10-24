@@ -39,9 +39,11 @@ The project is structured as a full-stack monorepo:
 
 ## 🚀 Live Demo & Deployment
 
-- **Backend API (Render):** `https://equilibrium-42g8.onrender.com/api/v1`
-- **Frontend Web App (Netlify):** *[Insert your Netlify URL here]*
-- **Android App:** Download the compiled APK from `equilibrium_app/build/app/outputs/flutter-apk/app-release.apk`
+- **Backend API (Render Production):** `https://equilibrium-42g8.onrender.com/api/v1`
+- **Android Mobile App:**
+  - **Direct Download:** Download the compiled release APK from [GitHub Releases](https://github.com/shreeK05/Equilibrium/releases)
+  - **Local Build Artifact:** `equilibrium_app/build/app/outputs/flutter-apk/app-release.apk`
+  - **Architecture:** ARM64, ARMv7, x86_64 universal APK compiled with Flutter 3.47 and Java 17.
 
 ---
 
