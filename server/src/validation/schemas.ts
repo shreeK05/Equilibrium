@@ -18,13 +18,17 @@ export const taskSchema = z.object({
   academicWeight: z.number().min(0).max(1).optional(),
   teamImpactWeight: z.number().min(0).max(1).optional(),
   cognitiveLoad: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional(),
-  dailyTargetMinutes: z.number().int().positive().max(720).optional().nullable()
+  dailyTargetMinutes: z.number().int().positive().max(720).optional().nullable(),
+  remainingMinutes: z.number().int().min(0).max(10000).optional().nullable(),
+  actualMinutes: z.number().int().min(0).max(10000).optional()
 });
 
 export const taskUpdateSchema = z.object({
   title: z.string().min(1).max(255).optional(),
   estimateMinutes: z.number().int().positive().max(10000).optional(),
   completedMinutes: z.number().int().min(0).max(10000).optional(),
+  actualMinutes: z.number().int().min(0).max(10000).optional(),
+  remainingMinutes: z.number().int().min(0).max(10000).optional().nullable(),
   deadline: z.string().datetime().optional(),
   description: z.string().max(2000).optional().nullable(),
   category: z.string().max(100).optional().nullable(),
@@ -41,8 +45,27 @@ export const taskUpdateSchema = z.object({
 );
 
 export const taskCompletionSchema = z.object({
-  actualMinutes: z.number().int().positive().max(10000)
+  actualMinutes: z.number().int().min(0).max(10000).optional(),
+  operationId: z.string().uuid().optional()
 });
+
+export const taskProgressSchema = z.object({
+  actualMinutes: z.number().int().min(0).max(10000).optional(),
+  completedMinutes: z.number().int().min(0).max(10000).optional(),
+  additionalMinutes: z.number().int().positive().max(1440).optional(),
+  remainingMinutes: z.number().int().min(0).max(10000).optional().nullable(),
+  newEstimateMinutes: z.number().int().positive().max(10000).optional(),
+  status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED']).optional(),
+  operationId: z.string().uuid().optional()
+}).refine(
+  data => data.actualMinutes !== undefined ||
+          data.completedMinutes !== undefined ||
+          data.additionalMinutes !== undefined ||
+          data.remainingMinutes !== undefined ||
+          data.newEstimateMinutes !== undefined ||
+          data.status !== undefined,
+  { message: 'At least one progress field is required' }
+);
 
 export const scheduleSimulationSchema = taskSchema;
 

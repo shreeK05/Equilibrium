@@ -36,17 +36,11 @@ class TaskCard extends StatelessWidget {
       padding: const EdgeInsets.all(EqTokens.space16),
       decoration: BoxDecoration(
         color: isCompleted ? colors.surfaceElevated : colors.surface,
-        borderRadius: EqTokens.border24,
+        borderRadius: EqTokens.border16,
         border: Border.all(
-          color: isCompleted ? Colors.transparent : colors.surfaceElevated.withValues(alpha: 0.5),
+          color: isCompleted ? Colors.transparent : colors.cardBorder,
         ),
-        boxShadow: isCompleted ? [] : [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          )
-        ],
+        boxShadow: isCompleted ? [] : EqTokens.shadowSubtle,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -123,29 +117,45 @@ class TaskCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: EqTokens.space16),
-                Row(
+                Wrap(
+                  spacing: EqTokens.space16,
+                  runSpacing: EqTokens.space4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Icon(Icons.schedule, size: 16, color: colors.textSecondary),
-                    const SizedBox(width: EqTokens.space4),
-                    Text(
-                      durationStr,
-                      style: text.bodyMedium?.copyWith(color: colors.textSecondary),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.schedule, size: 16, color: colors.textSecondary),
+                        const SizedBox(width: EqTokens.space4),
+                        Text(
+                          durationStr,
+                          style: text.bodyMedium?.copyWith(color: colors.textSecondary),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: EqTokens.space16),
-                    Icon(
-                      isFlexible ? Icons.event_available : Icons.event,
-                      size: 16,
-                      color: isFlexible ? colors.primary : colors.textSecondary,
-                    ),
-                    const SizedBox(width: EqTokens.space4),
-                    Text(
-                      deadlineStr,
-                      style: text.bodyMedium?.copyWith(
-                        color: isFlexible ? colors.primary : colors.textSecondary,
-                      ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isFlexible ? Icons.event_available : Icons.event,
+                          size: 16,
+                          color: isFlexible ? colors.primary : colors.textSecondary,
+                        ),
+                        const SizedBox(width: EqTokens.space4),
+                        Flexible(
+                          child: Text(
+                            deadlineStr,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: text.bodyMedium?.copyWith(
+                              color: isFlexible ? colors.primary : colors.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
-                )
+                ),
               ],
             ),
           ),

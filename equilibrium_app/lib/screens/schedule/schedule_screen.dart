@@ -8,6 +8,7 @@ import '../../widgets/status/loading_skeleton.dart';
 import '../../widgets/status/empty_state.dart';
 import '../../widgets/status/error_state.dart';
 import '../../core/state/schedule_provider.dart';
+import '../../core/utils/workload_calculator.dart';
 import '../../widgets/status/workload_meter.dart' as equilibrium_app_workload;
 import '../../widgets/status/change_summary.dart';
 
@@ -61,19 +62,21 @@ class ScheduleScreen extends StatelessWidget {
             ).animate().fade().scale(begin: const Offset(0.95, 0.95));
           }
 
+          final sleepStart = provider.constraints?['sleepStart'] as String? ?? '23:00';
+          final sleepEnd = provider.constraints?['sleepEnd'] as String? ?? '07:00';
+          final bufferMinutes = provider.constraints?['bufferMinutes'] as int? ?? 15;
 
+          final workload = WorkloadCalculator.calculateCapacity(
+            date: provider.selectedDate,
+            sleepStart: sleepStart,
+            sleepEnd: sleepEnd,
+            commitments: provider.commitments,
+            bufferMinutes: bufferMinutes,
+            blocks: schedule.blocks,
+          );
 
-          int plannedMinutes = 0;
-          for (var t in provider.activeTasks) {
-            plannedMinutes += t.remainingMinutes;
-          }
-
-          int availableMinutes = 0;
-          for (var b in schedule.blocks) {
-            if (b.type == 'FREE' || b.type == 'TASK') {
-              availableMinutes += b.durationMinutes;
-            }
-          }
+          final plannedMinutes = workload.plannedMinutes;
+          final availableMinutes = workload.availableCapacityMinutes;
 
           return Column(
             children: [
@@ -86,9 +89,17 @@ class ScheduleScreen extends StatelessWidget {
               _buildDateNavigator(context, provider),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: EqTokens.space16, vertical: EqTokens.space8),
-                child: equilibrium_app_workload.WorkloadMeter(
-                  plannedMinutes: plannedMinutes,
-                  availableMinutes: availableMinutes > 0 ? availableMinutes : plannedMinutes,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: EqTokens.space16, vertical: EqTokens.space12),
+                  decoration: BoxDecoration(
+                    color: colors.surface,
+                    borderRadius: EqTokens.border12,
+                    border: Border.all(color: colors.cardBorder),
+                  ),
+                  child: equilibrium_app_workload.WorkloadMeter(
+                    plannedMinutes: plannedMinutes,
+                    availableMinutes: availableMinutes,
+                  ),
                 ),
               ).animate().fade(delay: 100.ms),
               Expanded(
@@ -128,7 +139,7 @@ class ScheduleScreen extends StatelessWidget {
             icon: const Icon(Icons.auto_fix_high),
             label: const Text('Reschedule'),
             backgroundColor: colors.primary,
-            foregroundColor: colors.surface,
+            foregroundColor: Colors.white,
           ).animate().scale(delay: 500.ms, duration: 300.ms, curve: Curves.easeOutBack);
         },
       ),
@@ -141,19 +152,20 @@ class ScheduleScreen extends StatelessWidget {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     
-    final isToday = selected.isAtSameMomentAs(today);
+    final isToday = selected.year == today.year && selected.month == today.month && selected.day == today.day;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: EqTokens.space16, vertical: EqTokens.space12),
       decoration: BoxDecoration(
         color: colors.surface,
-        border: Border(bottom: BorderSide(color: colors.textSecondary.withValues(alpha: 0.2))),
+        border: Border(bottom: BorderSide(color: colors.cardBorder)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
             icon: Icon(Icons.chevron_left, color: colors.textPrimary),
+            tooltip: 'Previous Day',
             onPressed: () => provider.setSelectedDate(selected.subtract(const Duration(days: 1))),
           ),
           Column(
@@ -188,6 +200,7 @@ class ScheduleScreen extends StatelessWidget {
           ),
           IconButton(
             icon: Icon(Icons.chevron_right, color: colors.textPrimary),
+            tooltip: 'Next Day',
             onPressed: () => provider.setSelectedDate(selected.add(const Duration(days: 1))),
           ),
         ],

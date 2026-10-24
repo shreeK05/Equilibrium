@@ -3,6 +3,8 @@ import { authenticate } from '../middleware/auth';
 import { constraintRepo } from '../repositories/constraint.repo';
 import { scheduleRepo } from '../repositories/schedule.repo';
 import { taskRepo } from '../repositories/task.repo';
+import { computeSafeDailyMinutes } from '../utils/workload.helper';
+import { resolveTaskWorkload } from '../utils/task-workload.helper';
 
 export const insightsRouter = Router();
 insightsRouter.use(authenticate);
@@ -14,16 +16,15 @@ insightsRouter.get('/', async (req: any, res, next) => {
       taskRepo.findActiveTasks(req.userId),
       scheduleRepo.getLatestVersion(req.userId)
     ]);
-    const sleepMinutes = constraints ? Math.round(constraints.minSleepHours * 60) : 420;
+    const safeDailyMinutes = computeSafeDailyMinutes(constraints);
     const scheduledMinutes = schedule?.blocks
       .filter(block => block.blockType === 'TASK')
       .reduce((total, block) => total + block.durationMinutes, 0) ?? 0;
     const remainingMinutes = tasks.reduce(
-      (total, task) => total + Math.max(0, task.estimateMinutes - task.completedMinutes),
+      (total, task) => total + resolveTaskWorkload(task).remainingMinutes,
       0
     );
     const deferredCount = tasks.reduce((total, task) => total + task.deferralCount, 0);
-    const safeDailyMinutes = Math.max(0, 1440 - sleepMinutes - (constraints?.bufferMinutes ?? 30));
     const safeTotalMinutes = safeDailyMinutes * 7;
 
     res.json({

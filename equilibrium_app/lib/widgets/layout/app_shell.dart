@@ -6,7 +6,7 @@ import '../../core/theme/tokens.dart';
 import '../../screens/today/today_screen.dart';
 import '../../screens/schedule/schedule_screen.dart';
 import '../../screens/tasks/tasks_screen.dart';
-import '../../screens/exams/exams_screen.dart';
+import '../../screens/more/more_screen.dart';
 import '../../screens/profile/profile_screen.dart';
 import '../../screens/timer/timer_screen.dart';
 import '../forms/create_task_sheet.dart';
@@ -14,12 +14,10 @@ import '../forms/create_commitment_sheet.dart';
 import '../../screens/imports/syllabus_import_screen.dart';
 import '../../screens/imports/ics_import_screen.dart';
 import '../../core/state/schedule_provider.dart';
+import '../../core/state/profile_provider.dart';
 import '../../core/state/timer_provider.dart';
 import '../../core/api/api_client.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-
-import '../../screens/commitments/commitments_screen.dart';
-import '../../screens/analytics/analytics_screen.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -35,21 +33,26 @@ class _AppShellState extends State<AppShell> {
     TodayScreen(),
     ScheduleScreen(),
     TasksScreen(),
-    ExamsScreen(),
-    CommitmentsScreen(),
-    AnalyticsScreen(),
+    MoreScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
     final colors = context.eqColors;
 
-    final tabTitles = ['Today', 'Schedule', 'Tasks', 'Exams', 'Locked', 'Analytics'];
+    final tabTitles = ['Today', 'Plan', 'Tasks', 'More'];
 
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        title: Text(tabTitles[_currentIndex]),
+        title: Text(
+          tabTitles[_currentIndex],
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+          ),
+        ),
         centerTitle: false,
         actions: [
           // Timer FAB shortcut in app bar
@@ -102,6 +105,7 @@ class _AppShellState extends State<AppShell> {
           if (_currentIndex == 0 || _currentIndex == 1)
             IconButton(
               icon: const Icon(Icons.refresh),
+              tooltip: 'Refresh',
               onPressed: () {
                 context.read<ScheduleProvider>().fetchDashboardData();
               },
@@ -112,14 +116,18 @@ class _AppShellState extends State<AppShell> {
               onTap: () {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
               },
-              child: Consumer(
-                builder: (context, _, child) {
+              child: Consumer<ProfileProvider>(
+                builder: (context, profileProvider, child) {
+                  final name = profileProvider.profile?.name;
+                  final initial = (name != null && name.isNotEmpty)
+                      ? name[0].toUpperCase()
+                      : 'E';
                   return CircleAvatar(
                     radius: 16,
                     backgroundColor: colors.primary,
                     child: Text(
-                      'EQ',
-                      style: TextStyle(fontSize: 12, color: colors.surface, fontWeight: FontWeight.bold),
+                      initial,
+                      style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.bold),
                     ),
                   );
                 },
@@ -131,7 +139,7 @@ class _AppShellState extends State<AppShell> {
       body: Stack(
         children: [
           AnimatedSwitcher(
-            duration: const Duration(milliseconds: 250),
+            duration: const Duration(milliseconds: 200),
             child: _screens[_currentIndex],
           ),
           Positioned(
@@ -167,16 +175,20 @@ class _AppShellState extends State<AppShell> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: colors.surfaceElevated, width: 1)),
+          color: colors.surface,
+          border: Border(top: BorderSide(color: colors.cardBorder, width: 1)),
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (index) => setState(() => _currentIndex = index),
           type: BottomNavigationBarType.fixed,
+          backgroundColor: colors.surface,
+          selectedItemColor: colors.primary,
+          unselectedItemColor: colors.textSecondary,
           showSelectedLabels: true,
           showUnselectedLabels: true,
-          selectedFontSize: 10,
-          unselectedFontSize: 10,
+          selectedFontSize: 12,
+          unselectedFontSize: 12,
           items: const [
             BottomNavigationBarItem(
               icon: Icon(CupertinoIcons.sun_max),
@@ -186,7 +198,7 @@ class _AppShellState extends State<AppShell> {
             BottomNavigationBarItem(
               icon: Icon(CupertinoIcons.calendar),
               activeIcon: Icon(CupertinoIcons.calendar_today),
-              label: 'Schedule',
+              label: 'Plan',
             ),
             BottomNavigationBarItem(
               icon: Icon(CupertinoIcons.list_bullet),
@@ -194,19 +206,9 @@ class _AppShellState extends State<AppShell> {
               label: 'Tasks',
             ),
             BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.book),
-              activeIcon: Icon(CupertinoIcons.book_fill),
-              label: 'Exams',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.pin),
-              activeIcon: Icon(CupertinoIcons.pin_fill),
-              label: 'Locked',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.chart_bar),
-              activeIcon: Icon(CupertinoIcons.chart_bar_fill),
-              label: 'Analytics',
+              icon: Icon(CupertinoIcons.square_grid_2x2),
+              activeIcon: Icon(CupertinoIcons.square_grid_2x2_fill),
+              label: 'More',
             ),
           ],
         ),
@@ -214,33 +216,65 @@ class _AppShellState extends State<AppShell> {
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showQuickAdd(context),
         backgroundColor: colors.primary,
-        foregroundColor: colors.surface,
+        foregroundColor: Colors.white,
         elevation: 4,
+        tooltip: 'Quick Add',
         child: const Icon(Icons.add),
-      ).animate().scale(delay: 400.ms, duration: 300.ms, curve: Curves.easeOutBack),
+      ).animate().scale(delay: 200.ms, duration: 250.ms, curve: Curves.easeOutBack),
     );
   }
 
   void _showQuickAdd(BuildContext context) {
     final colors = context.eqColors;
+    final text = context.eqText;
     showModalBottomSheet(
       context: context,
-      backgroundColor: colors.background,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(EqTokens.radius24)),
+      ),
       builder: (context) => SafeArea(
         child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('What would you like to add?',
-                style: TextStyle(color: colors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 24),
-              ListTile(
-                leading: CircleAvatar(backgroundColor: colors.surfaceElevated, child: Icon(Icons.check_box_outlined, color: colors.primary)),
-                title: Text('Task', style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600)),
-                subtitle: Text('A flexible assignment or study task', style: TextStyle(color: colors.textSecondary)),
+          padding: const EdgeInsets.fromLTRB(
+            EqTokens.space24,
+            EqTokens.space16,
+            EqTokens.space24,
+            EqTokens.space24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: colors.textSecondary.withValues(alpha: 0.3),
+                    borderRadius: EqTokens.border4,
+                  ),
+                ),
+              ),
+              const SizedBox(height: EqTokens.space16),
+              Text(
+                'Quick Add',
+                style: text.titleLarge?.copyWith(
+                  color: colors.textPrimary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: EqTokens.space4),
+              Text(
+                'What would you like to schedule or capture?',
+                style: text.bodySmall?.copyWith(color: colors.textSecondary),
+              ),
+              const SizedBox(height: EqTokens.space20),
+              _buildQuickAddTile(
+                context,
+                icon: CupertinoIcons.checkmark_circle,
+                iconColor: colors.primary,
+                title: 'Add Responsibility',
+                subtitle: 'A study assignment, lab record, or prep task',
                 onTap: () {
                   Navigator.pop(context);
                   showModalBottomSheet(
@@ -251,21 +285,25 @@ class _AppShellState extends State<AppShell> {
                   );
                 },
               ),
-              const SizedBox(height: 4),
-              ListTile(
-                leading: CircleAvatar(backgroundColor: colors.surfaceElevated, child: Icon(Icons.timer_outlined, color: colors.primary)),
-                title: Text('Start Timer', style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600)),
-                subtitle: Text('Begin a focused study session', style: TextStyle(color: colors.textSecondary)),
+              const SizedBox(height: EqTokens.space8),
+              _buildQuickAddTile(
+                context,
+                icon: CupertinoIcons.timer,
+                iconColor: colors.energyMedium,
+                title: 'Start Focus Session',
+                subtitle: 'Begin a timed study block with sleep protection',
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(context, MaterialPageRoute(builder: (_) => const TimerScreen()));
                 },
               ),
-              const SizedBox(height: 4),
-              ListTile(
-                leading: CircleAvatar(backgroundColor: colors.surfaceElevated, child: Icon(Icons.event, color: colors.primary)),
-                title: Text('Fixed Commitment', style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600)),
-                subtitle: Text('A scheduled class, lab, routine, or meeting', style: TextStyle(color: colors.textSecondary)),
+              const SizedBox(height: EqTokens.space8),
+              _buildQuickAddTile(
+                context,
+                icon: CupertinoIcons.calendar_badge_plus,
+                iconColor: colors.commitment,
+                title: 'Fixed Commitment',
+                subtitle: 'Lecture, lab, routine, or standing appointment',
                 onTap: () {
                   Navigator.pop(context);
                   showModalBottomSheet(
@@ -276,21 +314,25 @@ class _AppShellState extends State<AppShell> {
                   );
                 },
               ),
-              const SizedBox(height: 4),
-              ListTile(
-                leading: CircleAvatar(backgroundColor: colors.surfaceElevated, child: Icon(Icons.picture_as_pdf, color: colors.primary)),
-                title: Text('Import Syllabus', style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600)),
-                subtitle: Text('Extract tasks from a PDF', style: TextStyle(color: colors.textSecondary)),
+              const SizedBox(height: EqTokens.space8),
+              _buildQuickAddTile(
+                context,
+                icon: CupertinoIcons.doc_text_viewfinder,
+                iconColor: colors.energyPeak,
+                title: 'Import Syllabus PDF',
+                subtitle: 'Extract deadlines and deliverables from course outline',
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(context, MaterialPageRoute(builder: (_) => const SyllabusImportScreen()));
                 },
               ),
-              const SizedBox(height: 4),
-              ListTile(
-                leading: CircleAvatar(backgroundColor: colors.surfaceElevated, child: Icon(Icons.calendar_today, color: colors.primary)),
-                title: Text('Import Calendar', style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600)),
-                subtitle: Text('Import from ICS file', style: TextStyle(color: colors.textSecondary)),
+              const SizedBox(height: EqTokens.space8),
+              _buildQuickAddTile(
+                context,
+                icon: CupertinoIcons.arrow_down_doc,
+                iconColor: colors.workload,
+                title: 'Import Calendar (.ics)',
+                subtitle: 'Import timetable from university calendar file',
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(context, MaterialPageRoute(builder: (_) => const IcsImportScreen()));
@@ -300,7 +342,47 @@ class _AppShellState extends State<AppShell> {
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
+
+  Widget _buildQuickAddTile(
+    BuildContext context, {
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    final colors = context.eqColors;
+    final text = context.eqText;
+    return Material(
+      color: colors.surfaceElevated,
+      shape: RoundedRectangleBorder(
+        borderRadius: EqTokens.border12,
+        side: BorderSide(color: colors.cardBorder),
+      ),
+      child: ListTile(
+        shape: const RoundedRectangleBorder(borderRadius: EqTokens.border12),
+        leading: Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: iconColor.withValues(alpha: 0.12),
+            borderRadius: EqTokens.border8,
+          ),
+          child: Icon(icon, color: iconColor, size: 20),
+        ),
+        title: Text(
+          title,
+          style: text.titleSmall?.copyWith(color: colors.textPrimary, fontWeight: FontWeight.w600),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: text.bodySmall?.copyWith(color: colors.textSecondary, fontSize: 12),
+        ),
+        trailing: Icon(CupertinoIcons.chevron_forward, size: 14, color: colors.textTertiary),
+        onTap: onTap,
+      ),
+    );
+  }
 }

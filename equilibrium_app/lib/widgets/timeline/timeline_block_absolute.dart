@@ -101,22 +101,33 @@ class AbsoluteTimelineBlock extends StatelessWidget {
     Color fgColor;
     Color borderColor;
     
+    IconData typeIcon;
+    String typeTag;
+
     if (type == BlockType.task) {
       bgColor = block.isLocked ? colors.statusCompleted.withValues(alpha: 0.15) : colors.primary.withValues(alpha: 0.12);
       fgColor = block.isLocked ? colors.statusCompleted : colors.primary;
       borderColor = block.isLocked ? colors.statusCompleted.withValues(alpha: 0.4) : colors.primary.withValues(alpha: 0.3);
+      typeIcon = block.isLocked ? Icons.check_circle_outline : Icons.assignment_outlined;
+      typeTag = block.isLocked ? 'COMPLETED' : 'STUDY';
     } else if (type == BlockType.fixed) {
-      bgColor = colors.warning.withValues(alpha: 0.15);
-      fgColor = colors.warning;
-      borderColor = colors.warning.withValues(alpha: 0.5);
+      bgColor = colors.commitment.withValues(alpha: 0.12);
+      fgColor = colors.commitment;
+      borderColor = colors.commitment.withValues(alpha: 0.45);
+      typeIcon = Icons.push_pin_outlined;
+      typeTag = 'FIXED COMMITMENT';
     } else if (type == BlockType.breakTime) {
       bgColor = colors.energyMedium.withValues(alpha: 0.15);
       fgColor = colors.energyMedium;
       borderColor = colors.energyMedium.withValues(alpha: 0.4);
+      typeIcon = Icons.coffee_outlined;
+      typeTag = 'REST BREAK';
     } else {
       bgColor = colors.textSecondary.withValues(alpha: 0.05);
       fgColor = colors.textSecondary;
       borderColor = colors.surfaceElevated;
+      typeIcon = Icons.hourglass_empty;
+      typeTag = 'OPEN TIME';
     }
 
     String title = customTitle ?? 'Task';
@@ -190,16 +201,53 @@ class AbsoluteTimelineBlock extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: text.bodyMedium?.copyWith(
-                    color: fgColor,
-                    fontWeight: FontWeight.w600,
-                    decoration: block.isLocked ? TextDecoration.lineThrough : null,
+                if (displayDurationMinutes >= 75) ...[
+                  Row(
+                    children: [
+                      Icon(typeIcon, size: 13, color: fgColor),
+                      const SizedBox(width: 4),
+                      Text(
+                        typeTag,
+                        style: text.labelSmall?.copyWith(
+                          color: fgColor,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.6,
+                        ),
+                      ),
+                    ],
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                  const SizedBox(height: 2),
+                  Text(
+                    title,
+                    style: text.bodyMedium?.copyWith(
+                      color: fgColor,
+                      fontWeight: FontWeight.w600,
+                      decoration: block.isLocked ? TextDecoration.lineThrough : null,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ] else ...[
+                  Row(
+                    children: [
+                      Icon(typeIcon, size: 13, color: fgColor),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: text.bodyMedium?.copyWith(
+                            color: fgColor,
+                            fontWeight: FontWeight.w600,
+                            decoration: block.isLocked ? TextDecoration.lineThrough : null,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 2),
                 Text(
                   timeRange,

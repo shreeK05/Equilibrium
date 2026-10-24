@@ -17,20 +17,23 @@ class WorkloadMeter extends StatelessWidget {
     final colors = context.eqColors;
     final text = context.eqText;
 
-    double ratio = availableMinutes > 0 ? (plannedMinutes / availableMinutes) : 0;
+    double ratio = availableMinutes > 0
+        ? (plannedMinutes / availableMinutes)
+        : (plannedMinutes > 0 ? 1.0 : 0.0);
     if (ratio > 1.0) ratio = 1.0;
     if (ratio < 0.0) ratio = 0.0;
 
     final int remaining = availableMinutes - plannedMinutes;
     final String remainingStr = remaining > 0 ? _formatMinutes(remaining) : '0m';
     final String plannedStr = _formatMinutes(plannedMinutes);
+    final String capacityStr = _formatMinutes(availableMinutes);
 
     Color indicatorColor = colors.workload;
     if (ratio >= 0.9) {
       indicatorColor = colors.warning; // Near capacity
     }
-    if (ratio == 1.0 && availableMinutes > 0) {
-      indicatorColor = colors.danger; // At capacity
+    if (ratio >= 1.0 && (availableMinutes > 0 || plannedMinutes > 0)) {
+      indicatorColor = colors.danger; // At capacity or overloaded
     }
     if (plannedMinutes == 0) {
       indicatorColor = colors.success; // Zero workload
@@ -88,6 +91,13 @@ class WorkloadMeter extends StatelessWidget {
                     '$remainingStr remaining capacity',
                     style: text.bodySmall?.copyWith(color: colors.textSecondary),
                   ),
+                  if (availableMinutes > 0) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      'out of $capacityStr daily capacity',
+                      style: text.labelSmall?.copyWith(color: colors.textSecondary.withValues(alpha: 0.8)),
+                    ),
+                  ],
                 ],
               ),
             ),

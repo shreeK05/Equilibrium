@@ -9,6 +9,7 @@ class ScheduleBlock {
   final DateTime endTime;
   final int durationMinutes;
   final bool isLocked;
+  final bool isCompleted;
   final String type; // 'TASK', 'SLEEP', 'FIXED', 'BREAK', 'FREE'
 
   ScheduleBlock({
@@ -20,6 +21,7 @@ class ScheduleBlock {
     required this.endTime,
     required this.durationMinutes,
     required this.isLocked,
+    this.isCompleted = false,
     required this.type,
   });
 
@@ -33,6 +35,7 @@ class ScheduleBlock {
       endTime: DateTime.parse(json['endTime'] as String).toLocal(),
       durationMinutes: json['durationMinutes'] as int,
       isLocked: json['isLocked'] as bool? ?? false,
+      isCompleted: json['isCompleted'] as bool? ?? false,
       // Backend uses 'blockType' field
       type: (json['blockType'] as String?) ?? (json['type'] as String?) ?? 'TASK',
     );
@@ -47,6 +50,7 @@ class ScheduleBlock {
     'endTime': endTime.toIso8601String(),
     'durationMinutes': durationMinutes,
     'isLocked': isLocked,
+    'isCompleted': isCompleted,
     'blockType': type,
   };
 }

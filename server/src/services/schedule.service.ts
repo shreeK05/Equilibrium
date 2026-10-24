@@ -7,6 +7,7 @@ import { runReschedulerPipeline } from '../scheduler/rescheduler';
 import { resolveTimezone } from '../scheduler/timezone';
 import { TaskInput, ConstraintInput, ScheduleBlock, FixedCommitment } from '../scheduler/types';
 import { toDate, format } from 'date-fns-tz';
+import { resolveTaskWorkload } from '../utils/task-workload.helper';
 
 /**
  * Everything the pipeline needs, built in exactly one place so no entry point can
@@ -48,19 +49,24 @@ export class ScheduleService {
     };
 
     const tasksData = await taskRepo.findActiveTasks(userId);
-    const tasks: TaskInput[] = tasksData.map(t => ({
-      id: t.id,
-      title: t.title,
-      estimateMinutes: t.estimateMinutes,
-      completedMinutes: t.completedMinutes,
-      remainingMinutes: Math.max(0, t.estimateMinutes - t.completedMinutes),
-      deadline: t.deadline,
-      academicWeight: t.academicWeight,
-      teamImpact: t.teamImpactWeight,
-      cognitiveLoad: t.cognitiveLoad as any,
-      deferralCount: t.deferralCount,
-      dailyTargetMinutes: (t as any).dailyTargetMinutes ?? null
-    }));
+    const tasks: TaskInput[] = tasksData
+      .map(t => {
+        const workload = resolveTaskWorkload(t);
+        return {
+          id: t.id,
+          title: t.title,
+          estimateMinutes: workload.estimateMinutes,
+          completedMinutes: workload.completedMinutes,
+          remainingMinutes: workload.remainingMinutes,
+          deadline: t.deadline,
+          academicWeight: t.academicWeight,
+          teamImpact: t.teamImpactWeight,
+          cognitiveLoad: t.cognitiveLoad as any,
+          deferralCount: t.deferralCount,
+          dailyTargetMinutes: (t as any).dailyTargetMinutes ?? null
+        };
+      })
+      .filter(t => t.remainingMinutes > 0);
 
     // Horizon (next 7 days) aligned to the user's local midnight
     const dayStr = format(now, 'yyyy-MM-dd', { timeZone: timezone });
@@ -134,14 +140,18 @@ export class ScheduleService {
     const oldVersion = await scheduleRepo.getVersion(versionId, userId);
     if (!oldVersion) throw new Error('Schedule version not found');
 
-    const lockedBlocksData = await scheduleRepo.getLockedBlocks(versionId);
-    const lockedBlocks: ScheduleBlock[] = lockedBlocksData.map(b => ({
+    // Lock past blocks (endTime <= now) and completed blocks to preserve past work and prevent scheduling into the past
+    const lockedBlocksData = oldVersion.blocks.filter(
+      (b: any) => b.isLocked || b.isCompleted || b.endTime <= now
+    );
+    const lockedBlocks: ScheduleBlock[] = lockedBlocksData.map((b: any) => ({
       taskId: b.taskId || undefined,
       type: b.blockType as any,
       start: b.startTime,
       end: b.endTime,
       durationMinutes: b.durationMinutes,
-      isLocked: true
+      isLocked: true,
+      isCompleted: b.isCompleted || false
     }));
 
     const ctx = await this.loadContext(userId, now);

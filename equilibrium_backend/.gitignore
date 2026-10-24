@@ -1,0 +1,21 @@
+# ============================================================
+# Equilibrium Backend Prototype .gitignore
+# ============================================================
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Local environment & secret files
+.env
+.env.*
+*.env
+!.env.example
+
+# Virtual environments
+env/
+venv/
+ENV/
+.venv/

@@ -10,5 +10,5 @@ export const config = {
   port: Number(process.env.PORT || 3000),
   resendApiKey: process.env.RESEND_API_KEY || 're_test',
   emailFrom: process.env.EMAIL_FROM || 'noreply@equilibrium.local',
-  appPublicUrl: process.env.APP_PUBLIC_URL || 'https://equilibrium-42g8.onrender.com'
+  appPublicUrl: process.env.APP_PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || 'https://equilibrium-42g8.onrender.com'
 };

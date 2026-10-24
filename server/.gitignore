@@ -1,6 +1,24 @@
+# ============================================================
+# Equilibrium Server .gitignore
+# ============================================================
+
 node_modules/
 dist/
+
+# Local environment & secret files
 .env
+.env.*
+*.env
+!.env.example
+
+# Local SQLite databases
 *.db
 *.db-journal
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS metadata
 .DS_Store
+Thumbs.db

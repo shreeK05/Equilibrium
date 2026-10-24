@@ -2,14 +2,19 @@ import 'package:flutter/material.dart';
 
 class EqTokens {
   // Spacing
+  static const double space2 = 2.0;
   static const double space4 = 4.0;
+  static const double space6 = 6.0;
   static const double space8 = 8.0;
+  static const double space10 = 10.0;
   static const double space12 = 12.0;
   static const double space14 = 14.0;
   static const double space16 = 16.0;
   static const double space20 = 20.0;
   static const double space24 = 24.0;
+  static const double space28 = 28.0;
   static const double space32 = 32.0;
+  static const double space40 = 40.0;
   static const double space48 = 48.0;
 
   // Radii
@@ -17,22 +22,45 @@ class EqTokens {
   static const double radius8 = 8.0;
   static const double radius12 = 12.0;
   static const double radius16 = 16.0;
+  static const double radius20 = 20.0;
   static const double radius24 = 24.0;
+  static const double radius32 = 32.0;
 
   static const Radius circularRadius4 = Radius.circular(radius4);
   static const Radius circularRadius8 = Radius.circular(radius8);
   static const Radius circularRadius12 = Radius.circular(radius12);
   static const Radius circularRadius16 = Radius.circular(radius16);
+  static const Radius circularRadius20 = Radius.circular(radius20);
   static const Radius circularRadius24 = Radius.circular(radius24);
+  static const Radius circularRadius32 = Radius.circular(radius32);
 
   static const BorderRadius border4 = BorderRadius.all(circularRadius4);
   static const BorderRadius border8 = BorderRadius.all(circularRadius8);
   static const BorderRadius border12 = BorderRadius.all(circularRadius12);
   static const BorderRadius border16 = BorderRadius.all(circularRadius16);
+  static const BorderRadius border20 = BorderRadius.all(circularRadius20);
   static const BorderRadius border24 = BorderRadius.all(circularRadius24);
+  static const BorderRadius border32 = BorderRadius.all(circularRadius32);
 
   // Animations
   static const Duration durationFast = Duration(milliseconds: 150);
   static const Duration durationNormal = Duration(milliseconds: 250);
   static const Duration durationSlow = Duration(milliseconds: 350);
+
+  // Card & component shadows (subtle, non-ornamental)
+  static const List<BoxShadow> shadowSubtle = [
+    BoxShadow(
+      color: Color(0x0A000000),
+      blurRadius: 8,
+      offset: Offset(0, 2),
+    ),
+  ];
+
+  static const List<BoxShadow> shadowCard = [
+    BoxShadow(
+      color: Color(0x0F000000),
+      blurRadius: 16,
+      offset: Offset(0, 4),
+    ),
+  ];
 }

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { taskRepo } from '../repositories/task.repo';
 import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validate';
-import { taskCompletionSchema, taskSchema, taskSplitSchema, taskUpdateSchema } from '../validation/schemas';
+import { taskCompletionSchema, taskProgressSchema, taskSchema, taskSplitSchema, taskUpdateSchema } from '../validation/schemas';
 
 export const tasksRouter = Router();
 tasksRouter.use(authenticate);
@@ -29,9 +29,34 @@ tasksRouter.get('/debt-ledger', async (req: any, res, next) => {
 
 tasksRouter.post('/:id/complete', validate(taskCompletionSchema), async (req: any, res, next) => {
   try {
-    res.json(await taskRepo.complete(req.params.id, req.userId, req.body.actualMinutes));
+    const operationId = req.body.operationId || req.headers['x-operation-id'] || req.headers['idempotency-key'];
+    res.json(await taskRepo.complete(req.params.id, req.userId, req.body.actualMinutes, operationId));
   } catch (err: any) {
-    if (err.message.includes('not found')) return res.status(404).json({ error: { message: err.message } });
+    if (err.message?.includes('not found')) return res.status(404).json({ error: { message: err.message } });
+    if (err.code === 'IDEMPOTENCY_CONFLICT') return res.status(409).json({ error: { code: 'IDEMPOTENCY_CONFLICT', message: err.message } });
+    next(err);
+  }
+});
+
+tasksRouter.post('/:id/progress', validate(taskProgressSchema), async (req: any, res, next) => {
+  try {
+    const operationId = req.body.operationId || req.headers['x-operation-id'] || req.headers['idempotency-key'];
+    res.json(await taskRepo.recordProgress(req.params.id, req.userId, req.body, operationId));
+  } catch (err: any) {
+    if (err.message?.includes('not found')) return res.status(404).json({ error: { message: err.message } });
+    if (err.code === 'IDEMPOTENCY_CONFLICT') return res.status(409).json({ error: { code: 'IDEMPOTENCY_CONFLICT', message: err.message } });
+    next(err);
+  }
+});
+
+tasksRouter.get('/:id/operations/:operationId', async (req: any, res, next) => {
+  try {
+    const op = await taskRepo.findOperation(req.params.operationId, req.params.id, req.userId);
+    if (!op) {
+      return res.status(404).json({ error: { code: 'OPERATION_NOT_FOUND', message: 'Operation not found' } });
+    }
+    res.json(op);
+  } catch (err) {
     next(err);
   }
 });

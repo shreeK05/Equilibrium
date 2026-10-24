@@ -9,7 +9,26 @@ import '../../services/constraint_repository.dart';
 import '../../core/api/api_client.dart';
 import '../../core/api/api_error_mapper.dart';
 import 'package:intl/intl.dart';
+import '../../models/decision_log.dart';
 import '../../services/notification_service.dart';
+
+class ReplanSummary {
+  final int scheduledTaskCount;
+  final int totalScheduledMinutes;
+  final int deferredTaskCount;
+  final List<String> deferredTaskTitles;
+  final bool hasDeferred;
+  final String userMessage;
+
+  const ReplanSummary({
+    required this.scheduledTaskCount,
+    required this.totalScheduledMinutes,
+    required this.deferredTaskCount,
+    required this.deferredTaskTitles,
+    required this.hasDeferred,
+    required this.userMessage,
+  });
+}
 
 class ScheduleProvider extends ChangeNotifier {
   final ScheduleRepository _scheduleRepo;
@@ -28,6 +47,14 @@ class ScheduleProvider extends ChangeNotifier {
   bool isLoading = false;
   String? errorMessage;
   String? errorCode;
+  ApiException? lastApiException;
+  bool isLastFailureAmbiguous = false;
+
+  TaskRepository get taskRepo => _taskRepo;
+
+  Future<Map<String, dynamic>?> getTaskOperation(String taskId, String operationId) async {
+    return _taskRepo.getOperation(taskId, operationId);
+  }
 
   bool get hasContentForSelectedDate {
     if (currentSchedule == null) return false;
@@ -176,16 +203,61 @@ class ScheduleProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> completeTask(String id, int actualMinutes) async {
+  Future<bool> completeTask(String id, [int? actualMinutes, String? operationId]) async {
     _setLoading(true);
     try {
-      await _taskRepo.completeTask(id, actualMinutes);
+      await _taskRepo.completeTask(id, actualMinutes, operationId);
+      lastApiException = null;
+      isLastFailureAmbiguous = false;
       await fetchDashboardData();
       return true;
     } on ApiException catch (e) {
+      lastApiException = e;
+      isLastFailureAmbiguous = e.isAmbiguous;
       errorMessage = ApiErrorMapper.getUserFacingMessage(e.code, e.message);
       return false;
     } catch (e) {
+      isLastFailureAmbiguous = true;
+      errorMessage = ApiErrorMapper.getUserFacingMessage('INTERNAL_ERROR');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<bool> recordTaskProgress(
+    String id, {
+    int? completedMinutes,
+    int? additionalMinutes,
+    int? actualMinutes,
+    int? remainingMinutes,
+    int? newEstimateMinutes,
+    String? status,
+    String? operationId,
+  }) async {
+    _setLoading(true);
+    try {
+      await _taskRepo.recordProgress(
+        id,
+        completedMinutes: completedMinutes,
+        additionalMinutes: additionalMinutes,
+        actualMinutes: actualMinutes,
+        remainingMinutes: remainingMinutes,
+        newEstimateMinutes: newEstimateMinutes,
+        status: status,
+        operationId: operationId,
+      );
+      lastApiException = null;
+      isLastFailureAmbiguous = false;
+      await fetchDashboardData();
+      return true;
+    } on ApiException catch (e) {
+      lastApiException = e;
+      isLastFailureAmbiguous = e.isAmbiguous;
+      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code, e.message);
+      return false;
+    } catch (e) {
+      isLastFailureAmbiguous = true;
       errorMessage = ApiErrorMapper.getUserFacingMessage('INTERNAL_ERROR');
       return false;
     } finally {
@@ -295,21 +367,52 @@ class ScheduleProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> reschedule() async {
-    if (currentSchedule == null) return false;
+  Future<ReplanSummary?> reschedule() async {
+    if (isLoading || currentSchedule == null) return null;
     _setLoading(true);
     try {
       // Capture the current schedule as previous before we fetch the new one
       previousSchedule = currentSchedule;
-      await _scheduleRepo.reschedule(currentSchedule!.id);
+      final newVersion = await _scheduleRepo.reschedule(currentSchedule!.id);
       await fetchDashboardData();
-      return true;
+
+      final deferredLogs = newVersion.decisionLogs.where((d) => d.decisionType == DecisionType.deferred).toList();
+      final deferredTitles = <String>[];
+      for (final log in deferredLogs) {
+        final task = activeTasks.cast<Task?>().firstWhere(
+          (t) => t != null && t.id == log.taskId,
+          orElse: () => null,
+        );
+        deferredTitles.add(task?.title ?? 'Task');
+      }
+
+      final taskBlocks = newVersion.blocks.where((b) => b.type == 'TASK' && b.taskId != null).toList();
+      final uniqueScheduledTaskIds = taskBlocks.map((b) => b.taskId!).toSet();
+      final totalMinutes = taskBlocks.fold<int>(0, (sum, b) => sum + b.durationMinutes);
+
+      final String message;
+      if (deferredLogs.isNotEmpty) {
+        final titlesStr = deferredTitles.take(2).join(', ');
+        final moreCount = deferredTitles.length > 2 ? ' +${deferredTitles.length - 2} more' : '';
+        message = 'Re-planned: $totalMinutes min scheduled. ${deferredLogs.length} task(s) deferred ($titlesStr$moreCount) due to capacity.';
+      } else {
+        message = 'Schedule updated: $totalMinutes min planned across ${uniqueScheduledTaskIds.length} tasks.';
+      }
+
+      return ReplanSummary(
+        scheduledTaskCount: uniqueScheduledTaskIds.length,
+        totalScheduledMinutes: totalMinutes,
+        deferredTaskCount: deferredLogs.length,
+        deferredTaskTitles: deferredTitles,
+        hasDeferred: deferredLogs.isNotEmpty,
+        userMessage: message,
+      );
     } on ApiException catch (e) {
       errorMessage = ApiErrorMapper.getUserFacingMessage(e.code, e.message);
-      return false;
+      return null;
     } catch (e) {
       errorMessage = ApiErrorMapper.getUserFacingMessage('INTERNAL_ERROR');
-      return false;
+      return null;
     } finally {
       _setLoading(false);
     }

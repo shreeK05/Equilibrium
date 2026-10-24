@@ -150,6 +150,26 @@ class ApiException implements Exception {
   final String message;
   ApiException(this.statusCode, this.code, this.message);
 
+  /// Definite rejection where the server evaluated and rejected the request
+  /// without applying state mutations (e.g. 400, 401, 403, 404, 409, 422).
+  bool get isDefiniteRejection =>
+      statusCode == 400 ||
+      statusCode == 401 ||
+      statusCode == 403 ||
+      statusCode == 404 ||
+      statusCode == 409 ||
+      statusCode == 422;
+
+  /// Ambiguous failure where the server may or may not have committed the operation
+  /// before connection loss or unexpected server crash (e.g. status 0, NETWORK_ERROR, 500, 502, 503, 504).
+  bool get isAmbiguous =>
+      statusCode == 0 ||
+      code == 'NETWORK_ERROR' ||
+      statusCode == 500 ||
+      statusCode == 502 ||
+      statusCode == 503 ||
+      statusCode == 504;
+
   @override
   String toString() => 'ApiException($statusCode, $code): $message';
 }

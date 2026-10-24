@@ -1,0 +1,58 @@
+name: Staging Smoke Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      staging_url:
+        description: 'Staging API Base URL (e.g. https://staging-api.equilibrium.app/api/v1)'
+        required: true
+        type: string
+      staging_allowed_host:
+        description: 'Explicit Approved Staging Hostname (e.g. staging-api.equilibrium.app)'
+        required: true
+        type: string
+      test_email:
+        description: 'Dedicated Staging Test Account Email (leave blank to use secret or default)'
+        required: false
+        type: string
+
+jobs:
+  smoke-test:
+    name: Staging Verification Suite
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Preflight Secrets & Safety Check
+        run: |
+          if [ -z "${{ secrets.STAGING_TEST_PASSWORD }}" ]; then
+            echo "::error::Missing repository secret STAGING_TEST_PASSWORD. Test halted before network activity."
+            exit 1
+          fi
+          if [ -z "${{ inputs.staging_allowed_host }}" ]; then
+            echo "::error::Missing staging_allowed_host input. Target validation is fail-closed."
+            exit 1
+          fi
+
+      - name: Run Staging Smoke Test Harness
+        run: npm run smoke:staging
+        env:
+          STAGING_API_URL: ${{ inputs.staging_url }}
+          STAGING_ALLOWED_HOST: ${{ inputs.staging_allowed_host }}
+          STAGING_TEST_EMAIL: ${{ inputs.test_email || secrets.STAGING_TEST_EMAIL }}
+          STAGING_TEST_PASSWORD: ${{ secrets.STAGING_TEST_PASSWORD }}
+          ALLOW_LOCALHOST: 'false'

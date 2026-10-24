@@ -5,8 +5,17 @@ import 'package:provider/provider.dart';
 import '../../core/state/auth_provider.dart';
 import '../../services/constraint_repository.dart';
 
+import '../../core/utils/workload_calculator.dart';
+
 class OnboardingScreen extends StatefulWidget {
-  const OnboardingScreen({super.key});
+  final String initialSleepStart;
+  final String initialSleepEnd;
+
+  const OnboardingScreen({
+    super.key,
+    this.initialSleepStart = '23:00',
+    this.initialSleepEnd = '07:00',
+  });
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -19,8 +28,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   String? _errorMessage;
 
   // Sleep Shield state — stored as HH:mm strings
-  String _sleepStart = '23:00';
-  String _sleepEnd = '07:00';
+  late String _sleepStart;
+  late String _sleepEnd;
+
+  @override
+  void initState() {
+    super.initState();
+    _sleepStart = widget.initialSleepStart;
+    _sleepEnd = widget.initialSleepEnd;
+  }
 
   /// Parses "HH:mm" into a TimeOfDay
   TimeOfDay _parseTime(String hhmm) {
@@ -59,24 +75,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   bool _validateSleepTimes() {
-    // Both times are valid HH:mm
     if (_sleepStart == _sleepEnd) {
       setState(() => _errorMessage = 'Sleep start and wake-up time cannot be the same.');
       return false;
     }
-    // Calculate sleep duration (handles overnight)
-    final startParts = _sleepStart.split(':');
-    final endParts = _sleepEnd.split(':');
-    final startMins = int.parse(startParts[0]) * 60 + int.parse(startParts[1]);
-    final endMins = int.parse(endParts[0]) * 60 + int.parse(endParts[1]);
-    double sleepHours = (endMins - startMins) / 60.0;
-    if (sleepHours <= 0) sleepHours += 24; // overnight
-    if (sleepHours > 16) {
-      setState(() => _errorMessage = 'Sleep window exceeds 16 hours. Please check your times.');
+    final sleepHours = WorkloadCalculator.calculateSleepDurationHours(_sleepStart, _sleepEnd);
+    if (sleepHours < WorkloadCalculator.minSleepHours) {
+      setState(() => _errorMessage =
+          'Equilibrium requires at least 7 hours of protected sleep (selected: ${sleepHours.toStringAsFixed(1)}h).');
       return false;
     }
-    if (sleepHours < 5) {
-      setState(() => _errorMessage = 'Sleep window is less than 5 hours. Please check your times.');
+    if (sleepHours > WorkloadCalculator.maxSleepHours) {
+      setState(() => _errorMessage =
+          'Sleep window cannot exceed 12 hours (selected: ${sleepHours.toStringAsFixed(1)}h). Please check your times.');
       return false;
     }
     setState(() => _errorMessage = null);
@@ -88,7 +99,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       // Validate sleep times before proceeding
       if (!_validateSleepTimes()) return;
 
-      setState(() => _isSaving = true);
+      setState(() {
+        _isSaving = true;
+        _errorMessage = null;
+      });
       try {
         await context.read<ConstraintRepository>().updateConstraints({
           'sleepStart': _sleepStart,
@@ -101,19 +115,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           _pageCtrl.nextPage(duration: EqTokens.durationNormal, curve: Curves.easeInOut);
         }
       } catch (e) {
-        // Show error but still allow progression so UX isn't blocked offline
         if (mounted) {
+          setState(() {
+            _errorMessage = 'Could not save sleep schedule. Please check your connection and tap Next to retry.';
+          });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text(
-                'Could not save sleep schedule. You can update it later from Profile.',
+                'Could not save sleep schedule. Please retry.',
                 style: TextStyle(color: Colors.white),
               ),
-              backgroundColor: context.eqColors.warning,
+              backgroundColor: context.eqColors.danger,
               behavior: SnackBarBehavior.floating,
             ),
           );
-          _pageCtrl.nextPage(duration: EqTokens.durationNormal, curve: Curves.easeInOut);
         }
       } finally {
         if (mounted) setState(() => _isSaving = false);
@@ -188,7 +203,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget _buildWelcome(BuildContext context) {
     final colors = context.eqColors;
     final text = context.eqText;
-    return Padding(
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.all(EqTokens.space32),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -261,7 +277,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget _buildSleepShield(BuildContext context) {
     final colors = context.eqColors;
     final text = context.eqText;
-    return Padding(
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.all(EqTokens.space32),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -397,7 +414,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget _buildFinalSetup(BuildContext context) {
     final colors = context.eqColors;
     final text = context.eqText;
-    return Padding(
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.all(EqTokens.space32),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

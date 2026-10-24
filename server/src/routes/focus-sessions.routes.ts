@@ -3,6 +3,7 @@ import { authenticate } from '../middleware/auth';
 import { prisma } from '../db';
 import { z } from 'zod';
 import { validate } from '../middleware/validate';
+import { resolveTaskWorkload } from '../utils/task-workload.helper';
 
 export const focusSessionsRouter = Router();
 focusSessionsRouter.use(authenticate);
@@ -101,11 +102,15 @@ focusSessionsRouter.patch('/:id/resume', async (req: any, res, next) => {
 focusSessionsRouter.patch('/:id/complete', validate(completeSessionSchema), async (req: any, res, next) => {
   try {
     const session = await prisma.focusSession.findFirst({
-      where: { id: req.params.id, userId: req.userId }
+      where: { id: req.params.id, userId: req.userId },
+      include: { task: { select: { id: true, title: true, estimateMinutes: true, completedMinutes: true, actualMinutes: true, remainingMinutes: true, status: true } } }
     });
     if (!session) return res.status(404).json({ error: { message: 'Session not found' } });
-    if (session.status === 'COMPLETED' || session.status === 'DISCARDED') {
-      return res.status(400).json({ error: { message: `Session is already ${session.status}` } });
+    if (session.status === 'COMPLETED') {
+      return res.status(200).json(session);
+    }
+    if (session.status === 'DISCARDED') {
+      return res.status(400).json({ error: { message: 'Session is already DISCARDED' } });
     }
 
     const now = new Date();
@@ -117,6 +122,20 @@ focusSessionsRouter.patch('/:id/complete', validate(completeSessionSchema), asyn
     }
 
     const result = await prisma.$transaction(async (tx) => {
+      const current = await tx.focusSession.findFirst({
+        where: { id: req.params.id, userId: req.userId },
+        include: { task: { select: { id: true, title: true, estimateMinutes: true, completedMinutes: true, actualMinutes: true, remainingMinutes: true, status: true } } }
+      });
+      if (!current) throw new Error('Session not found');
+      if (current.status === 'COMPLETED') {
+        return current;
+      }
+      if (current.status === 'DISCARDED') {
+        const err: any = new Error('Session is already DISCARDED');
+        err.statusCode = 400;
+        throw err;
+      }
+
       const updated = await tx.focusSession.update({
         where: { id: req.params.id },
         data: {
@@ -125,40 +144,54 @@ focusSessionsRouter.patch('/:id/complete', validate(completeSessionSchema), asyn
           elapsedSeconds: finalElapsed,
           notes: req.body.notes ?? session.notes,
         },
-        include: { task: { select: { id: true, title: true, estimateMinutes: true, completedMinutes: true, status: true } } }
+        include: { task: { select: { id: true, title: true, estimateMinutes: true, completedMinutes: true, actualMinutes: true, remainingMinutes: true, status: true } } }
       });
 
-      // If linked to a task, update task's completedMinutes
-      if (session.taskId && updated.task) {
-        const additionalMinutes = Math.round(finalElapsed / 60);
-        const newCompleted = Math.min(
-          updated.task.estimateMinutes,
-          updated.task.completedMinutes + additionalMinutes
-        );
-        const newStatus = newCompleted >= updated.task.estimateMinutes ? 'COMPLETED' : 'IN_PROGRESS';
-        await tx.task.update({
-          where: { id: session.taskId },
-          data: { completedMinutes: newCompleted, status: newStatus }
-        });
-        // Log disruption for significant over/under runs
-        const diff = additionalMinutes - (updated.task.estimateMinutes - updated.task.completedMinutes);
-        if (Math.abs(diff) > 10) {
-          await tx.disruptionEvent.create({
+      // If linked to a task, update task's actualMinutes and remainingMinutes
+      if (session.taskId) {
+        const linkedTask = await tx.task.findUnique({ where: { id: session.taskId } });
+        if (linkedTask) {
+          const additionalMinutes = Math.round(finalElapsed / 60);
+          const currentWorkload = resolveTaskWorkload(linkedTask);
+          const newActual = currentWorkload.actualMinutes + additionalMinutes;
+          const newRemaining = Math.max(0, currentWorkload.remainingMinutes - additionalMinutes);
+          // Focus session completion never auto-completes the task; keeps IN_PROGRESS unless already COMPLETED
+          const newStatus = linkedTask.status === 'COMPLETED' ? 'COMPLETED' : 'IN_PROGRESS';
+
+          await tx.task.update({
+            where: { id: session.taskId },
             data: {
-              userId: req.userId,
-              taskId: session.taskId,
-              type: diff > 0 ? 'OVERRUN' : 'EARLY_COMPLETION',
-              plannedMinutes: updated.task.estimateMinutes - updated.task.completedMinutes,
-              actualMinutes: additionalMinutes,
+              actualMinutes: newActual,
+              completedMinutes: newActual,
+              remainingMinutes: newRemaining,
+              status: newStatus
             }
           });
+
+          // Log disruption for significant over/under runs compared to expected remaining
+          const diff = additionalMinutes - currentWorkload.remainingMinutes;
+          if (Math.abs(diff) > 10 && currentWorkload.remainingMinutes > 0) {
+            await tx.disruptionEvent.create({
+              data: {
+                userId: req.userId,
+                taskId: session.taskId,
+                type: diff > 0 ? 'OVERRUN' : 'EARLY_COMPLETION',
+                plannedMinutes: currentWorkload.remainingMinutes,
+                actualMinutes: additionalMinutes,
+              }
+            });
+          }
         }
       }
       return updated;
     });
 
     res.json(result);
-  } catch (err) { next(err); }
+  } catch (err: any) {
+    if (err.statusCode === 400) return res.status(400).json({ error: { message: err.message } });
+    if (err.message?.includes('not found')) return res.status(404).json({ error: { message: err.message } });
+    next(err);
+  }
 });
 
 // PATCH /api/v1/focus-sessions/:id/discard

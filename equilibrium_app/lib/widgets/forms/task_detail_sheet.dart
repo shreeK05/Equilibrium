@@ -5,6 +5,7 @@ import '../../core/theme/theme.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/state/schedule_provider.dart';
 import '../../models/task.dart';
+import '../dialogs/task_progress_dialog.dart';
 import 'explanation_sheet.dart';
 
 class TaskDetailSheet extends StatefulWidget {
@@ -193,7 +194,33 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
               }),
             ),
             
-            const SizedBox(height: EqTokens.space32),
+            const SizedBox(height: EqTokens.space16),
+
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: Icon(Icons.check_circle_outline, color: colors.success),
+                label: Text('Record Progress / Complete', style: text.labelLarge?.copyWith(color: colors.success)),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.all(EqTokens.space16),
+                  side: BorderSide(color: colors.success.withValues(alpha: 0.5)),
+                  shape: RoundedRectangleBorder(borderRadius: EqTokens.border8),
+                ),
+                onPressed: () async {
+                  final navigator = Navigator.of(context);
+                  final result = await TaskProgressDialog.show(
+                    context,
+                    task: widget.task,
+                  );
+                  if (!mounted) return;
+                  if (result != null) {
+                    navigator.pop();
+                  }
+                },
+              ),
+            ),
+            
+            const SizedBox(height: EqTokens.space16),
 
             SizedBox(
               width: double.infinity,

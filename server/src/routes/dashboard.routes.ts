@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth';
 import { prisma } from '../db';
+import { resolveTaskWorkload } from '../utils/task-workload.helper';
 
 export const dashboardRouter = Router();
 dashboardRouter.use(authenticate);
@@ -18,8 +19,8 @@ dashboardRouter.get('/', async (req: any, res, next) => {
         where: { userId },
         select: {
           id: true, title: true, status: true, deadline: true,
-          estimateMinutes: true, completedMinutes: true, deferralCount: true,
-          cognitiveLoad: true, academicWeight: true
+          estimateMinutes: true, completedMinutes: true, actualMinutes: true, remainingMinutes: true,
+          deferralCount: true, cognitiveLoad: true, academicWeight: true
         }
       }),
       prisma.scheduleVersion.findFirst({
@@ -75,7 +76,7 @@ dashboardRouter.get('/', async (req: any, res, next) => {
 
     // Remaining workload
     const totalRemainingMinutes = pendingTasks.reduce(
-      (sum, t) => sum + Math.max(0, t.estimateMinutes - t.completedMinutes), 0
+      (sum, t) => sum + resolveTaskWorkload(t).remainingMinutes, 0
     );
     const deferredTasksCount = pendingTasks.filter(t => t.deferralCount > 0).length;
 

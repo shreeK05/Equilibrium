@@ -20,9 +20,16 @@ export function placeTasks(
   const blocks: ScheduleBlock[] = [];
   const logs: DecisionLog[] = [];
 
-  // Sort tasks deterministically for placement priority
+  // Sort selected tasks deterministically in Earliest Deadline First (EDF) order
+  // to prevent later-deadline tasks from consuming early slots needed by earlier deadlines
   const sortedTasks = [...tasks].sort((a, b) => {
-    return priorities[b.id].score - priorities[a.id].score;
+    if (a.deadline.getTime() !== b.deadline.getTime()) {
+      return a.deadline.getTime() - b.deadline.getTime();
+    }
+    if (Math.abs(priorities[b.id].score - priorities[a.id].score) > 0.0001) {
+      return priorities[b.id].score - priorities[a.id].score;
+    }
+    return a.id.localeCompare(b.id);
   });
 
   for (const task of sortedTasks) {

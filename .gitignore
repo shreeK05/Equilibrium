@@ -1,0 +1,26 @@
+# ============================================================
+# Equilibrium Root .gitignore
+# ============================================================
+
+# Local environment & secret files
+.env
+.env.*
+*.env
+!.env.example
+!**/.env.example
+
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Build artifacts and caches
+dist/
+build/
+*.log
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+venv/
+.venv/

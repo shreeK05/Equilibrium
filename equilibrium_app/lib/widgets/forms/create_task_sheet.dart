@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/theme.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/state/schedule_provider.dart';
 import '../../core/state/exam_provider.dart';
 
-// Duration options presented to the student
-const _kDurationOptions = [15, 30, 45, 60, 90, 120, 150, 180, 240];
+// Standard student duration presets
+const _kDurationOptions = [15, 30, 45, 60, 90, 120];
 
 String _durationLabel(int mins) {
   if (mins < 60) return '${mins}m';
@@ -40,6 +40,7 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
   String? _errorText;
   Map<String, dynamic>? _preview;
   bool _isPreviewing = false;
+  bool _showAdditionalOptions = false;
   bool _showDailyTarget = false;
 
   @override
@@ -74,6 +75,9 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
       final val = int.tryParse(_customDurationCtrl.text.trim());
       if (val == null || val <= 0) return 'Custom duration must be a positive number';
       if (val > 10000) return 'Duration cannot exceed 10,000 minutes';
+    }
+    if (_deadline.isBefore(DateTime.now().subtract(const Duration(minutes: 1)))) {
+      return 'Deadline cannot be in the past';
     }
     if (_showDailyTarget && _dailyTargetCtrl.text.trim().isNotEmpty) {
       final dv = int.tryParse(_dailyTargetCtrl.text.trim());
@@ -122,8 +126,9 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
   }
 
   Future<void> _previewImpact() async {
-    if (_titleCtrl.text.trim().isEmpty) {
-      setState(() => _errorText = 'Enter a task title to preview its impact.');
+    final validationError = _validateForm();
+    if (validationError != null) {
+      setState(() => _errorText = validationError);
       return;
     }
     setState(() {
@@ -146,12 +151,15 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
     }
   }
 
-  Future<void> _pickDeadline() async {
+  Future<void> _pickCustomDeadline() async {
+    final now = DateTime.now();
+    final startOfToday = DateTime(now.year, now.month, now.day);
+    final initial = _deadline.isBefore(startOfToday) ? startOfToday : _deadline;
     final date = await showDatePicker(
       context: context,
-      initialDate: _deadline,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      initialDate: initial,
+      firstDate: startOfToday,
+      lastDate: startOfToday.add(const Duration(days: 365)),
     );
 
     if (date != null && mounted) {
@@ -161,11 +169,25 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
       );
 
       if (time != null && mounted) {
+        final chosen = DateTime(date.year, date.month, date.day, time.hour, time.minute);
         setState(() {
-          _deadline = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+          _deadline = chosen;
+          if (chosen.isBefore(DateTime.now())) {
+            _errorText = 'Deadline is in the past. Please select an upcoming date and time.';
+          } else {
+            _errorText = null;
+          }
         });
       }
     }
+  }
+
+  void _setPresetDeadline(int daysOffset) {
+    final now = DateTime.now();
+    final targetDay = now.add(Duration(days: daysOffset));
+    setState(() {
+      _deadline = DateTime(targetDay.year, targetDay.month, targetDay.day, 23, 59);
+    });
   }
 
   @override
@@ -173,15 +195,22 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
     final colors = context.eqColors;
     final text = context.eqText;
 
+    final now = DateTime.now();
+    final isTodayPreset = _deadline.day == now.day && _deadline.month == now.month && _deadline.year == now.year;
+    final tomorrow = now.add(const Duration(days: 1));
+    final isTomorrowPreset = _deadline.day == tomorrow.day && _deadline.month == tomorrow.month && _deadline.year == tomorrow.year;
+    final in3Days = now.add(const Duration(days: 3));
+    final isIn3DaysPreset = _deadline.day == in3Days.day && _deadline.month == in3Days.month && _deadline.year == in3Days.year;
+
     return Container(
       padding: EdgeInsets.only(
         left: EqTokens.space24,
         right: EqTokens.space24,
-        top: EqTokens.space24,
+        top: EqTokens.space20,
         bottom: MediaQuery.of(context).viewInsets.bottom + EqTokens.space24,
       ),
       decoration: BoxDecoration(
-        color: colors.background,
+        color: colors.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(EqTokens.radius24)),
       ),
       child: SingleChildScrollView(
@@ -189,78 +218,76 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Drag Handle
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: colors.textSecondary.withValues(alpha: 0.3),
+                  borderRadius: EqTokens.border4,
+                ),
+              ),
+            ),
+            const SizedBox(height: EqTokens.space16),
+
+            // Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Add Responsibility', style: text.headlineLarge?.copyWith(color: colors.textPrimary)),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Add Responsibility',
+                        style: text.titleLarge?.copyWith(
+                          color: colors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Quickly capture a task with smart scheduling defaults',
+                        style: text.bodySmall?.copyWith(color: colors.textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
                 IconButton(
-                  icon: Icon(Icons.close, color: colors.textSecondary),
+                  icon: Icon(CupertinoIcons.xmark_circle_fill, color: colors.textTertiary),
                   onPressed: () => Navigator.pop(context),
                 )
               ],
             ),
-            const SizedBox(height: EqTokens.space24),
+            const SizedBox(height: EqTokens.space20),
 
-            // Title
+            // 1. Task Title (Primary input)
             TextField(
               controller: _titleCtrl,
               autofocus: true,
-              style: TextStyle(color: colors.textPrimary),
+              style: TextStyle(color: colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w500),
               decoration: InputDecoration(
                 labelText: 'What do you need to do?',
+                hintText: 'e.g. Algorithms Problem Set 3',
                 errorText: _errorText,
-                filled: true,
-                fillColor: colors.surface,
-                border: OutlineInputBorder(borderRadius: EqTokens.border8, borderSide: BorderSide.none),
+                prefixIcon: Icon(CupertinoIcons.check_mark_circled, color: colors.primary, size: 20),
               ),
               onChanged: (_) {
                 if (_errorText != null) setState(() => _errorText = null);
               },
-            ).animate().fade().slideY(begin: 0.2, duration: 300.ms),
-            const SizedBox(height: EqTokens.space12),
+            ),
+            const SizedBox(height: EqTokens.space20),
 
-            // Description
-            TextField(
-              controller: _descCtrl,
-              maxLines: 2,
-              style: TextStyle(color: colors.textPrimary, fontSize: 13),
-              decoration: InputDecoration(
-                labelText: 'Description (optional)',
-                filled: true,
-                fillColor: colors.surface,
-                border: OutlineInputBorder(borderRadius: EqTokens.border8, borderSide: BorderSide.none),
+            // 2. Estimated Effort (Fast preset chips)
+            Text(
+              'ESTIMATED EFFORT',
+              style: text.labelSmall?.copyWith(
+                color: colors.textSecondary,
+                letterSpacing: 1.0,
+                fontWeight: FontWeight.w600,
               ),
-            ).animate().fade().slideY(begin: 0.2, duration: 300.ms),
-            const SizedBox(height: EqTokens.space16),
-
-            // Category
-            DropdownButtonFormField<String>(
-              initialValue: _categoryCtrl.text.isEmpty ? null : _categoryCtrl.text,
-              decoration: InputDecoration(
-                labelText: 'Category',
-                filled: true,
-                fillColor: colors.surface,
-                border: OutlineInputBorder(borderRadius: EqTokens.border8, borderSide: BorderSide.none),
-              ),
-              items: const [
-                DropdownMenuItem(value: 'Assignment', child: Text('Assignment')),
-                DropdownMenuItem(value: 'Project', child: Text('Project')),
-                DropdownMenuItem(value: 'Lab Record', child: Text('Lab Record')),
-                DropdownMenuItem(value: 'Internal Prep', child: Text('Internal Prep')),
-                DropdownMenuItem(value: 'End Sem Prep', child: Text('End Sem Prep')),
-                DropdownMenuItem(value: 'Viva Prep', child: Text('Viva Prep')),
-                DropdownMenuItem(value: 'Tutorial', child: Text('Tutorial')),
-                DropdownMenuItem(value: 'Placement Prep', child: Text('Placement Prep')),
-                DropdownMenuItem(value: 'Other', child: Text('Other')),
-              ],
-              onChanged: (val) {
-                if (val != null) setState(() => _categoryCtrl.text = val);
-              },
-            ).animate().fade().slideY(begin: 0.2, duration: 300.ms),
-            const SizedBox(height: EqTokens.space24),
-
-            // ── Estimated Effort ──────────────────────────────────────────
-            Text('Estimated Effort', style: text.labelSmall?.copyWith(color: colors.textSecondary)),
+            ),
             const SizedBox(height: EqTokens.space8),
             Wrap(
               spacing: EqTokens.space8,
@@ -282,10 +309,13 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
                     },
                     selectedColor: colors.primary,
                     backgroundColor: colors.surfaceElevated,
-                    labelStyle: TextStyle(color: isSelected ? colors.surface : colors.textPrimary, fontSize: 13),
+                    labelStyle: TextStyle(
+                      color: isSelected ? Colors.white : colors.textPrimary,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                      fontSize: 13,
+                    ),
                   );
                 }),
-                // Custom option chip
                 ChoiceChip(
                   label: const Text('Custom'),
                   selected: _useCustomDuration,
@@ -298,14 +328,14 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
                   selectedColor: colors.primary,
                   backgroundColor: colors.surfaceElevated,
                   labelStyle: TextStyle(
-                    color: _useCustomDuration ? colors.surface : colors.textPrimary,
+                    color: _useCustomDuration ? Colors.white : colors.textPrimary,
+                    fontWeight: _useCustomDuration ? FontWeight.w600 : FontWeight.normal,
                     fontSize: 13,
                   ),
                 ),
               ],
-            ).animate().fade(delay: 150.ms),
+            ),
 
-            // Custom duration input
             if (_useCustomDuration) ...[
               const SizedBox(height: EqTokens.space12),
               TextField(
@@ -315,218 +345,282 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
                 style: TextStyle(color: colors.textPrimary),
                 decoration: InputDecoration(
                   labelText: 'Custom duration (minutes)',
-                  hintText: 'e.g. 200',
+                  hintText: 'e.g. 180',
                   suffixText: 'min',
-                  filled: true,
-                  fillColor: colors.surface,
-                  border: OutlineInputBorder(borderRadius: EqTokens.border8, borderSide: BorderSide.none),
+                  prefixIcon: Icon(CupertinoIcons.time, color: colors.primary, size: 20),
                 ),
                 onChanged: (_) {
                   if (_errorText != null) setState(() => _errorText = null);
-                  setState(() {}); // Refresh label
+                  setState(() {});
                 },
-              ).animate().fadeIn(),
+              ),
             ],
 
-            const SizedBox(height: EqTokens.space16),
+            const SizedBox(height: EqTokens.space20),
 
-            // ── Daily Study Target (optional) ─────────────────────────────
-            InkWell(
-              onTap: () => setState(() {
-                _showDailyTarget = !_showDailyTarget;
-                if (!_showDailyTarget) _dailyTargetCtrl.clear();
-              }),
-              borderRadius: EqTokens.border8,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: _showDailyTarget ? colors.primary.withValues(alpha: 0.08) : colors.surface,
-                  borderRadius: EqTokens.border8,
-                  border: Border.all(
-                    color: _showDailyTarget ? colors.primary.withValues(alpha: 0.4) : colors.surfaceElevated,
-                    width: 1,
+            // 3. Deadline (Quick presets)
+            Text(
+              'DEADLINE',
+              style: text.labelSmall?.copyWith(
+                color: colors.textSecondary,
+                letterSpacing: 1.0,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: EqTokens.space8),
+            Wrap(
+              spacing: EqTokens.space8,
+              runSpacing: EqTokens.space8,
+              children: [
+                ActionChip(
+                  label: const Text('Today 11:59 PM'),
+                  onPressed: () => _setPresetDeadline(0),
+                  backgroundColor: isTodayPreset ? colors.primary.withValues(alpha: 0.15) : colors.surfaceElevated,
+                  side: BorderSide(color: isTodayPreset ? colors.primary : colors.cardBorder),
+                  labelStyle: TextStyle(
+                    color: isTodayPreset ? colors.primary : colors.textPrimary,
+                    fontWeight: isTodayPreset ? FontWeight.w600 : FontWeight.normal,
+                    fontSize: 12,
                   ),
+                ),
+                ActionChip(
+                  label: const Text('Tomorrow'),
+                  onPressed: () => _setPresetDeadline(1),
+                  backgroundColor: isTomorrowPreset ? colors.primary.withValues(alpha: 0.15) : colors.surfaceElevated,
+                  side: BorderSide(color: isTomorrowPreset ? colors.primary : colors.cardBorder),
+                  labelStyle: TextStyle(
+                    color: isTomorrowPreset ? colors.primary : colors.textPrimary,
+                    fontWeight: isTomorrowPreset ? FontWeight.w600 : FontWeight.normal,
+                    fontSize: 12,
+                  ),
+                ),
+                ActionChip(
+                  label: const Text('In 3 Days'),
+                  onPressed: () => _setPresetDeadline(3),
+                  backgroundColor: isIn3DaysPreset ? colors.primary.withValues(alpha: 0.15) : colors.surfaceElevated,
+                  side: BorderSide(color: isIn3DaysPreset ? colors.primary : colors.cardBorder),
+                  labelStyle: TextStyle(
+                    color: isIn3DaysPreset ? colors.primary : colors.textPrimary,
+                    fontWeight: isIn3DaysPreset ? FontWeight.w600 : FontWeight.normal,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: EqTokens.space8),
+            InkWell(
+              onTap: _pickCustomDeadline,
+              borderRadius: EqTokens.border12,
+              child: Container(
+                height: 48,
+                padding: const EdgeInsets.symmetric(horizontal: EqTokens.space16),
+                decoration: BoxDecoration(
+                  color: colors.surfaceElevated,
+                  borderRadius: EqTokens.border12,
+                  border: Border.all(color: colors.cardBorder),
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.today_outlined,
-                      size: 18,
-                      color: _showDailyTarget ? colors.primary : colors.textSecondary,
-                    ),
-                    const SizedBox(width: 8),
+                    Icon(CupertinoIcons.calendar, size: 18, color: colors.primary),
+                    const SizedBox(width: EqTokens.space12),
                     Expanded(
                       child: Text(
-                        'Set Daily Study Target (optional)',
-                        style: text.bodySmall?.copyWith(
-                          color: _showDailyTarget ? colors.primary : colors.textSecondary,
-                          fontWeight: _showDailyTarget ? FontWeight.w600 : FontWeight.normal,
+                        DateFormat('EEE, MMM d, yyyy • h:mm a').format(_deadline),
+                        style: text.bodyMedium?.copyWith(
+                          color: colors.textPrimary,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
-                    Icon(
-                      _showDailyTarget ? Icons.expand_less : Icons.expand_more,
-                      size: 18,
-                      color: colors.textSecondary,
+                    Text(
+                      'Change',
+                      style: text.labelSmall?.copyWith(color: colors.primary, fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
               ),
-            ).animate().fade(delay: 200.ms),
+            ),
 
-            if (_showDailyTarget) ...[
-              const SizedBox(height: EqTokens.space12),
-              TextField(
-                controller: _dailyTargetCtrl,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                style: TextStyle(color: colors.textPrimary),
-                decoration: InputDecoration(
-                  labelText: 'Daily study target',
-                  hintText: 'e.g. 60 (for 1 hour/day)',
-                  suffixText: 'min/day',
-                  helperText: 'Scheduler will pace this task across multiple days',
-                  filled: true,
-                  fillColor: colors.surface,
-                  border: OutlineInputBorder(borderRadius: EqTokens.border8, borderSide: BorderSide.none),
+            const SizedBox(height: EqTokens.space16),
+
+            // 4. Collapsible Additional Options
+            InkWell(
+              onTap: () => setState(() => _showAdditionalOptions = !_showAdditionalOptions),
+              borderRadius: EqTokens.border12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: colors.surfaceElevated,
+                  borderRadius: EqTokens.border12,
+                  border: Border.all(color: colors.cardBorder),
                 ),
-                onChanged: (_) {
-                  if (_errorText != null) setState(() => _errorText = null);
-                },
-              ).animate().fadeIn(),
-
-              if (_dailyTargetCtrl.text.isNotEmpty) ...[
-                const SizedBox(height: EqTokens.space8),
-                Builder(builder: (context) {
-                  final totalMins = _effectiveEstimateMinutes;
-                  final dailyMins = int.tryParse(_dailyTargetCtrl.text.trim());
-                  if (dailyMins == null || dailyMins <= 0 || totalMins <= 0) {
-                    return const SizedBox.shrink();
-                  }
-                  final days = (totalMins / dailyMins).ceil();
-                  return Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: colors.primary.withValues(alpha: 0.07),
-                      borderRadius: EqTokens.border8,
+                child: Row(
+                  children: [
+                    Icon(
+                      _showAdditionalOptions ? CupertinoIcons.slider_horizontal_below_rectangle : CupertinoIcons.slider_horizontal_3,
+                      size: 18,
+                      color: colors.textSecondary,
                     ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.info_outline, size: 14, color: colors.primary),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Approx. $days days × ~${dailyMins}m/day = ${totalMins}m total',
-                          style: text.labelSmall?.copyWith(color: colors.primary),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Additional options (Category, Notes, Pacing)',
+                        style: text.bodySmall?.copyWith(
+                          color: colors.textPrimary,
+                          fontWeight: FontWeight.w500,
                         ),
-                      ],
+                      ),
                     ),
-                  );
+                    Icon(
+                      _showAdditionalOptions ? CupertinoIcons.chevron_up : CupertinoIcons.chevron_down,
+                      size: 16,
+                      color: colors.textTertiary,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            if (_showAdditionalOptions) ...[
+              const SizedBox(height: EqTokens.space16),
+
+              // Category
+              DropdownButtonFormField<String>(
+                initialValue: _categoryCtrl.text.isEmpty ? null : _categoryCtrl.text,
+                decoration: const InputDecoration(
+                  labelText: 'Category (optional)',
+                  prefixIcon: Icon(CupertinoIcons.tag, size: 18),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'Assignment', child: Text('Assignment')),
+                  DropdownMenuItem(value: 'Project', child: Text('Project')),
+                  DropdownMenuItem(value: 'Lab Record', child: Text('Lab Record')),
+                  DropdownMenuItem(value: 'Internal Prep', child: Text('Internal Prep')),
+                  DropdownMenuItem(value: 'End Sem Prep', child: Text('End Sem Prep')),
+                  DropdownMenuItem(value: 'Viva Prep', child: Text('Viva Prep')),
+                  DropdownMenuItem(value: 'Tutorial', child: Text('Tutorial')),
+                  DropdownMenuItem(value: 'Placement Prep', child: Text('Placement Prep')),
+                  DropdownMenuItem(value: 'Other', child: Text('Other')),
+                ],
+                onChanged: (val) {
+                  if (val != null) setState(() => _categoryCtrl.text = val);
+                },
+              ),
+              const SizedBox(height: EqTokens.space12),
+
+              // Description
+              TextField(
+                controller: _descCtrl,
+                maxLines: 2,
+                style: TextStyle(color: colors.textPrimary, fontSize: 14),
+                decoration: const InputDecoration(
+                  labelText: 'Notes or instructions (optional)',
+                  prefixIcon: Icon(CupertinoIcons.text_alignleft, size: 18),
+                ),
+              ),
+              const SizedBox(height: EqTokens.space12),
+
+              // Flexibility
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _deadlineType,
+                      decoration: const InputDecoration(
+                        labelText: 'Deadline Flexibility',
+                        prefixIcon: Icon(CupertinoIcons.alarm, size: 18),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'HARD', child: Text('Hard Deadline')),
+                        DropdownMenuItem(value: 'FLEXIBLE', child: Text('Flexible Deadline')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setState(() => _deadlineType = val);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: EqTokens.space12),
+
+              // Daily Target Pacing
+              InkWell(
+                onTap: () => setState(() {
+                  _showDailyTarget = !_showDailyTarget;
+                  if (!_showDailyTarget) _dailyTargetCtrl.clear();
                 }),
+                child: Row(
+                  children: [
+                    Checkbox(
+                      value: _showDailyTarget,
+                      onChanged: (val) => setState(() {
+                        _showDailyTarget = val ?? false;
+                        if (!_showDailyTarget) _dailyTargetCtrl.clear();
+                      }),
+                      activeColor: colors.primary,
+                    ),
+                    Text(
+                      'Pace across multiple days with a daily target',
+                      style: text.bodySmall?.copyWith(color: colors.textPrimary),
+                    ),
+                  ],
+                ),
+              ),
+              if (_showDailyTarget) ...[
+                const SizedBox(height: EqTokens.space8),
+                TextField(
+                  controller: _dailyTargetCtrl,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  style: TextStyle(color: colors.textPrimary),
+                  decoration: const InputDecoration(
+                    labelText: 'Daily study target',
+                    hintText: 'e.g. 60 (for 1 hour/day)',
+                    suffixText: 'min/day',
+                  ),
+                ),
               ],
             ],
 
             const SizedBox(height: EqTokens.space24),
 
-            // ── Deadline & Flexibility ────────────────────────────────────
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Deadline', style: text.labelSmall?.copyWith(color: colors.textSecondary)),
-                      const SizedBox(height: EqTokens.space8),
-                      InkWell(
-                        onTap: _pickDeadline,
-                        borderRadius: EqTokens.border8,
-                        child: Container(
-                          height: 48,
-                          padding: const EdgeInsets.symmetric(horizontal: EqTokens.space16),
-                          decoration: BoxDecoration(
-                            color: colors.surfaceElevated,
-                            borderRadius: EqTokens.border8,
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.calendar_today, size: 16, color: colors.primary),
-                              const SizedBox(width: EqTokens.space8),
-                              Expanded(
-                                child: Text(
-                                  DateFormat('MMM d, h:mm a').format(_deadline),
-                                  style: text.bodyMedium?.copyWith(color: colors.textPrimary),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: EqTokens.space16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Flexibility', style: text.labelSmall?.copyWith(color: colors.textSecondary)),
-                      const SizedBox(height: EqTokens.space8),
-                      Container(
-                        height: 48,
-                        decoration: BoxDecoration(color: colors.surfaceElevated, borderRadius: EqTokens.border8),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: _deadlineType,
-                            isExpanded: true,
-                            dropdownColor: colors.surfaceElevated,
-                            padding: const EdgeInsets.symmetric(horizontal: EqTokens.space16),
-                            style: text.bodyMedium?.copyWith(color: colors.textPrimary),
-                            items: const [
-                              DropdownMenuItem(value: 'HARD', child: Text('Hard')),
-                              DropdownMenuItem(value: 'FLEXIBLE', child: Text('Flexible')),
-                            ],
-                            onChanged: (val) {
-                              if (val != null) setState(() => _deadlineType = val);
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ).animate().fade(delay: 200.ms),
+            // 5. Working What-If Preview
+            if (_preview != null) ...[
+              _buildPreview(context),
+              const SizedBox(height: EqTokens.space12),
+            ],
 
-            const SizedBox(height: EqTokens.space32),
-            if (_preview != null) _buildPreview(context),
-            if (_preview != null) const SizedBox(height: EqTokens.space16),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: _isPreviewing ? null : _previewImpact,
                 icon: _isPreviewing
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.visibility_outlined),
-                label: const Text('Preview impact before adding'),
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(CupertinoIcons.sparkles, size: 16),
+                label: const Text('Preview schedule fit before adding'),
               ),
             ),
             const SizedBox(height: EqTokens.space12),
+
+            // 6. Primary Submit Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: context.watch<ScheduleProvider>().isLoading ? null : _submit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: colors.primary,
-                  foregroundColor: colors.surface,
-                  padding: const EdgeInsets.all(EqTokens.space16),
-                  shape: RoundedRectangleBorder(borderRadius: EqTokens.border8),
-                  elevation: 0,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: EqTokens.space16),
+                  shape: RoundedRectangleBorder(borderRadius: EqTokens.border12),
                 ),
                 child: context.watch<ScheduleProvider>().isLoading
-                    ? SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: colors.surface, strokeWidth: 2))
-                    : Text('Add to Workload', style: text.labelLarge?.copyWith(color: colors.surface)),
+                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : Text(
+                        'Add to Workload',
+                        style: text.labelLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
+                      ),
               ),
-            ).animate().fade(delay: 300.ms).slideY(begin: 0.2),
+            ),
           ],
         ),
       ),
@@ -539,25 +633,29 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
     final fits = _preview!['fits'] == true;
     final scheduled = (_preview!['scheduledMinutes'] as num?)?.toInt() ?? 0;
     final deferredTasks = (_preview!['deferredTaskCount'] as num?)?.toInt() ?? 0;
+
     return Container(
       padding: const EdgeInsets.all(EqTokens.space16),
       decoration: BoxDecoration(
         color: (fits ? colors.success : colors.warning).withValues(alpha: 0.12),
         borderRadius: EqTokens.border12,
-        border: Border.all(color: (fits ? colors.success : colors.warning).withValues(alpha: 0.45)),
+        border: Border.all(color: (fits ? colors.success : colors.warning).withValues(alpha: 0.4)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(fits ? Icons.check_circle_outline : Icons.warning_amber_outlined,
-              color: fits ? colors.success : colors.warning),
+          Icon(
+            fits ? CupertinoIcons.checkmark_circle_fill : CupertinoIcons.exclamationmark_triangle_fill,
+            color: fits ? colors.success : colors.warning,
+            size: 20,
+          ),
           const SizedBox(width: EqTokens.space12),
           Expanded(
             child: Text(
               fits
-                  ? 'This task fits safely. About $scheduled minutes can be placed before the deadline.'
-                  : 'This task may be deferred or split. $deferredTasks task(s) would remain under pressure, and sleep stays protected.',
-              style: text.bodyMedium?.copyWith(color: colors.textPrimary, height: 1.3),
+                  ? 'This task fits cleanly. About $scheduled minutes can be scheduled before the deadline without encroaching on bedtime.'
+                  : 'This task may cause workload pressure ($deferredTasks task(s) deferred). Protected sleep remains guarded.',
+              style: text.bodySmall?.copyWith(color: colors.textPrimary, height: 1.4),
             ),
           ),
         ],

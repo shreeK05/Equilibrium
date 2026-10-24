@@ -1,0 +1,25 @@
+# Render Blueprint Specification for Equilibrium Staging Environment
+# This configuration provisions an isolated, free-tier staging API service
+# backed by an external isolated PostgreSQL staging database (e.g., Supabase Free Project).
+# It does NOT provision a Render-managed database and does NOT touch production.
+
+services:
+  - type: web
+    name: equilibrium-api-staging
+    env: node
+    plan: free
+    rootDir: server
+    buildCommand: npm ci && node scripts/use-pg-schema.js && npm run build
+    startCommand: npm run start:staging
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: STAGING_SUPABASE_PROJECT_REF
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        sync: false
