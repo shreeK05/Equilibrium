@@ -1,4 +1,4 @@
-package com.example.equilibrium_app
+package app.equilibrium.mobile
 
 import io.flutter.embedding.android.FlutterActivity
 

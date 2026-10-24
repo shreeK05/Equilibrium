@@ -9,6 +9,12 @@
 !.env.example
 !**/.env.example
 
+# Android signing keys & properties
+key.properties
+**/key.properties
+*.keystore
+*.jks
+
 # Operating system files
 .DS_Store
 Thumbs.db

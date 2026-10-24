@@ -1,0 +1,8 @@
+# Example Android Keystore signing configuration for Equilibrium
+# Copy this file to `key.properties` and populate with your production keystore details.
+# NEVER commit `key.properties`, `*.keystore`, or passwords to version control.
+#
+# storePassword=YOUR_KEYSTORE_PASSWORD
+# keyPassword=YOUR_KEY_PASSWORD
+# keyAlias=YOUR_KEY_ALIAS
+# storeFile=../path/to/upload-keystore.jks
