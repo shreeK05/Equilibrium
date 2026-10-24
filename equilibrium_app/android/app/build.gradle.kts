@@ -38,27 +38,24 @@ android {
     }
 
     signingConfigs {
-        create("release") {
-            if (keystorePropertiesFile.exists()) {
+        if (keystorePropertiesFile.exists()) {
+            create("release") {
                 keyAlias = keystoreProperties.getProperty("keyAlias")
                 keyPassword = keystoreProperties.getProperty("keyPassword")
                 val storeFilePath = keystoreProperties.getProperty("storeFile")
                 storeFile = if (storeFilePath != null) rootProject.file(storeFilePath) else null
                 storePassword = keystoreProperties.getProperty("storePassword")
-            } else {
-                // Sideloadable release signing with standard debug credentials when custom keystore is omitted
-                val debugSigning = signingConfigs.getByName("debug")
-                keyAlias = debugSigning.keyAlias
-                keyPassword = debugSigning.keyPassword
-                storeFile = debugSigning.storeFile
-                storePassword = debugSigning.storePassword
             }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = if (keystorePropertiesFile.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }

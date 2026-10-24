@@ -5,7 +5,7 @@
 **Repository:** `https://github.com/shreeK05/Equilibrium.git`  
 **Target Environment:** Live Production  
 **Production Git Branch:** `main`  
-**Production Release Tag:** `v1.0.1`  
+**Production Release Tag:** `v1.0.2`  
 **Production API Base URL:** `https://equilibrium-42g8.onrender.com/api/v1`  
 **Production Database:** Supabase PostgreSQL Project `rlqphunokjkxzqetondw` (`aws-0-ap-south-1.pooler.supabase.com:5432`)  
 **Primary Client Target:** Flutter Android Mobile Application (`app-release.apk`)  
@@ -32,8 +32,8 @@ Key achievements in this release:
 
 | Artifact | Location / URL | Status |
 | :--- | :--- | :---: |
-| **Direct APK Download** | [Download app-release.apk](https://github.com/shreeK05/Equilibrium/releases/download/v1.0.1/app-release.apk) | **AVAILABLE (GitHub Release)** |
-| **GitHub Release Page** | [https://github.com/shreeK05/Equilibrium/releases/tag/v1.0.1](https://github.com/shreeK05/Equilibrium/releases/tag/v1.0.1) | **PUBLISHED** |
+| **Direct APK Download** | [Download app-release.apk](https://github.com/shreeK05/Equilibrium/releases/download/v1.0.2/app-release.apk) | **AVAILABLE (GitHub Release)** |
+| **GitHub Release Page** | [https://github.com/shreeK05/Equilibrium/releases/tag/v1.0.2](https://github.com/shreeK05/Equilibrium/releases/tag/v1.0.2) | **PUBLISHED** |
 | **Local APK Artifact** | `equilibrium_app/build/app/outputs/flutter-apk/app-release.apk` | **VERIFIED (60,593,047 bytes)** |
 | **Backend API (Render)** | `https://equilibrium-42g8.onrender.com/api/v1` | **LIVE (200 OK)** |
 | **Database (Supabase)** | Project `rlqphunokjkxzqetondw` (`ap-south-1`) | **HEALTHY (6/6 Migrations)** |
@@ -173,8 +173,8 @@ To test on an Android phone:
 
 ## 7. Sign-Off & Release Summary
 
-The Equilibrium Android application release `v1.0.1` is **verified, published, and downloadable**:
-- Production Tag: `v1.0.1`
+The Equilibrium Android application release `v1.0.2` is **verified, published, and downloadable**:
+- Production Tag: `v1.0.2`
 - Application ID: `app.equilibrium.mobile`
-- Downloadable Asset: `https://github.com/shreeK05/Equilibrium/releases/download/v1.0.1/app-release.apk`
+- Downloadable Asset: `https://github.com/shreeK05/Equilibrium/releases/download/v1.0.2/app-release.apk`
 - All 87 Flutter tests, 113 backend unit tests, 182 API tests, and 8 live cloud mobile journeys pass.
