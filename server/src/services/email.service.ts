@@ -120,12 +120,18 @@ export class EmailService {
         this.resendClient = new Resend(config.resendApiKey.trim());
       }
 
-      await this.resendClient.emails.send({
+      const { data, error } = await this.resendClient.emails.send({
         from: sender,
         to: email,
         subject,
         html
       });
+
+      if (error) {
+        const safeMessage = error.message || 'Resend provider rejected email';
+        console.error(`[EmailService] Failed to send registration OTP: ${safeMessage}`);
+        return { success: false, error: safeMessage };
+      }
 
       return { success: true };
     } catch (err: any) {
@@ -176,7 +182,10 @@ export class EmailService {
 
     try {
       if (!this.resendClient) this.resendClient = new Resend(config.resendApiKey.trim());
-      await this.resendClient.emails.send({ from: sender, to: email, subject, html });
+      const { data, error } = await this.resendClient.emails.send({ from: sender, to: email, subject, html });
+      if (error) {
+        return { success: false, error: error.message || 'Resend provider error' };
+      }
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
@@ -222,7 +231,10 @@ export class EmailService {
 
     try {
       if (!this.resendClient) this.resendClient = new Resend(config.resendApiKey.trim());
-      await this.resendClient.emails.send({ from: sender, to: email, subject, html });
+      const { data, error } = await this.resendClient.emails.send({ from: sender, to: email, subject, html });
+      if (error) {
+        return { success: false, error: error.message || 'Resend provider error' };
+      }
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
