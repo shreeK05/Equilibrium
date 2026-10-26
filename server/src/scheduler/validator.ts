@@ -1,6 +1,6 @@
 import { ScheduleBlock, ConstraintInput, FixedCommitment, TaskInput } from './types';
 import { intervalsIntersect, parseTimeStrToDate } from './guard';
-import { format } from 'date-fns-tz';
+import { formatInTimeZone } from 'date-fns-tz';
 
 export function validateSchedule(
   blocks: ScheduleBlock[],
@@ -25,9 +25,12 @@ export function validateSchedule(
       }
     }
 
+    // Historical or locked blocks should not fail validation against new constraints
+    if (block.isLocked) continue;
+
     // Check Sleep Overlap for the day of the block
     const tz = constraints.timezone || 'Asia/Kolkata';
-    const dayStr = format(block.start, 'yyyy-MM-dd', { timeZone: tz });
+    const dayStr = formatInTimeZone(block.start, tz, 'yyyy-MM-dd');
 
     let sleepStart = parseTimeStrToDate(dayStr, constraints.sleepStart, tz);
     let sleepEnd = parseTimeStrToDate(dayStr, constraints.sleepEnd, tz);
@@ -89,9 +92,12 @@ export function validateSchedule(
     }
   }
 
-  // Check self overlap
+  // Check self overlap: ensure no newly placed block overlaps any other block
   for (let i = 0; i < blocks.length; i++) {
     for (let j = i + 1; j < blocks.length; j++) {
+      // Historical/locked blocks cannot be altered by the scheduler; skip validation between two locked blocks
+      if (blocks[i].isLocked && blocks[j].isLocked) continue;
+
       // Allow edge touching (end == start)
       if (blocks[i].end <= blocks[j].start || blocks[i].start >= blocks[j].end) continue;
       

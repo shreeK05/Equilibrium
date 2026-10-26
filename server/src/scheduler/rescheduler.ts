@@ -1,3 +1,4 @@
+import { formatInTimeZone } from 'date-fns-tz';
 import { TaskInput, ConstraintInput, FixedCommitment, ScheduleBlock, DecisionLog } from './types';
 import { generateSlots, applyConstraints, Slot } from './capacity';
 import { calculatePriority } from './priority';
@@ -16,7 +17,8 @@ function computeTaskSlotLimits(
   availableSlots: Slot[],
   deadline: Date,
   remainingMinutes: number,
-  dailyTargetMinutes?: number | null
+  dailyTargetMinutes?: number | null,
+  tz: string = 'Asia/Kolkata'
 ): { deadlineCapacity: number; maxAllocatableSlots: number } {
   const slotsBeforeDeadline = availableSlots.filter(s => s.end <= deadline);
   const deadlineCapacity = slotsBeforeDeadline.length;
@@ -30,7 +32,7 @@ function computeTaskSlotLimits(
   const maxDailySlots = Math.ceil(dailyTargetMinutes / 30);
   const slotsPerDay = new Map<string, number>();
   for (const s of slotsBeforeDeadline) {
-    const day = s.start.toISOString().substring(0, 10);
+    const day = formatInTimeZone(s.start, tz, 'yyyy-MM-dd');
     slotsPerDay.set(day, (slotsPerDay.get(day) || 0) + 1);
   }
   let pacedSlots = 0;
@@ -51,6 +53,7 @@ export function runReschedulerPipeline(
   now: Date
 ): { blocks: ScheduleBlock[], logs: DecisionLog[] } {
   // 1. Capacity
+  const tz = constraints.timezone || 'Asia/Kolkata';
   const slots = generateSlots(horizonStart, horizonEnd);
   applyConstraints(slots, constraints, fixed, lockedBlocks);
   const availableSlotsList = slots.filter(s => s.available && s.start >= now);
@@ -72,7 +75,8 @@ export function runReschedulerPipeline(
       availableSlotsList,
       task.deadline,
       task.remainingMinutes,
-      task.dailyTargetMinutes
+      task.dailyTargetMinutes,
+      tz
     );
 
     if (deadlineCapacity === 0) {

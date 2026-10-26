@@ -19,6 +19,7 @@ import '../../core/state/profile_provider.dart';
 import '../../core/utils/workload_calculator.dart';
 import '../../models/task.dart';
 import '../../models/schedule.dart';
+import '../../models/decision_log.dart';
 import 'package:intl/intl.dart';
 import '../timer/timer_screen.dart';
 
@@ -398,6 +399,11 @@ class _TodayScreenState extends State<TodayScreen> {
                       ).animate().fade(delay: 330.ms),
                       const SizedBox(height: EqTokens.space12),
                       ...needsAttentionTasks.map((task) {
+                        final decisionLog = provider.currentSchedule?.decisionLogs.cast<DecisionLog?>().firstWhere(
+                          (d) => d?.taskId == task.id && d?.decisionType == DecisionType.deferred,
+                          orElse: () => null,
+                        );
+
                         return Padding(
                           padding: const EdgeInsets.only(bottom: EqTokens.space12),
                           child: GestureDetector(
@@ -409,20 +415,49 @@ class _TodayScreenState extends State<TodayScreen> {
                                 builder: (context) => TaskDetailSheet(task: task),
                               );
                             },
-                            child: TaskCard(
-                              title: task.title,
-                              category: task.category,
-                              durationStr: '${task.remainingMinutes}m',
-                              deadlineStr: task.isOverdue ? 'Overdue' : 'Due today',
-                              isFlexible: task.deadlineType == DeadlineType.flexible,
-                              status: EqStatus.deferred,
-                              isCompleted: false,
-                              onComplete: () => _handleTaskDone(task),
-                              onStartTimer: () {
-                                Navigator.of(context).push(MaterialPageRoute(
-                                  builder: (_) => TimerScreen(initialTask: task),
-                                ));
-                              },
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                TaskCard(
+                                  title: task.title,
+                                  category: task.category,
+                                  durationStr: '${task.remainingMinutes}m',
+                                  deadlineStr: task.isOverdue ? 'Overdue' : 'Due today',
+                                  isFlexible: task.deadlineType == DeadlineType.flexible,
+                                  status: EqStatus.deferred,
+                                  isCompleted: false,
+                                  onComplete: () => _handleTaskDone(task),
+                                  onStartTimer: () {
+                                    Navigator.of(context).push(MaterialPageRoute(
+                                      builder: (_) => TimerScreen(initialTask: task),
+                                    ));
+                                  },
+                                ),
+                                if (decisionLog != null) ...[
+                                  const SizedBox(height: EqTokens.space6),
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(horizontal: EqTokens.space12, vertical: EqTokens.space8),
+                                    decoration: BoxDecoration(
+                                      color: colors.warning.withValues(alpha: 0.1),
+                                      borderRadius: EqTokens.border8,
+                                      border: Border.all(color: colors.warning.withValues(alpha: 0.3)),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.info_outline, size: 14, color: colors.warning),
+                                        const SizedBox(width: EqTokens.space8),
+                                        Expanded(
+                                          child: Text(
+                                            decisionLog.humanReadable,
+                                            style: text.bodySmall?.copyWith(color: colors.textPrimary),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
                         ).animate().fade(delay: 350.ms).slideX(begin: 0.1);

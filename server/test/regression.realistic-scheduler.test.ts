@@ -235,4 +235,51 @@ describe('Milestone 1 & 3 — Realistic Workload Scheduling Engine', () => {
       expect(run1.blocks[i].durationMinutes).toBe(run2.blocks[i].durationMinutes);
     }
   });
+
+  test('7. Rescheduling with historical locked blocks (even if in routine/sleep slots) succeeds without throwing fatal validation error', () => {
+    // Scenario: User had a past completed session at 08:30 (during breakfast) or 23:30 (during sleep)
+    // from before they adjusted their sleep or routines.
+    const pastLockedBlocks = [
+      {
+        taskId: 'past-completed-task',
+        type: 'TASK' as const,
+        start: toDate('2026-10-26T08:00:00', { timeZone: IST }),
+        end: toDate('2026-10-26T09:00:00', { timeZone: IST }), // Overlaps breakfast routine
+        durationMinutes: 60,
+        isLocked: true,
+        isCompleted: true
+      },
+      {
+        taskId: 'yesterday-sleep-block',
+        type: 'TASK' as const,
+        start: toDate('2026-10-25T23:30:00', { timeZone: IST }),
+        end: toDate('2026-10-26T00:30:00', { timeZone: IST }), // Overlaps sleep window
+        durationMinutes: 60,
+        isLocked: true,
+        isCompleted: true
+      }
+    ];
+
+    const currentTasks: TaskInput[] = [
+      {
+        id: 't-new-task',
+        title: 'New Feasible Assignment',
+        estimateMinutes: 60,
+        completedMinutes: 0,
+        remainingMinutes: 60,
+        deadline: toDate('2026-10-26T18:00:00', { timeZone: IST }),
+        academicWeight: 0.8,
+        teamImpact: 0,
+        cognitiveLoad: 'MEDIUM',
+        deferralCount: 0
+      }
+    ];
+
+    // This must not throw FATAL: Scheduler generated an invalid schedule violating hard constraints
+    expect(() => {
+      const res = runReschedulerPipeline(currentTasks, baseConstraints, [], pastLockedBlocks, horizonStart, horizonEnd, now);
+      expect(res.blocks.length).toBeGreaterThanOrEqual(3); // 2 locked + newly scheduled block
+      expect(res.blocks.some(b => b.taskId === 't-new-task')).toBe(true);
+    }).not.toThrow();
+  });
 });

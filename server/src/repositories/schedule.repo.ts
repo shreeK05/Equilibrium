@@ -95,10 +95,12 @@ export class ScheduleRepository {
       // Update deferral counts for tasks that were deferred or partially scheduled
       const deferredLogs = logs.filter(l => l.decisionType === 'DEFERRED' || l.decisionType === 'PARTIALLY_SCHEDULED');
       for (const log of deferredLogs) {
-        await tx.task.update({
-          where: { id: log.taskId },
-          data: { deferralCount: { increment: 1 } }
-        });
+        if (log.taskId) {
+          await tx.task.updateMany({
+            where: { id: log.taskId, userId },
+            data: { deferralCount: { increment: 1 } }
+          });
+        }
       }
 
       return version;

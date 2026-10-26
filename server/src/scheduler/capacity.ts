@@ -1,4 +1,4 @@
-import { format } from 'date-fns-tz';
+import { formatInTimeZone } from 'date-fns-tz';
 import { intervalsIntersect, parseTimeStrToDate } from './guard';
 import { ConstraintInput, FixedCommitment, ScheduleBlock } from './types';
 
@@ -35,7 +35,7 @@ export function applyConstraints(
 
   // Apply sleep shield for each unique day in horizon
   const days = new Set(slots.map(s => {
-    return format(s.start, 'yyyy-MM-dd', { timeZone: tz });
+    return formatInTimeZone(s.start, tz, 'yyyy-MM-dd');
   }));
 
   days.forEach(dayStr => {

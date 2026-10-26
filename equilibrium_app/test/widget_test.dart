@@ -333,4 +333,48 @@ void main() {
     await tester.tap(find.text('My Custom Task'));
     await tester.pumpAndSettle();
   });
+
+  testWidgets('Unscheduled Tasks banner renders honest explanations when tasks are deferred', (tester) async {
+    final now = DateTime.now();
+    final scheduleWithDeferred = ScheduleVersion(
+      id: 'v-def-1',
+      generatedAt: now,
+      capacityMinutes: 480,
+      triggerType: 'MANUAL',
+      blocks: [],
+      decisionLogs: [
+        DecisionLog(
+          id: 'd-1',
+          versionId: 'v-def-1',
+          taskId: 't-math',
+          decisionType: DecisionType.deferred,
+          priorityScore: 0.8,
+          priorityComponents: {},
+          reasonCode: DecisionReason.noAvailableSlots,
+          humanReadable: 'Deferred because remaining hours conflicted with protected meal or personal routine hours.',
+        )
+      ],
+    );
+
+    await tester.pumpWidget(createTestWidget(
+      Builder(builder: (context) {
+        final colors = context.eqColors;
+        final text = context.eqText;
+        final deferredLogs = scheduleWithDeferred.decisionLogs.where((d) => d.decisionType == DecisionType.deferred).toList();
+
+        return Column(
+          children: [
+            Text(
+              'Unscheduled Tasks (${deferredLogs.length})',
+              style: text.labelMedium?.copyWith(color: colors.warning),
+            ),
+            ...deferredLogs.map((log) => Text('• Math Assignment: ${log.humanReadable}', style: text.bodySmall)),
+          ],
+        );
+      }),
+    ));
+
+    expect(find.text('Unscheduled Tasks (1)'), findsOneWidget);
+    expect(find.textContaining('protected meal or personal routine hours'), findsOneWidget);
+  });
 }

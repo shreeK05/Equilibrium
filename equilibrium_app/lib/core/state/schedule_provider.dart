@@ -142,6 +142,18 @@ class ScheduleProvider extends ChangeNotifier {
     _setLoading(true);
     try {
       await _taskRepo.createTask(payload);
+      // Automatically replan so the new task receives time blocks immediately
+      if (currentSchedule != null) {
+        previousSchedule = currentSchedule;
+        try {
+          await _scheduleRepo.reschedule(currentSchedule!.id);
+        } catch (_) {
+          // If rescheduling encounters an edge case, fallback to fresh generation
+          await _scheduleRepo.generateSchedule();
+        }
+      } else {
+        await _scheduleRepo.generateSchedule();
+      }
       await fetchDashboardData(); // Refresh seamlessly
       return true;
     } on ApiException catch (e) {

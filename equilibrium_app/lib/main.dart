@@ -17,12 +17,33 @@ import 'screens/onboarding/onboarding_screen.dart';
 import 'package:app_links/app_links.dart';
 import 'dart:async';
 import 'screens/auth/reset_password_screen.dart';
+import 'screens/timer/timer_screen.dart';
+import 'widgets/dialogs/conversational_reschedule_dialog.dart';
+import 'models/task.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
+void _handleNotificationAction(String actionId, String? payload) {
+  final navContext = navigatorKey.currentContext;
+  if (navContext == null) return;
+
+  if (actionId == 'start_now') {
+    final scheduleProvider = navContext.read<ScheduleProvider>();
+    final task = scheduleProvider.activeTasks.cast<Task?>().firstWhere(
+      (t) => t?.id == payload,
+      orElse: () => null,
+    );
+    navigatorKey.currentState?.push(
+      MaterialPageRoute(builder: (_) => TimerScreen(initialTask: task)),
+    );
+  } else if (actionId == 'reschedule') {
+    ConversationalRescheduleDialog.show(navContext, targetTaskId: payload);
+  }
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await NotificationService.instance.initialize();
+  await NotificationService.instance.initialize(onAction: _handleNotificationAction);
   const apiUrl = String.fromEnvironment(
     'API_BASE_URL',
     defaultValue: 'https://equilibrium-42g8.onrender.com/api/v1',

@@ -19,9 +19,9 @@ In strict accordance with release requirements, this audit explicitly segments v
 
 | Verification Domain | Target & Scope | Result | Specific Evidence / Metrics |
 | :--- | :--- | :---: | :--- |
-| **1. Local Automated Test Suites** | Backend (`server`) & Mobile (`equilibrium_app`) | **PASS (100%)** | • 132/132 Backend Jest tests passing (12 test suites)<br>• 94/94 Flutter widget/integration tests passing (7 suites)<br>• 0 Static analysis warnings (`flutter analyze`) |
-| **2. Live Production Backend & DB** | Render API & Supabase PostgreSQL | **VERIFIED LIVE** | • Live Render API responds 200 OK<br>• Migration `20261026120000_add_user_routines_and_workload_constraints` confirmed applied in `_prisma_migrations` at 14:03:27 IST<br>• All 4 new columns confirmed in `UserConstraint`<br>• End-to-end live testing with disposable user verified: routines CRUD, scheduling, task reopen, and timetable OCR parsing (all 200/201 OK) |
-| **3. Published Release Binary** | Universal Android Release APK | **VERIFIED** | • File: `release/Equilibrium-1.1.0-release.apk` (92,364,415 bytes)<br>• SHA-256: `F88C7C84936C3F922B3A774FE260857720EF2063481F2F98D37F90C5DD036325`<br>• Verified via `apksigner` (Signature Scheme v2: true)<br>• Signer: `CN=Android Debug` (persistent keystore guide documented in `README_SIGNING.md`) |
+| **1. Local Automated Test Suites** | Backend (`server`) & Mobile (`equilibrium_app`) | **PASS (100%)** | • 133/133 Backend Jest tests passing (12 test suites)<br>• 95/95 Flutter widget/integration tests passing (7 suites)<br>• 0 Static analysis warnings (`flutter analyze`) |
+| **2. Live Production Backend & DB** | Render API & Supabase PostgreSQL | **VERIFIED LIVE** | • Live Render API responds 200 OK<br>• Migration `20261026120000_add_user_routines_and_workload_constraints` confirmed applied in `_prisma_migrations` at 14:03:27 IST<br>• All 4 new columns confirmed in `UserConstraint`<br>• End-to-end live testing with disposable user verified: routines CRUD, scheduling, task reopen, NLP task parsing, and conversational reschedule (all 200/201 OK) |
+| **3. Published Release Binary** | Universal Android Release APK | **VERIFIED** | • File: `release/Equilibrium-1.1.0-release.apk` (92,397,183 bytes)<br>• SHA-256: `44BB91DBFED1675C1FDF558510958DB4C22A4B0AB0A838B0E3A08AA29D435086`<br>• Verified via `apksigner` (Signature Scheme v2: true)<br>• Signer: `CN=Android Debug` (persistent keystore guide documented in `README_SIGNING.md`) |
 | **4. Physical Android Phone QA** | Hardware Camera OCR, Notification Tray & Reboot Persistence | **MANUAL PROTOCOL REQUIRED** | • Hardware query `adb devices -l` confirmed 0 attached physical devices on host.<br>• Exact manual testing protocol documented in Section 6 below. |
 
 ---
@@ -46,8 +46,8 @@ Signer #1 key algorithm: RSA, 2048 bits
 | Property | Value |
 | :--- | :--- |
 | **Local File Paths** | `release/Equilibrium-1.1.0-release.apk`<br>`equilibrium_app/build/app/outputs/flutter-apk/app-release.apk` |
-| **File Size** | `92,364,415 bytes` (~88.08 MB) |
-| **SHA-256 Checksum** | `F88C7C84936C3F922B3A774FE260857720EF2063481F2F98D37F90C5DD036325` |
+| **File Size** | `92,397,183 bytes` (~88.11 MB) |
+| **SHA-256 Checksum** | `44BB91DBFED1675C1FDF558510958DB4C22A4B0AB0A838B0E3A08AA29D435086` |
 | **Package Name** | `app.equilibrium.mobile` |
 | **Version Name / Code** | `1.1.0` (Build `4`) |
 | **Signing Status** | Signed with default Android release configuration (Debug keystore). Production upload key generation and configuration instructions provided in `equilibrium_app/android/README_SIGNING.md`. |
@@ -106,19 +106,19 @@ All live endpoints executed with 100% success without errors or data pollution o
 ### 5.1 Backend Jest Tests (`server`)
 ```
 Test Suites: 12 passed, 12 total
-Tests:       132 passed, 132 total
+Tests:       133 passed, 133 total
 Snapshots:   0 total
-Time:        4.837 s
+Time:        8.98 s
 Ran all test suites.
 Status:      PASS (100%)
 ```
 
 ### 5.2 Flutter Test Suites (`equilibrium_app`)
 ```
-00:05 +94: All tests passed!
+00:12 +95: All tests passed!
 Test Suites: 7 suites (phase_2b1_correctness_test, phase_2b2_progress_test, phase_3a_ux_test,
              phase_3b_reliability_test, phase_4_conversational_test, widget_test, production_hardening_test)
-Total Tests: 94 passed, 0 failed
+Total Tests: 95 passed, 0 failed
 Status:      PASS (100%)
 ```
 

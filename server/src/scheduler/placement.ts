@@ -1,3 +1,4 @@
+import { formatInTimeZone } from 'date-fns-tz';
 import { Slot } from './capacity';
 import { TaskInput, ScheduleBlock, DecisionLog } from './types';
 
@@ -5,10 +6,10 @@ export const MIN_CHUNK_SLOTS = 1; // 30 min
 export const MAX_CHUNK_SLOTS = 8; // 4 hours
 
 /**
- * Returns the UTC day key "YYYY-MM-DD" for a given date, used to bucket per-day allocation.
+ * Returns the localized day key "YYYY-MM-DD" for a given date, used to bucket per-day allocation.
  */
-function dayKey(d: Date): string {
-  return d.toISOString().substring(0, 10);
+function dayKey(d: Date, tz: string = 'Asia/Kolkata'): string {
+  return formatInTimeZone(d, tz, 'yyyy-MM-dd');
 }
 
 export function placeTasks(
@@ -18,6 +19,7 @@ export function placeTasks(
   now: Date,
   constraints?: import('./types').ConstraintInput
 ): { blocks: ScheduleBlock[], logs: DecisionLog[] } {
+  const tz = constraints?.timezone || 'Asia/Kolkata';
   const blocks: ScheduleBlock[] = [];
   const logs: DecisionLog[] = [];
 
@@ -72,7 +74,7 @@ export function placeTasks(
         if (remainingSlots <= 0) break;
 
         const slot = slots[i];
-        const key = dayKey(slot.start);
+        const key = dayKey(slot.start, tz);
 
         // Check per-day quota and global day quota
         const allocatedToday = dailyAllocatedSlots[key] ?? 0;
@@ -92,15 +94,15 @@ export function placeTasks(
           currentChunk.push(slot);
           if (currentChunk.length === maxChunkSlots || currentChunk.length === remainingSlots) {
             // Check if committing this chunk would violate daily quota
-            const chunkDayKey = dayKey(currentChunk[0].start);
+            const chunkDayKey = dayKey(currentChunk[0].start, tz);
             const allocatedThisDay = dailyAllocatedSlots[chunkDayKey] ?? 0;
             const totalThisDay = dailyTotalAllocatedSlots[chunkDayKey] ?? 0;
-            const remainingTaskQuota = maxDailySlotsForTask - allocatedThisDay;
-            const remainingGlobalQuota = maxDailyTotalSlots - totalThisDay;
+            const remainingTaskQuota = maxDailySlotsForTask !== Infinity ? Math.max(0, maxDailySlotsForTask - allocatedThisDay) : currentChunk.length;
+            const remainingGlobalQuota = maxDailyTotalSlots !== Infinity ? Math.max(0, maxDailyTotalSlots - totalThisDay) : currentChunk.length;
             const allowed = Math.min(
               currentChunk.length,
-              remainingTaskQuota > 0 ? remainingTaskQuota : currentChunk.length,
-              remainingGlobalQuota > 0 ? remainingGlobalQuota : currentChunk.length
+              remainingTaskQuota,
+              remainingGlobalQuota
             );
 
             if (allowed < currentChunk.length && (maxDailySlotsForTask !== Infinity || maxDailyTotalSlots !== Infinity)) {
@@ -120,7 +122,7 @@ export function placeTasks(
               currentChunk.forEach(s => s.available = false);
               placedSlots += currentChunk.length;
               remainingSlots -= currentChunk.length;
-              const ck = dayKey(currentChunk[0].start);
+              const ck = dayKey(currentChunk[0].start, tz);
               dailyAllocatedSlots[ck] = (dailyAllocatedSlots[ck] ?? 0) + currentChunk.length;
               dailyTotalAllocatedSlots[ck] = (dailyTotalAllocatedSlots[ck] ?? 0) + currentChunk.length;
               currentChunk = [];
@@ -129,7 +131,7 @@ export function placeTasks(
         } else {
           // Break in availability — commit any partial chunk we've built
           if (currentChunk.length >= MIN_CHUNK_SLOTS) {
-            const chunkDayKey = dayKey(currentChunk[0].start);
+            const chunkDayKey = dayKey(currentChunk[0].start, tz);
             const allocatedThisDay = dailyAllocatedSlots[chunkDayKey] ?? 0;
             const totalThisDay = dailyTotalAllocatedSlots[chunkDayKey] ?? 0;
             const allowedTask = maxDailySlotsForTask !== Infinity ? maxDailySlotsForTask - allocatedThisDay : currentChunk.length;
@@ -152,7 +154,7 @@ export function placeTasks(
       
       // End of slots cleanup
       if (currentChunk.length >= MIN_CHUNK_SLOTS) {
-        const chunkDayKey = dayKey(currentChunk[0].start);
+        const chunkDayKey = dayKey(currentChunk[0].start, tz);
         const allocatedThisDay = dailyAllocatedSlots[chunkDayKey] ?? 0;
         const totalThisDay = dailyTotalAllocatedSlots[chunkDayKey] ?? 0;
         const allowedTask = maxDailySlotsForTask !== Infinity ? maxDailySlotsForTask - allocatedThisDay : currentChunk.length;
@@ -212,7 +214,7 @@ export function placeTasks(
       if (task.deadline < now) {
         reasonCode = 'DEADLINE_IN_PAST';
         humanReadable = `Deferred '${task.title}'. The deadline has already passed. Please update the deadline to reschedule.`;
-      } else if (isLimitedByDailyTarget || (constraints?.maxDailyStudyMinutes && (dailyTotalAllocatedSlots[dayKey(now)] ?? 0) >= maxDailyTotalSlots)) {
+      } else if (isLimitedByDailyTarget || (constraints?.maxDailyStudyMinutes && (dailyTotalAllocatedSlots[dayKey(now, tz)] ?? 0) >= maxDailyTotalSlots)) {
         reasonCode = 'DAILY_TARGET_PACING';
         humanReadable = `Deferred '${task.title}' to respect daily workload pacing limits. Work will be planned on upcoming available days.`;
       } else if (hasMealOrRoutineBlocks && slotsBeforeDeadline.filter(s => s.available).length === 0) {

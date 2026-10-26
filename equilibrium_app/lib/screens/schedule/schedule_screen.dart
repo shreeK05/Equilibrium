@@ -15,6 +15,8 @@ import 'weekly_schedule_screen.dart';
 import '../../widgets/dialogs/conversational_reschedule_dialog.dart';
 
 import 'package:intl/intl.dart';
+import '../../models/decision_log.dart';
+import '../../models/task.dart';
 
 class ScheduleScreen extends StatelessWidget {
   const ScheduleScreen({super.key});
@@ -22,6 +24,7 @@ class ScheduleScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.eqColors;
+    final text = context.eqText;
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -111,6 +114,52 @@ class ScheduleScreen extends StatelessWidget {
                   onDismiss: provider.clearChangeSummary,
                 ).animate().fade().slideY(begin: -0.1),
               _buildDateNavigator(context, provider),
+              if (schedule.decisionLogs.any((d) => d.decisionType == DecisionType.deferred)) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: EqTokens.space16, vertical: EqTokens.space4),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(EqTokens.space12),
+                    decoration: BoxDecoration(
+                      color: colors.warning.withValues(alpha: 0.08),
+                      borderRadius: EqTokens.border12,
+                      border: Border.all(color: colors.warning.withValues(alpha: 0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.info_outline, size: 16, color: colors.warning),
+                            const SizedBox(width: EqTokens.space8),
+                            Text(
+                              'Unscheduled Tasks (${schedule.decisionLogs.where((d) => d.decisionType == DecisionType.deferred).length})',
+                              style: text.labelMedium?.copyWith(
+                                color: colors.warning,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: EqTokens.space6),
+                        ...schedule.decisionLogs.where((d) => d.decisionType == DecisionType.deferred).map((log) {
+                          final task = provider.activeTasks.cast<Task?>().firstWhere(
+                            (t) => t?.id == log.taskId,
+                            orElse: () => null,
+                          );
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              '• ${task?.title ?? 'Task'}: ${log.humanReadable}',
+                              style: text.bodySmall?.copyWith(color: colors.textPrimary),
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: EqTokens.space16, vertical: EqTokens.space8),
                 child: Container(
