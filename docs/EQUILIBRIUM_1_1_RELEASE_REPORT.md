@@ -51,8 +51,9 @@ Signer #1 key algorithm: RSA, 2048 bits
 | **SHA-256 Checksum** | `278B18A0DAFDA0E31CEDA5B08CA60A46F9FE4D0DB0778ACFF3D6749EDEB343CF` |
 | **Package Name** | `app.equilibrium.mobile` |
 | **Version Name / Code** | `1.1.1` (Build `5`) |
-| **Signing Status** | Signed with persistent release keystore (`upload-keystore.jks`). Private credentials strictly excluded from git. |
 | **GitHub Tag / Release URL** | `https://github.com/shreeK05/Equilibrium/releases/tag/v1.1.1` |
+| **Direct APK Download URL** | `https://github.com/shreeK05/Equilibrium/releases/download/v1.1.1/app-release.apk` (Verified 200 OK) |
+| **Automated CI Run** | `https://github.com/shreeK05/Equilibrium/actions/runs/40315259035` |
 
 ---
 
