@@ -24,6 +24,8 @@ Desktop.ini
 dist/
 build/
 *.log
+*.apk
+release/*.apk
 
 # Python artifacts
 __pycache__/
