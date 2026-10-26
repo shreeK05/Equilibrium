@@ -43,10 +43,14 @@ const applyRescheduleSchema = z.object({
 });
 
 // GET /api/v1/nlp/status — Status of LLM engine and fallback availability
-nlpRouter.get('/status', (req: any, res) => {
+nlpRouter.get('/status', async (req: any, res) => {
+  const modelCheck = await groqClient.verifyModelAvailable();
   res.json({
     llmConfigured: groqClient.isConfigured(),
     model: config.groqModel,
+    modelAvailable: modelCheck.available,
+    error: modelCheck.error,
+    availableModels: modelCheck.models.slice(0, 10),
     fallbackModel: config.groqFallbackModel,
     fallbackAvailable: true
   });

@@ -183,6 +183,15 @@ export class GroqClientService {
           }
         } catch (_) {}
 
+        // If primary model failed (e.g. 404 or 400) and we haven't tried the fallback model yet:
+        if (model !== config.groqFallbackModel && config.groqFallbackModel && (statusCode === 404 || statusCode === 400)) {
+          console.warn(`[GroqClient] Model '${model}' returned ${statusCode} (${errorMessage}); retrying with fallback model '${config.groqFallbackModel}'...`);
+          return this.chatCompletionJson(messages, {
+            ...options,
+            model: config.groqFallbackModel
+          });
+        }
+
         if (statusCode === 401 || statusCode === 403) {
           return {
             success: false,
