@@ -45,11 +45,17 @@ const applyRescheduleSchema = z.object({
 // GET /api/v1/nlp/status — Status of LLM engine and fallback availability
 nlpRouter.get('/status', async (req: any, res) => {
   const modelCheck = await groqClient.verifyModelAvailable();
+  const testChat = await groqClient.chatCompletionJson([
+    { role: 'user', content: 'Respond with valid JSON: {"status": "ok"}' }
+  ], { timeoutMs: 5000 });
   res.json({
     llmConfigured: groqClient.isConfigured(),
     model: config.groqModel,
     modelAvailable: modelCheck.available,
-    error: modelCheck.error,
+    testChatSuccess: testChat.success,
+    testChatError: testChat.error,
+    testChatModelUsed: testChat.modelUsed,
+    testChatData: testChat.data,
     availableModels: modelCheck.models.slice(0, 10),
     fallbackModel: config.groqFallbackModel,
     fallbackAvailable: true
