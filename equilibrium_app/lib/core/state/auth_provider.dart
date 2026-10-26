@@ -63,12 +63,67 @@ class AuthProvider extends ChangeNotifier {
     try {
       await _authRepo.register(email, password);
       _status = AuthStatus.authenticated;
-      // Also implies first run for a new user
       _isFirstRun = true;
     } on ApiException catch (e) {
-      _errorMessage = ApiErrorMapper.getUserFacingMessage(e.code);
+      _errorMessage = ApiErrorMapper.getUserFacingMessage(e.code, e.message);
     } catch (e) {
       _errorMessage = ApiErrorMapper.getUserFacingMessage('INTERNAL_ERROR');
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Request 6-digit verification code for new registration
+  Future<bool> registerRequest(String email, String password, {String? name}) async {
+    _setLoading(true);
+    clearError();
+    try {
+      await _authRepo.registerRequest(email, password, name: name);
+      return true;
+    } on ApiException catch (e) {
+      _errorMessage = ApiErrorMapper.getUserFacingMessage(e.code, e.message);
+      return false;
+    } catch (e) {
+      _errorMessage = ApiErrorMapper.getUserFacingMessage('NETWORK_ERROR');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Verify 6-digit code and authenticate
+  Future<bool> verifyOtp(String email, String otp) async {
+    _setLoading(true);
+    clearError();
+    try {
+      await _authRepo.verifyOtp(email, otp);
+      _status = AuthStatus.authenticated;
+      _isFirstRun = true;
+      return true;
+    } on ApiException catch (e) {
+      _errorMessage = ApiErrorMapper.getUserFacingMessage(e.code, e.message);
+      return false;
+    } catch (e) {
+      _errorMessage = ApiErrorMapper.getUserFacingMessage('NETWORK_ERROR');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Resend a fresh verification code
+  Future<bool> resendOtp(String email) async {
+    _setLoading(true);
+    clearError();
+    try {
+      await _authRepo.resendOtp(email);
+      return true;
+    } on ApiException catch (e) {
+      _errorMessage = ApiErrorMapper.getUserFacingMessage(e.code, e.message);
+      return false;
+    } catch (e) {
+      _errorMessage = ApiErrorMapper.getUserFacingMessage('NETWORK_ERROR');
+      return false;
     } finally {
       _setLoading(false);
     }

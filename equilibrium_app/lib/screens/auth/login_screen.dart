@@ -4,6 +4,7 @@ import '../../core/theme/theme.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/state/auth_provider.dart';
 import 'forgot_password_screen.dart';
+import 'otp_verification_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,19 +14,46 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _isRegistering = false;
 
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _emailCtrl.dispose();
+    _passwordCtrl.dispose();
+    super.dispose();
+  }
+
   void _submit() async {
     final email = _emailCtrl.text.trim();
     final password = _passwordCtrl.text.trim();
+    final name = _nameCtrl.text.trim();
     if (email.isEmpty || password.isEmpty) return;
     
     final auth = context.read<AuthProvider>();
     auth.clearError();
     if (_isRegistering) {
-      await auth.register(email, password);
+      if (password.length < 8) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Password must be at least 8 characters long.')),
+        );
+        return;
+      }
+      final success = await auth.registerRequest(email, password, name: name.isNotEmpty ? name : null);
+      if (success && mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => OtpVerificationScreen(
+              email: email,
+              name: name.isNotEmpty ? name : null,
+            ),
+          ),
+        );
+      }
     } else {
       await auth.login(email, password);
     }
@@ -39,12 +67,13 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: colors.background,
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(EqTokens.space32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const SizedBox(height: EqTokens.space32),
               Text(
                 'EQUILIBRIUM',
                 textAlign: TextAlign.center,
@@ -68,6 +97,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: EqTokens.space16),
               ],
+              if (_isRegistering) ...[
+                TextField(
+                  controller: _nameCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Full Name (Optional)',
+                    filled: true,
+                    fillColor: colors.surface,
+                    border: OutlineInputBorder(borderRadius: EqTokens.border8, borderSide: BorderSide.none),
+                  ),
+                  textCapitalization: TextCapitalization.words,
+                ),
+                const SizedBox(height: EqTokens.space16),
+              ],
               TextField(
                 controller: _emailCtrl,
                 decoration: InputDecoration(
@@ -82,7 +124,7 @@ class _LoginScreenState extends State<LoginScreen> {
               TextField(
                 controller: _passwordCtrl,
                 decoration: InputDecoration(
-                  labelText: 'Password',
+                  labelText: 'Password (min. 8 characters)',
                   filled: true,
                   fillColor: colors.surface,
                   border: OutlineInputBorder(borderRadius: EqTokens.border8, borderSide: BorderSide.none),
@@ -100,7 +142,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 child: auth.isLoading
                     ? SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: colors.surface, strokeWidth: 2))
-                    : Text(_isRegistering ? 'Create Account' : 'Sign In', style: context.eqText.labelLarge?.copyWith(color: colors.surface)),
+                    : Text(
+                        _isRegistering ? 'Create Account' : 'Sign In',
+                        style: context.eqText.labelLarge?.copyWith(color: colors.surface, fontWeight: FontWeight.bold),
+                      ),
               ),
               const SizedBox(height: EqTokens.space16),
               TextButton(

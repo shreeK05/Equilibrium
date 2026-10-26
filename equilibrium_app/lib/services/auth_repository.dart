@@ -9,7 +9,7 @@ class AuthRepository {
 
   Future<void> login(String email, String password) async {
     final response = await _api.post('/auth/login', body: {
-      'email': email,
+      'email': email.trim().toLowerCase(),
       'password': password,
     });
 
@@ -18,15 +18,64 @@ class AuthRepository {
     await prefs.setString('jwt_token', token);
   }
 
-  Future<void> register(String email, String password) async {
-    final response = await _api.post('/auth/register', body: {
-      'email': email,
+  /// Request 6-digit verification code to initiate registration
+  Future<Map<String, dynamic>> registerRequest(
+    String email,
+    String password, {
+    String? name,
+    String? timezone,
+  }) async {
+    final body = <String, dynamic>{
+      'email': email.trim().toLowerCase(),
       'password': password,
+    };
+    if (name != null && name.trim().isNotEmpty) {
+      body['name'] = name.trim();
+    }
+    if (timezone != null) {
+      body['timezone'] = timezone;
+    }
+
+    final response = await _api.post('/auth/register-request', body: body);
+    return response as Map<String, dynamic>;
+  }
+
+  /// Verify 6-digit code and store authenticated session JWT
+  Future<void> verifyOtp(String email, String otp) async {
+    final response = await _api.post('/auth/verify-registration-otp', body: {
+      'email': email.trim().toLowerCase(),
+      'otp': otp.trim(),
     });
 
     final token = response['token'];
+    if (token == null) {
+      throw ApiException(500, 'INTERNAL_ERROR', 'No authentication token received');
+    }
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('jwt_token', token);
+  }
+
+  /// Resend a fresh 6-digit code
+  Future<Map<String, dynamic>> resendOtp(String email) async {
+    final response = await _api.post('/auth/resend-registration-otp', body: {
+      'email': email.trim().toLowerCase(),
+    });
+    return response as Map<String, dynamic>;
+  }
+
+  /// Legacy register method preserved for backward compatibility
+  Future<void> register(String email, String password) async {
+    final response = await _api.post('/auth/register', body: {
+      'email': email.trim().toLowerCase(),
+      'password': password,
+    });
+
+    final token = response?['token'];
+    if (token != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('jwt_token', token);
+    }
   }
 
   Future<void> logout() async {

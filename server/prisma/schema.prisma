@@ -20,6 +20,7 @@ model User {
   semester         String?
   themePreference  String            @default("system") // "light", "dark", "system"
   tokenVersion     Int               @default(0)
+  isEmailVerified  Boolean           @default(true)
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   
@@ -336,4 +337,23 @@ model PasswordResetToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, expiresAt])
+}
+
+model RegistrationOtp {
+  id                  String    @id @default(uuid())
+  email               String
+  name                String?
+  passwordHash        String
+  timezone            String    @default("Asia/Kolkata")
+  otpHash             String
+  attempts            Int       @default(0)
+  maxAttempts         Int       @default(5)
+  expiresAt           DateTime
+  resendCooldownUntil DateTime
+  usedAt              DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([email])
+  @@index([expiresAt])
 }

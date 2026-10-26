@@ -1,6 +1,12 @@
 # Equilibrium Release Checksums
 # Package: app.equilibrium.mobile
 
+# Version 1.1.2 (Email OTP Registration & Security Stabilization — Release Key Signed)
+# Built: October 26, 2026
+4C70E3D193CA9E2BC5486B9AD80E4F809EF4FD1B3F21C2A5A11BB2EAB9504DBF *Equilibrium-1.1.2-release.apk
+Size: 92,413,635 bytes (~88.13 MB)
+Signing Certificate SHA-256: 5A237447D8AF34987DDE68544104576FDD41EF1E05D716D6A05B8299C46A8295
+
 # Version 1.1.1 (Release Key Signed: CN=Equilibrium Release)
 # Built: October 26, 2026
 278B18A0DAFDA0E31CEDA5B08CA60A46F9FE4D0DB0778ACFF3D6749EDEB343CF *Equilibrium-1.1.1-release.apk

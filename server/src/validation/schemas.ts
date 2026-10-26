@@ -2,9 +2,27 @@ import { z } from 'zod';
 import { isValidTimezone } from '../scheduler/timezone';
 
 export const registerSchema = z.object({
+  name: z.string().trim().max(100).optional(),
+  email: z.string().email().toLowerCase().max(255),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(128),
+  timezone: z.string().max(64).refine(isValidTimezone, 'Invalid IANA timezone').optional(),
+  otp: z.string().regex(/^\d{6}$/, 'Verification code must be exactly 6 digits').optional()
+});
+
+export const registerRequestSchema = z.object({
+  name: z.string().trim().max(100).optional(),
   email: z.string().email().toLowerCase().max(255),
   password: z.string().min(8, 'Password must be at least 8 characters').max(128),
   timezone: z.string().max(64).refine(isValidTimezone, 'Invalid IANA timezone').optional()
+});
+
+export const verifyOtpSchema = z.object({
+  email: z.string().email().toLowerCase().max(255),
+  otp: z.string().regex(/^\d{6}$/, 'Verification code must be exactly 6 digits')
+});
+
+export const resendOtpSchema = z.object({
+  email: z.string().email().toLowerCase().max(255)
 });
 
 export const taskSchema = z.object({
