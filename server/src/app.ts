@@ -25,6 +25,7 @@ import { errorHandler } from './middleware/error';
 import { requestCorrelation, requestLogger } from './middleware/logger';
 
 export const app = express();
+app.set('trust proxy', 1);
 
 app.use(requestCorrelation);
 app.use(requestLogger);
