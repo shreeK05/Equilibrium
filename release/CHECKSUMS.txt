@@ -1,7 +1,13 @@
-# Equilibrium 1.1.0 Release Checksums
+# Equilibrium Release Checksums
 # Package: app.equilibrium.mobile
-# Version: 1.1.0+4
-# Built: October 26, 2026
 
+# Version 1.1.1 (Release Key Signed: CN=Equilibrium Release)
+# Built: October 26, 2026
+278B18A0DAFDA0E31CEDA5B08CA60A46F9FE4D0DB0778ACFF3D6749EDEB343CF *Equilibrium-1.1.1-release.apk
+Size: 92,397,183 bytes (~88.11 MB)
+Signing Certificate SHA-256: 5A237447D8AF34987DDE68544104576FDD41EF1E05D716D6A05B8299C46A8295
+
+# Version 1.1.0 (Legacy Debug Signed)
+# Built: October 26, 2026
 44BB91DBFED1675C1FDF558510958DB4C22A4B0AB0A838B0E3A08AA29D435086 *Equilibrium-1.1.0-release.apk
 Size: 92,397,183 bytes (~88.11 MB)

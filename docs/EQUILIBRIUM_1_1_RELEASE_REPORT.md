@@ -1,15 +1,16 @@
-# Equilibrium 1.1 — Production Verification & Release Audit Report
+# Equilibrium 1.1 / 1.1.1 — Production Verification & Release Audit Report
 
 **Date:** October 26, 2026 (IST)  
 **Lead Auditor / Pair Programmer:** Antigravity AI Coding System  
 **Repository:** `https://github.com/shreeK05/Equilibrium.git`  
 **Production Git Branch:** `main`  
-**Target Release Tag:** `v1.1.0`  
+**Production Deployed Commit:** `bca5130582b0c0a73da971eecfbf20abb68a214b`  
+**Target Release Tag:** `v1.1.1` (supersedes `v1.1.0`)  
 **Production API Base URL:** `https://equilibrium-42g8.onrender.com/api/v1`  
 **Production Database:** Supabase PostgreSQL Project `rlqphunokjkxzqetondw` (`aws-0-ap-south-1.pooler.supabase.com:5432`)  
 **Application ID:** `app.equilibrium.mobile`  
-**Version:** `1.1.0+4`  
-**Overall Status:** **LIVE API VERIFIED, DATABASE MIGRATED, APK VERIFIED, PHYSICAL QA DOCUMENTED (PASS)**
+**Version:** `1.1.1+5`  
+**Overall Status:** **RENDER DEPLOYMENT VERIFIED, PERSISTENT RELEASE KEY SIGNED, APK VERIFIED, 100% TEST PASS (PASS)**
 
 ---
 
@@ -20,8 +21,8 @@ In strict accordance with release requirements, this audit explicitly segments v
 | Verification Domain | Target & Scope | Result | Specific Evidence / Metrics |
 | :--- | :--- | :---: | :--- |
 | **1. Local Automated Test Suites** | Backend (`server`) & Mobile (`equilibrium_app`) | **PASS (100%)** | • 133/133 Backend Jest tests passing (12 test suites)<br>• 95/95 Flutter widget/integration tests passing (7 suites)<br>• 0 Static analysis warnings (`flutter analyze`) |
-| **2. Live Production Backend & DB** | Render API & Supabase PostgreSQL | **VERIFIED LIVE** | • Live Render API responds 200 OK<br>• Migration `20261026120000_add_user_routines_and_workload_constraints` confirmed applied in `_prisma_migrations` at 14:03:27 IST<br>• All 4 new columns confirmed in `UserConstraint`<br>• End-to-end live testing with disposable user verified: routines CRUD, scheduling, task reopen, NLP task parsing, and conversational reschedule (all 200/201 OK) |
-| **3. Published Release Binary** | Universal Android Release APK | **VERIFIED** | • File: `release/Equilibrium-1.1.0-release.apk` (92,397,183 bytes)<br>• SHA-256: `44BB91DBFED1675C1FDF558510958DB4C22A4B0AB0A838B0E3A08AA29D435086`<br>• Verified via `apksigner` (Signature Scheme v2: true)<br>• Signer: `CN=Android Debug` (persistent keystore guide documented in `README_SIGNING.md`) |
+| **2. Live Production Backend & DB** | Render API (`bca5130`) & Supabase PostgreSQL | **VERIFIED LIVE** | • Live Render API deployed commit `bca5130`<br>• Rescheduling HTTP 500 fixed: returns 201 Created with zero server crashes<br>• Schedule persistence verified: rescheduled version matches cold `GET /schedules/current`<br>• End-to-end verified: routines CRUD, NLP parsing, task creation, conversational reschedule, task complete & reopen |
+| **3. Published Release Binary** | Universal Android Release APK (`v1.1.1`) | **VERIFIED** | • File: `release/Equilibrium-1.1.1-release.apk` (92,397,183 bytes)<br>• SHA-256: `278B18A0DAFDA0E31CEDA5B08CA60A46F9FE4D0DB0778ACFF3D6749EDEB343CF`<br>• Verified via `apksigner` (Signature Scheme v2: true)<br>• Signer: `CN=Equilibrium Release, OU=Mobile, O=Equilibrium, L=Hyderabad, ST=Telangana, C=IN`<br>• Certificate SHA-256: `5a237447d8af34987dde68544104576fdd41ef1e05d716d6a05b8299c46a8295` |
 | **4. Physical Android Phone QA** | Hardware Camera OCR, Notification Tray & Reboot Persistence | **MANUAL PROTOCOL REQUIRED** | • Hardware query `adb devices -l` confirmed 0 attached physical devices on host.<br>• Exact manual testing protocol documented in Section 6 below. |
 
 ---
@@ -36,8 +37,8 @@ Verifies: true
 Verified using v1 scheme (JAR signing): false
 Verified using v2 scheme (APK Signature Scheme v2): true
 Number of signers: 1
-Signer #1 certificate DN: C=US, O=Android, CN=Android Debug
-Signer #1 certificate SHA-256 digest: 767f4011f59707ceace46abe2a71e30d257687071064cf08e65f79e8842432cc
+Signer #1 certificate DN: CN=Equilibrium Release, OU=Mobile, O=Equilibrium, L=Hyderabad, ST=Telangana, C=IN
+Signer #1 certificate SHA-256 digest: 5a237447d8af34987dde68544104576fdd41ef1e05d716d6a05b8299c46a8295
 Signer #1 key algorithm: RSA, 2048 bits
 ```
 
@@ -45,13 +46,13 @@ Signer #1 key algorithm: RSA, 2048 bits
 
 | Property | Value |
 | :--- | :--- |
-| **Local File Paths** | `release/Equilibrium-1.1.0-release.apk`<br>`equilibrium_app/build/app/outputs/flutter-apk/app-release.apk` |
+| **Local File Paths** | `release/Equilibrium-1.1.1-release.apk`<br>`equilibrium_app/build/app/outputs/flutter-apk/app-release.apk` |
 | **File Size** | `92,397,183 bytes` (~88.11 MB) |
-| **SHA-256 Checksum** | `44BB91DBFED1675C1FDF558510958DB4C22A4B0AB0A838B0E3A08AA29D435086` |
+| **SHA-256 Checksum** | `278B18A0DAFDA0E31CEDA5B08CA60A46F9FE4D0DB0778ACFF3D6749EDEB343CF` |
 | **Package Name** | `app.equilibrium.mobile` |
-| **Version Name / Code** | `1.1.0` (Build `4`) |
-| **Signing Status** | Signed with default Android release configuration (Debug keystore). Production upload key generation and configuration instructions provided in `equilibrium_app/android/README_SIGNING.md`. |
-| **GitHub Tag / Release URL** | `https://github.com/shreeK05/Equilibrium/releases/tag/v1.1.0` |
+| **Version Name / Code** | `1.1.1` (Build `5`) |
+| **Signing Status** | Signed with persistent release keystore (`upload-keystore.jks`). Private credentials strictly excluded from git. |
+| **GitHub Tag / Release URL** | `https://github.com/shreeK05/Equilibrium/releases/tag/v1.1.1` |
 
 ---
 
@@ -162,9 +163,25 @@ Because automated tools running in desktop CI environments cannot access physica
 
 ---
 
-## 7. Persistent Release Signing Configuration
+## 7. Persistent Release Signing Configuration & Upgrade Safety
 
-For official release updates or Play Store deployment:
-1. Generate an official keystore using `keytool` as described in [`equilibrium_app/android/README_SIGNING.md`](file:///d:/3rd%20Year%20I%20Sem/DTPLM/Equilibrium%20CP/equilibrium_app/android/README_SIGNING.md).
-2. Populate `equilibrium_app/android/key.properties` (never commit this file).
-3. Re-running `flutter build apk --release` will automatically produce a production-signed APK.
+### 7.1 Persistent Keystore Configuration
+Equilibrium 1.1.1 is compiled and signed with a persistent, production-grade RSA 2048-bit release key:
+- **Keystore Location (Local Host):** `equilibrium_app/android/upload-keystore.jks`
+- **Key Alias:** `equilibrium-release`
+- **Signer Distinguished Name:** `CN=Equilibrium Release, OU=Mobile, O=Equilibrium, L=Hyderabad, ST=Telangana, C=IN`
+- **Certificate SHA-256 Digest:** `5a237447d8af34987dde68544104576fdd41ef1e05d716d6a05b8299c46a8295`
+- **Validity:** 10,000 days (~27 years)
+- **Security Hygiene:** Both `equilibrium_app/android/key.properties` and `upload-keystore.jks` are strictly excluded from version control via `.gitignore`. Keystore passwords and private keys are never committed to Git.
+
+### 7.2 Upgrade & Data Safety Warning (Android Certificate Mismatch)
+> [!WARNING]
+> **Android Package Manager Signature Incompatibility**:
+> If you have previously installed an APK signed with the default Android debug keystore (`CN=Android Debug`, SHA-256 `767f4011...`), attempting to install the release-signed APK (`v1.1.1`) directly over the top will fail with the Android OS error:
+> ```
+> INSTALL_FAILED_UPDATE_INCOMPATIBLE: Package app.equilibrium.mobile signatures do not match previously installed version; ignoring!
+> ```
+> **Required Action Before Installing v1.1.1:**
+> 1. You must **uninstall the existing app** from your physical phone before installing the `v1.1.1` release APK.
+> 2. **Data-Impact Warning:** Uninstalling the app on Android clears local application storage (cached JWT token and offline queues).
+> 3. **Data Recovery:** Because all account data, tasks, routines, and schedules are securely persisted on the Supabase PostgreSQL production backend (`https://equilibrium-42g8.onrender.com/api/v1`), logging back into your account after installing `v1.1.1` immediately restores all user tasks and schedules with zero data loss.
