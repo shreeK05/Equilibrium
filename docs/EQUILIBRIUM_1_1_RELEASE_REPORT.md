@@ -33,7 +33,7 @@ Equilibrium 1.1 delivers the comprehensive Intelligent Life Scheduling & Student
 
 | Artifact | Location / Specification | Value / Status |
 | :--- | :--- | :--- |
-| **Android Release APK** | `equilibrium_app/build/app/outputs/flutter-apk/app-release.apk` | Available locally |
+| **Android Release APK** | `release/Equilibrium-1.1.0-release.apk`<br>`equilibrium_app/build/app/outputs/flutter-apk/app-release.apk` | Available locally & verified |
 | **APK File Size** | Byte count | `92,364,415 bytes` (~88.08 MB) |
 | **APK SHA-256 Checksum** | Cryptographic hash | `F88C7C84936C3F922B3A774FE260857720EF2063481F2F98D37F90C5DD036325` |
 | **Application Package ID** | Android Package Name | `app.equilibrium.mobile` |
