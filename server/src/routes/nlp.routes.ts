@@ -3,11 +3,30 @@ import { authenticate } from '../middleware/auth';
 import { prisma } from '../db';
 import { nlpTaskParser } from '../services/nlp/nlp-task-parser.service';
 import { conversationalRescheduler, RescheduleIntentType } from '../services/nlp/conversational-rescheduler.service';
+import { groqClient } from '../services/nlp/groq-client.service';
 import { resolveTimezone } from '../scheduler/timezone';
+import { config } from '../config';
+import { rateLimit } from 'express-rate-limit';
 import { z } from 'zod';
 
 export const nlpRouter = Router();
 nlpRouter.use(authenticate);
+
+// Per-user/IP rate limiter for NLP endpoints to prevent quota exhaustion
+const nlpRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 25, // 25 calls per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: {
+      code: 'RATE_LIMIT_EXCEEDED',
+      message: 'Too many NLP requests. Please wait a moment before trying again.'
+    }
+  }
+});
+
+nlpRouter.use(nlpRateLimiter);
 
 const parseTaskSchema = z.object({
   text: z.string().min(1).max(1000)
@@ -21,6 +40,16 @@ const rescheduleIntentSchema = z.object({
 const applyRescheduleSchema = z.object({
   intent: z.string().min(1),
   targetTaskId: z.string().uuid().optional()
+});
+
+// GET /api/v1/nlp/status — Status of LLM engine and fallback availability
+nlpRouter.get('/status', (req: any, res) => {
+  res.json({
+    llmConfigured: groqClient.isConfigured(),
+    model: config.groqModel,
+    fallbackModel: config.groqFallbackModel,
+    fallbackAvailable: true
+  });
 });
 
 // POST /api/v1/nlp/parse-task — Natural-language task creation preview
@@ -37,7 +66,7 @@ nlpRouter.post('/parse-task', async (req: any, res, next) => {
     const tz = resolveTimezone(user?.timezone);
     const existingSubjectNames = subjects.map(s => s.name);
 
-    const parsed = nlpTaskParser.parseTask(text, tz, existingSubjectNames, new Date());
+    const parsed = await nlpTaskParser.parseTaskAsync(text, tz, existingSubjectNames, new Date(), userId);
     res.json(parsed);
   } catch (err) { next(err); }
 });
