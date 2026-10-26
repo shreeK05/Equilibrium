@@ -11,6 +11,8 @@ import '../../core/state/schedule_provider.dart';
 import '../../core/utils/workload_calculator.dart';
 import '../../widgets/status/workload_meter.dart' as equilibrium_app_workload;
 import '../../widgets/status/change_summary.dart';
+import 'weekly_schedule_screen.dart';
+import '../../widgets/dialogs/conversational_reschedule_dialog.dart';
 
 import 'package:intl/intl.dart';
 
@@ -23,6 +25,28 @@ class ScheduleScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: colors.background,
+      appBar: AppBar(
+        title: const Text('Schedule Timeline'),
+        backgroundColor: colors.surface,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.forum_outlined),
+            tooltip: 'Conversational Reschedule',
+            onPressed: () => ConversationalRescheduleDialog.show(context),
+          ),
+          IconButton(
+            icon: const Icon(Icons.calendar_view_week),
+            tooltip: '7-Day Overview',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const WeeklyScheduleScreen()),
+              );
+            },
+          ),
+        ],
+      ),
       body: Consumer<ScheduleProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading && provider.currentSchedule == null) {
@@ -135,6 +159,7 @@ class ScheduleScreen extends StatelessWidget {
           }
 
           return FloatingActionButton.extended(
+            heroTag: 'fab_reschedule',
             onPressed: () => provider.reschedule(),
             icon: const Icon(Icons.auto_fix_high),
             label: const Text('Reschedule'),

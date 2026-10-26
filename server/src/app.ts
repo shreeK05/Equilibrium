@@ -17,7 +17,11 @@ import { subjectsRouter } from './routes/subjects.routes';
 import { examsRouter } from './routes/exams.routes';
 import { dashboardRouter } from './routes/dashboard.routes';
 import { webShareRouter } from './routes/web-share.routes';
+import { routinesRouter } from './routes/routines.routes';
+import { nlpRouter } from './routes/nlp.routes';
 import { errorHandler } from './middleware/error';
+
+
 import { requestCorrelation, requestLogger } from './middleware/logger';
 
 export const app = express();
@@ -70,7 +74,11 @@ app.use('/api/v1/focus-sessions', focusSessionsRouter);
 app.use('/api/v1/subjects', subjectsRouter);
 app.use('/api/v1/exams', examsRouter);
 app.use('/api/v1/dashboard', dashboardRouter);
+app.use('/api/v1/routines', routinesRouter);
+app.use('/api/v1/nlp', nlpRouter);
 
 app.use('/team', webShareRouter);
+
+
 
 app.use(errorHandler);

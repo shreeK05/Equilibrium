@@ -66,5 +66,10 @@ class TaskRepository {
       rethrow;
     }
   }
+
+  Future<Task> reopenTask(String id) async {
+    final data = await _api.post('/tasks/$id/reopen');
+    return Task.fromJson(data as Map<String, dynamic>);
+  }
 }
 

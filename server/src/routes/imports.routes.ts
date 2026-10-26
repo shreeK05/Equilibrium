@@ -4,6 +4,11 @@ import { authenticate } from '../middleware/auth';
 import { prisma } from '../db';
 import { z } from 'zod';
 import { PDFParse } from 'pdf-parse';
+import { timetableParserService } from '../services/timetable-parser.service';
+import { scheduleService } from '../services/schedule.service';
+import { resolveTimezone } from '../scheduler/timezone';
+import { parseTimeStrToDate } from '../scheduler/guard';
+import { format } from 'date-fns-tz';
 
 export const importsRouter = Router();
 importsRouter.use(authenticate);
@@ -161,3 +166,107 @@ importsRouter.post('/calendar/ics', express.text({ type: ['text/calendar', 'text
     res.status(201).json({ importedCount: commitments.length, commitments });
   } catch (err) { next(err); }
 });
+
+// Timetable schema & endpoints
+const timetableConfirmSchema = z.object({
+  entries: z.array(z.object({
+    title: z.string().min(1).max(255),
+    startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+    endTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+    dayOfWeek: z.number().int().min(0).max(6),
+    venue: z.string().optional()
+  })).min(1)
+});
+
+// POST /api/v1/imports/timetable/parse — Parse OCR timetable text
+importsRouter.post('/timetable/parse', express.json(), async (req: any, res, next) => {
+  try {
+    const rawText = req.body.rawText?.toString() || '';
+    if (!rawText.trim()) {
+      return res.status(400).json({ error: { code: 'EMPTY_TEXT', message: 'Provide extracted timetable text to parse' } });
+    }
+
+    const existing = await prisma.fixedCommitment.findMany({
+      where: { userId: req.userId, isActive: true },
+      select: { title: true, daysOfWeek: true }
+    });
+
+    const candidates = timetableParserService.parseTimetableText(rawText, existing);
+
+    const job = await prisma.importJob.create({
+      data: {
+        userId: req.userId,
+        type: 'TIMETABLE',
+        sourceName: req.body.sourceName || 'timetable-image',
+        rawText
+      }
+    });
+
+    res.status(201).json({
+      jobId: job.id,
+      candidateCount: candidates.length,
+      candidates
+    });
+  } catch (err) { next(err); }
+});
+
+// POST /api/v1/imports/timetable/:jobId/confirm — Confirm and save recurring timetable classes
+importsRouter.post('/timetable/:jobId/confirm', express.json(), async (req: any, res, next) => {
+  try {
+    const parsed = timetableConfirmSchema.parse(req.body);
+    const userId = req.userId;
+
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { timezone: true } });
+    const tz = resolveTimezone(user?.timezone);
+
+    const now = new Date();
+    const commitments = [];
+
+    for (const entry of parsed.entries) {
+      // Compute the next date matching this day of week
+      const currentDay = now.getDay();
+      let daysUntil = entry.dayOfWeek - currentDay;
+      if (daysUntil < 0) daysUntil += 7;
+
+      const targetDate = new Date(now.getTime() + daysUntil * 24 * 3600000);
+      const targetDayStr = format(targetDate, 'yyyy-MM-dd', { timeZone: tz });
+
+      const startTime = parseTimeStrToDate(targetDayStr, entry.startTime, tz);
+      let endTime = parseTimeStrToDate(targetDayStr, entry.endTime, tz);
+      if (endTime <= startTime) {
+        endTime = new Date(endTime.getTime() + 24 * 3600000);
+      }
+
+      const commitment = await prisma.fixedCommitment.create({
+        data: {
+          userId,
+          title: entry.venue ? `${entry.title} (${entry.venue})` : entry.title,
+          type: 'CLASS',
+          recurrence: 'WEEKLY',
+          daysOfWeek: JSON.stringify([entry.dayOfWeek]),
+          startTime,
+          endTime,
+          color: '#3B82F6' // default academic blue
+        }
+      });
+      commitments.push(commitment);
+    }
+
+    await prisma.importJob.update({
+      where: { id: req.params.jobId },
+      data: { status: 'CONFIRMED' }
+    });
+
+    // Re-plan schedule to integrate newly confirmed classes
+    try {
+      await scheduleService.replan(userId, 'TIMETABLE_CONFIRM', now);
+    } catch (schedErr) {}
+
+    res.status(201).json({
+      message: `Successfully imported ${commitments.length} timetable class(es)`,
+      importedCount: commitments.length,
+      commitments
+    });
+  } catch (err) { next(err); }
+});
+

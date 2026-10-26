@@ -39,14 +39,47 @@ export class ScheduleService {
     if (!user) throw new Error('User not found');
     const timezone = resolveTimezone(user.timezone);
 
+    let routines: import('../scheduler/types').RoutineInput[] = [];
+    if (constraintsData.routinesJson) {
+      try {
+        const parsed = JSON.parse(constraintsData.routinesJson);
+        if (Array.isArray(parsed)) routines = parsed;
+      } catch {
+        routines = [];
+      }
+    }
+    // If no routines are defined yet, provide sensible student defaults
+    if (!routines || routines.length === 0) {
+      routines = [
+        { id: 'default-breakfast', title: 'Breakfast', category: 'MEAL', startTime: '08:00', endTime: '08:45', daysOfWeek: [0, 1, 2, 3, 4, 5, 6], isEnabled: true },
+        { id: 'default-lunch', title: 'Lunch', category: 'MEAL', startTime: '13:00', endTime: '14:00', daysOfWeek: [0, 1, 2, 3, 4, 5, 6], isEnabled: true },
+        { id: 'default-dinner', title: 'Dinner', category: 'MEAL', startTime: '20:00', endTime: '21:00', daysOfWeek: [0, 1, 2, 3, 4, 5, 6], isEnabled: true },
+        { id: 'default-evening-break', title: 'Evening Break', category: 'BREAK', startTime: '17:30', endTime: '18:00', daysOfWeek: [0, 1, 2, 3, 4, 5, 6], isEnabled: true }
+      ];
+    }
+
+    let preferredStudyHours: { start: string; end: string } | undefined;
+    if (constraintsData.preferredStudyHoursJson) {
+      try {
+        preferredStudyHours = JSON.parse(constraintsData.preferredStudyHoursJson);
+      } catch {
+        preferredStudyHours = undefined;
+      }
+    }
+
     const constraints: ConstraintInput = {
       sleepStart: constraintsData.sleepStart,
       sleepEnd: constraintsData.sleepEnd,
       minSleepHours: constraintsData.minSleepHours,
       bufferMinutes: constraintsData.bufferMinutes,
       peakEnergyWindows,
-      timezone
+      timezone,
+      routines,
+      maxDailyStudyMinutes: constraintsData.maxDailyStudyMinutes ?? 480,
+      maxFocusSessionMinutes: constraintsData.maxFocusSessionMinutes ?? 120,
+      preferredStudyHours
     };
+
 
     const tasksData = await taskRepo.findActiveTasks(userId);
     const tasks: TaskInput[] = tasksData

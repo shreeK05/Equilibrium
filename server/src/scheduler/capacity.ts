@@ -8,6 +8,8 @@ export interface Slot {
   end: Date;
   available: boolean;
   energyBonus: boolean;
+  blockedReason?: string;
+  blockedTitle?: string;
 }
 
 export function generateSlots(horizonStart: Date, horizonEnd: Date): Slot[] {
@@ -52,9 +54,60 @@ export function applyConstraints(
       if (intervalsIntersect(slot.start, slot.end, sleepStart, sleepEnd) ||
           intervalsIntersect(slot.start, slot.end, prevSleepStart, prevSleepEnd)) {
         slot.available = false;
+        slot.blockedReason = 'SLEEP';
       }
     });
   });
+
+  // Apply Enabled Routines (Meals, Personal Essentials, Breaks)
+  if (constraints.routines && constraints.routines.length > 0) {
+    const enabledRoutines = constraints.routines.filter(r => r.isEnabled);
+    days.forEach(dayStr => {
+      const dayDate = parseTimeStrToDate(dayStr, '12:00', tz);
+      const dayOfWeek = dayDate.getDay();
+
+      enabledRoutines.forEach(routine => {
+        if (routine.daysOfWeek && routine.daysOfWeek.length > 0 && !routine.daysOfWeek.includes(dayOfWeek)) {
+          return;
+        }
+        let rStart = parseTimeStrToDate(dayStr, routine.startTime, tz);
+        let rEnd = parseTimeStrToDate(dayStr, routine.endTime, tz);
+        if (rEnd <= rStart) {
+          rEnd = new Date(rEnd.getTime() + 24 * 60 * 60000);
+        }
+        const prevRStart = new Date(rStart.getTime() - 24 * 60 * 60000);
+        const prevREnd = new Date(rEnd.getTime() - 24 * 60 * 60000);
+
+        slots.forEach(slot => {
+          if (intervalsIntersect(slot.start, slot.end, rStart, rEnd) ||
+              intervalsIntersect(slot.start, slot.end, prevRStart, prevREnd)) {
+            slot.available = false;
+            slot.blockedReason = routine.category || 'ROUTINE';
+            slot.blockedTitle = routine.title;
+          }
+        });
+      });
+    });
+  }
+
+  // Apply Preferred Study Hours (if configured)
+  if (constraints.preferredStudyHours) {
+    const { start: pStartStr, end: pEndStr } = constraints.preferredStudyHours;
+    days.forEach(dayStr => {
+      let pStart = parseTimeStrToDate(dayStr, pStartStr, tz);
+      let pEnd = parseTimeStrToDate(dayStr, pEndStr, tz);
+      if (pEnd <= pStart) {
+        pEnd = new Date(pEnd.getTime() + 24 * 60 * 60000);
+      }
+      slots.forEach(slot => {
+        // Slot must be entirely within preferred study hours
+        if (slot.start < pStart || slot.end > pEnd) {
+          slot.available = false;
+          if (!slot.blockedReason) slot.blockedReason = 'OUTSIDE_PREFERRED_HOURS';
+        }
+      });
+    });
+  }
 
   // Apply Fixed Commitments
   const bufferMinutes = constraints.bufferMinutes ?? 0;
@@ -64,6 +117,8 @@ export function applyConstraints(
     slots.forEach(slot => {
       if (intervalsIntersect(slot.start, slot.end, bufferBefore, bufferAfter)) {
         slot.available = false;
+        slot.blockedReason = 'FIXED';
+        slot.blockedTitle = f.title;
       }
     });
   });
@@ -73,6 +128,7 @@ export function applyConstraints(
     slots.forEach(slot => {
       if (intervalsIntersect(slot.start, slot.end, b.start, b.end)) {
         slot.available = false;
+        slot.blockedReason = 'LOCKED';
       }
     });
   });
@@ -93,3 +149,4 @@ export function applyConstraints(
     });
   });
 }
+

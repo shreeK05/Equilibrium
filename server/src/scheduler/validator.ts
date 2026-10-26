@@ -48,7 +48,34 @@ export function validateSchedule(
         const bufferAfter = new Date(f.end.getTime() + bufferMinutes * 60000);
         if (intervalsIntersect(block.start, block.end, bufferBefore, bufferAfter)) { console.log('Validation failed: fixed overlap', block, f); return false; }
     }
+
+    // Check Routine Overlap (Meals & Personal Essentials)
+    if (constraints.routines && constraints.routines.length > 0) {
+      const enabledRoutines = constraints.routines.filter(r => r.isEnabled);
+      const dayDate = parseTimeStrToDate(dayStr, '12:00', tz);
+      const dayOfWeek = dayDate.getDay();
+
+      for (const routine of enabledRoutines) {
+        if (routine.daysOfWeek && routine.daysOfWeek.length > 0 && !routine.daysOfWeek.includes(dayOfWeek)) {
+          continue;
+        }
+        let rStart = parseTimeStrToDate(dayStr, routine.startTime, tz);
+        let rEnd = parseTimeStrToDate(dayStr, routine.endTime, tz);
+        if (rEnd <= rStart) {
+          rEnd = new Date(rEnd.getTime() + 24 * 60 * 60000);
+        }
+        const prevRStart = new Date(rStart.getTime() - 24 * 60 * 60000);
+        const prevREnd = new Date(rEnd.getTime() - 24 * 60 * 60000);
+
+        if (intervalsIntersect(block.start, block.end, rStart, rEnd) ||
+            intervalsIntersect(block.start, block.end, prevRStart, prevREnd)) {
+          console.log('Validation failed: routine overlap with', routine.title, block);
+          return false;
+        }
+      }
+    }
   }
+
 
   // Check scheduled <= remaining (allowing rounding up to 30 min block)
   for (const [taskId, scheduled] of durationMap.entries()) {

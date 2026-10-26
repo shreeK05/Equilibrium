@@ -266,6 +266,36 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
               ),
             ),
             
+            if (widget.task.status == TaskStatus.completed) ...[
+              const SizedBox(height: EqTokens.space12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  icon: Icon(Icons.undo, color: colors.warning),
+                  label: Text('Reopen Task (Mark Incomplete)', style: text.labelLarge?.copyWith(color: colors.warning)),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.all(EqTokens.space16),
+                    side: BorderSide(color: colors.warning.withValues(alpha: 0.5)),
+                    shape: RoundedRectangleBorder(borderRadius: EqTokens.border8),
+                  ),
+                  onPressed: () async {
+                    final nav = Navigator.of(context);
+                    final messenger = ScaffoldMessenger.of(context);
+                    final ok = await context.read<ScheduleProvider>().reopenTask(widget.task.id);
+                    if (ok && mounted) {
+                      nav.pop();
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text('Reopened "${widget.task.title}".'),
+                          backgroundColor: colors.primary,
+                        ),
+                      );
+                    }
+                  },
+                ),
+              ),
+            ],
+            
             const SizedBox(height: EqTokens.space16),
 
             SizedBox(

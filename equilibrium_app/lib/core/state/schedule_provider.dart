@@ -225,6 +225,28 @@ class ScheduleProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> reopenTask(String id) async {
+    _setLoading(true);
+    try {
+      await _taskRepo.reopenTask(id);
+      lastApiException = null;
+      isLastFailureAmbiguous = false;
+      await fetchDashboardData();
+      return true;
+    } on ApiException catch (e) {
+      lastApiException = e;
+      isLastFailureAmbiguous = e.isAmbiguous;
+      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code, e.message);
+      return false;
+    } catch (e) {
+      isLastFailureAmbiguous = true;
+      errorMessage = ApiErrorMapper.getUserFacingMessage('INTERNAL_ERROR');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   Future<bool> recordTaskProgress(
     String id, {
     int? completedMinutes,
@@ -355,6 +377,33 @@ class ScheduleProvider extends ChangeNotifier {
     try {
       await _scheduleRepo.generateSchedule();
       await fetchDashboardData();
+      return true;
+    } on ApiException catch (e) {
+      errorMessage = ApiErrorMapper.getUserFacingMessage(e.code, e.message);
+      return false;
+    } catch (e) {
+      errorMessage = ApiErrorMapper.getUserFacingMessage('INTERNAL_ERROR');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getRoutines() async {
+    try {
+      final res = await _api.get('/routines') as Map<String, dynamic>;
+      final list = (res['routines'] as List? ?? []).cast<Map<String, dynamic>>();
+      return list;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<bool> updateRoutines(List<Map<String, dynamic>> routines) async {
+    _setLoading(true);
+    try {
+      await _api.put('/routines', body: {'routines': routines});
+      await generateSchedule();
       return true;
     } on ApiException catch (e) {
       errorMessage = ApiErrorMapper.getUserFacingMessage(e.code, e.message);

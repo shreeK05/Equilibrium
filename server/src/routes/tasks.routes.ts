@@ -38,6 +38,22 @@ tasksRouter.post('/:id/complete', validate(taskCompletionSchema), async (req: an
   }
 });
 
+tasksRouter.post('/:id/reopen', async (req: any, res, next) => {
+  try {
+    const task = await taskRepo.findById(req.params.id, req.userId);
+    if (!task) return res.status(404).json({ error: { message: 'Task not found' } });
+    const reopened = await taskRepo.safeUpdate(req.params.id, req.userId, {
+      status: 'IN_PROGRESS',
+      remainingMinutes: (task.remainingMinutes && task.remainingMinutes > 0) ? task.remainingMinutes : 30
+    });
+    res.json(reopened);
+  } catch (err: any) {
+    if (err.message?.includes('not found')) return res.status(404).json({ error: { message: err.message } });
+    next(err);
+  }
+});
+
+
 tasksRouter.post('/:id/progress', validate(taskProgressSchema), async (req: any, res, next) => {
   try {
     const operationId = req.body.operationId || req.headers['x-operation-id'] || req.headers['idempotency-key'];

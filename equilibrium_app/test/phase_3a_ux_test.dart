@@ -114,7 +114,7 @@ void main() {
       expect(find.text('Exam Preparation'), findsOneWidget);
 
       // Scroll down to reveal subsequent sliver items
-      await tester.drag(find.byType(CustomScrollView), const Offset(0, -500));
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -750));
       await tester.pumpAndSettle();
 
       expect(find.text('Import Syllabus PDF'), findsOneWidget);

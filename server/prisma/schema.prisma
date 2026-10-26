@@ -46,9 +46,14 @@ model UserConstraint {
   sleepEnd              String  // e.g., "06:00"
   bufferMinutes         Int     @default(30)
   peakEnergyWindowsJson String  // JSON array string to maintain SQLite/PG compatibility
+  routinesJson          String? // JSON array of RoutineInput for meals, breaks, exercise
+  maxDailyStudyMinutes  Int?    @default(480) // default 8 hours maximum daily workload
+  maxFocusSessionMinutes Int?   @default(120) // default 2 hours maximum single focus block
+  preferredStudyHoursJson String? // e.g. '{"start":"08:00","end":"22:00"}'
   
   user                  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
 
 model Subject {
   id          String   @id @default(uuid())

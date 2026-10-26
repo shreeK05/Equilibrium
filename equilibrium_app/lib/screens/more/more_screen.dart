@@ -13,6 +13,8 @@ import '../analytics/analytics_screen.dart';
 import '../profile/profile_screen.dart';
 import '../imports/syllabus_import_screen.dart';
 import '../imports/ics_import_screen.dart';
+import '../imports/timetable_import_screen.dart';
+import '../routines/routines_screen.dart';
 
 class MoreScreen extends StatelessWidget {
   const MoreScreen({super.key});
@@ -96,6 +98,21 @@ class MoreScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: EqTokens.space12),
 
+                  // Daily Routines & Meals
+                  _MoreCardItem(
+                    icon: CupertinoIcons.shield_lefthalf_fill,
+                    iconColor: colors.primary,
+                    title: 'Meals & Daily Routines',
+                    subtitle: 'Protected breakfast, lunch, dinner, breaks & habits',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const RoutinesScreen()),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: EqTokens.space12),
+
                   // Exams Screen
                   Consumer<ExamProvider>(
                     builder: (context, examProvider, _) {
@@ -118,6 +135,22 @@ class MoreScreen extends StatelessWidget {
                   const SizedBox(height: EqTokens.space24),
 
                   _buildSectionHeader(context, 'DATA & IMPORTS'),
+                  const SizedBox(height: EqTokens.space12),
+
+                  // College Timetable Photo Import
+                  _MoreCardItem(
+                    icon: CupertinoIcons.camera_viewfinder,
+                    iconColor: colors.primary,
+                    title: 'Import Timetable Photo / Image',
+                    subtitle: 'OCR scanner: capture class timetable photo into weekly schedule',
+                    badgeText: 'New 📸',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const TimetableImportScreen()),
+                      );
+                    },
+                  ),
                   const SizedBox(height: EqTokens.space12),
 
                   // Import Syllabus

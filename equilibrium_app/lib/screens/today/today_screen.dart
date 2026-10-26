@@ -66,8 +66,16 @@ class _TodayScreenState extends State<TodayScreen> {
     } else if (result.action == TaskProgressAction.finished) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Completed "${task.title}"!'),
+          content: Text('Completed "${task.title}"! 🎉'),
           backgroundColor: context.eqColors.success,
+          duration: const Duration(seconds: 5),
+          action: SnackBarAction(
+            label: 'Undo',
+            textColor: Colors.white,
+            onPressed: () async {
+              await context.read<ScheduleProvider>().reopenTask(task.id);
+            },
+          ),
         ),
       );
     } else if (result.action == TaskProgressAction.madeProgress) {

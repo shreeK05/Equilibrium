@@ -7,6 +7,7 @@ import '../../core/theme/theme.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/state/schedule_provider.dart';
 import '../../core/state/exam_provider.dart';
+import 'conversational_task_sheet.dart';
 
 // Standard student duration presets
 const _kDurationOptions = [15, 30, 45, 60, 90, 120];
@@ -250,6 +251,35 @@ class _CreateTaskSheetState extends State<CreateTaskSheet> {
                       Text(
                         'Quickly capture a task with smart scheduling defaults',
                         style: text.bodySmall?.copyWith(color: colors.textSecondary),
+                      ),
+                      const SizedBox(height: 6),
+                      InkWell(
+                        onTap: () {
+                          Navigator.pop(context);
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (_) => const ConversationalTaskSheet(),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: colors.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: colors.primary.withValues(alpha: 0.3)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.auto_awesome, size: 14, color: colors.primary),
+                              const SizedBox(width: 4),
+                              Text('Use Natural Language ✨', style: text.labelSmall?.copyWith(color: colors.primary, fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                        ),
                       ),
                     ],
                   ),

@@ -77,6 +77,21 @@ export function runReschedulerPipeline(
 
     if (deadlineCapacity === 0) {
       // Zero genuinely available slots before deadline
+      const isPast = task.deadline.getTime() <= now.getTime();
+      const slotsBeforeDeadline = slots.filter(s => s.start >= now && s.end <= task.deadline);
+      const blockedByRoutines = slotsBeforeDeadline.some(s => s.blockedReason === 'MEAL' || s.blockedReason === 'ROUTINE');
+
+      let reasonCode: any = 'NO_AVAILABLE_SLOTS';
+      let humanReadable = `Deferred '${task.title}' entirely. No valid time slots were available prior to the deadline after accommodating sleep and fixed commitments.`;
+
+      if (isPast) {
+        reasonCode = 'DEADLINE_IN_PAST';
+        humanReadable = `Deferred '${task.title}'. The deadline (${task.deadline.toISOString()}) has already passed.`;
+      } else if (blockedByRoutines && slotsBeforeDeadline.filter(s => s.available).length === 0) {
+        reasonCode = 'MEAL_ROUTINE_CONFLICT';
+        humanReadable = `Deferred '${task.title}'. Remaining free time before deadline conflicted with protected meal or routine hours.`;
+      }
+
       infeasibleLogs.push({
         taskId: task.id,
         decisionType: 'DEFERRED',
@@ -84,8 +99,8 @@ export function runReschedulerPipeline(
         priorityComponents: p.components,
         scheduledMinutes: 0,
         deferredMinutes: task.remainingMinutes,
-        reasonCode: 'NO_AVAILABLE_SLOTS',
-        humanReadable: `Deferred '${task.title}' entirely. No valid time slots were available prior to the deadline after accommodating sleep and fixed commitments.`
+        reasonCode,
+        humanReadable
       });
     } else if (maxAllocatableSlots === 0) {
       // Slots exist before deadline, but task-specific pacing restricts allocation to 0
@@ -140,7 +155,7 @@ export function runReschedulerPipeline(
   });
 
   // 4. Placement & Splitting
-  const placementResult = placeTasks(slots, selectedTasks, priorities, now);
+  const placementResult = placeTasks(slots, selectedTasks, priorities, now, constraints);
   const finalBlocks = [...lockedBlocks, ...placementResult.blocks];
 
   // Combine logs deterministically in input task order
